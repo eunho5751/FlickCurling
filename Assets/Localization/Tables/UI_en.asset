@@ -197,7 +197,7 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 2262749209
-    m_Localized: "Cushion tickets {b} {bn} \xB7 {w} {wn}"
+    m_Localized: "Tickets {b} {bn} \xB7 {w} {wn}"
     m_Metadata:
       m_Items:
       - rid: 4297768082125881571

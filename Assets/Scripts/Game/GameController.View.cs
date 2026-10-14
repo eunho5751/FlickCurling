@@ -30,21 +30,54 @@ namespace FlickCurling.Game
         float U(float cssPx) => cssPx / s;
         float MaxZoom => Mathf.Max(1, 8 / sFit);
 
+        // safe-area insets (notch, punch-hole, home bar), css px
+        float insL, insR, insT, insB;
+        Rect lastSafe;
+        bool lastInGame;
+        const float SideMin = 120;   // free room per side (css px) needed to move the HUD beside the sheet
+#if UNITY_EDITOR
+        /// <summary>Editor checks: a device's safe area (screen pixels) for a Game view set to that device's resolution.</summary>
+        public static Rect? SafeAreaOverride;
+
+        // statics survive entering play mode when domain reload is off: start every play session without the override
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        static void ResetSafeAreaOverride() => SafeAreaOverride = null;
+#endif
+
         void Resize(bool force)
         {
             int sw = Screen.width, sh = Screen.height;
+            var safe = Screen.safeArea;
+#if UNITY_EDITOR
+            // only while it matches the Game view it was set for; a leftover from another resolution is ignored
+            if (SafeAreaOverride.HasValue && SafeAreaOverride.Value.xMax <= sw && SafeAreaOverride.Value.yMax <= sh) safe = SafeAreaOverride.Value;
+#endif
+            // never trust a safe area outside the screen (the editor's Device Simulator can report another device's)
+            float sx0 = Mathf.Clamp(safe.xMin, 0, sw), sy0 = Mathf.Clamp(safe.yMin, 0, sh), sx1 = Mathf.Clamp(safe.xMax, sx0, sw), sy1 = Mathf.Clamp(safe.yMax, sy0, sh);
+            safe = sx1 - sx0 < sw * 0.5f || sy1 - sy0 < sh * 0.5f ? new Rect(0, 0, sw, sh) : Rect.MinMaxRect(sx0, sy0, sx1, sy1);
+            bool inGame = state != St.Menu;
             float top = hud.HudBottom;
-            if (!force && sw == lastW && sh == lastH && Mathf.Abs(top - topPx) <= 4) return;
-            lastW = sw; lastH = sh;
+            if (!force && sw == lastW && sh == lastH && safe == lastSafe && inGame == lastInGame && Mathf.Abs(top - topPx) <= 4) return;
+            lastW = sw; lastH = sh; lastSafe = safe; lastInGame = inGame;
             // css px: at least a phone-sized logical screen (about 412 x 732)
             px = Mathf.Clamp(Mathf.Min(sw / 412f, sh / 732f), 1, 4);
             cw = sw / px; ch = sh / px;
+            insL = safe.xMin / px; insR = (sw - safe.xMax) / px; insB = safe.yMin / px; insT = (sh - safe.yMax) / px;
+            hud.SetInsets(insL, insT, insR, insB);
+            // the sheet is centred, so keep the same margin on both sides
+            float side = Mathf.Max(insL, insR), safeW = cw - 2 * side;
             // pull-from-anywhere needs no room under the launch point; a modest margin keeps the stone in easy thumb reach
             maxPx = Mathf.Clamp(Mathf.Min(cw, ch) * 0.3f, 90, 150);
-            bottomPx = 72;
-            topPx = top;
-            float wFit = (cw - 20) / (W + 8);
-            sFit = Mathf.Max(0.4f, Mathf.Min(wFit, (ch - topPx - bottomPx) / (VIEW_TOP - LY)));
+            bottomPx = 72 + insB;
+            float viewH = VIEW_TOP - LY, wFit = (safeW - 20) / (W + 8);
+            // wide screens (tablets, foldables, 16:9 phones): with the top row gone, is there room beside the sheet for the HUD?
+            float sSide = Mathf.Max(0.4f, Mathf.Min(wFit, (ch - (insT + 18) - bottomPx) / viewH));
+            float freeSide = (safeW - (W + 8) * sSide) / 2;
+            bool wasSide = hud.SideMode;
+            hud.SetSideLayout(inGame && freeSide >= SideMin, freeSide - 20);
+            if (hud.SideMode != wasSide && m != null) RenderHud();   // the turn card is laid out differently in a column
+            topPx = hud.HudBottom;
+            sFit = Mathf.Max(0.4f, Mathf.Min(wFit, (ch - topPx - bottomPx) / viewH));
             if (force || state == St.Menu) { zoom = 1; cx = W / 2; cy = L / 2; camTarget = null; }
             var v = Clamp(new View { Zoom = zoom, Cx = cx, Cy = cy });
             zoom = v.Zoom; cx = v.Cx; cy = v.Cy;
@@ -57,7 +90,8 @@ namespace FlickCurling.Game
             float s2 = sFit * c.Zoom, halfW = cw / (2 * s2), halfH = ch / (2 * s2);
             float xMin = -6, xMax = W + 6, yMin = LY - bottomPx / s2, yMax = VIEW_TOP + topPx / s2;
             c.Cx = xMax - xMin <= 2 * halfW ? W / 2 : Mathf.Clamp(c.Cx, xMin + halfW, xMax - halfW);
-            c.Cy = yMax - yMin <= 2 * halfH + 1e-6f ? (yMin + yMax) / 2 : Mathf.Clamp(c.Cy, yMin + halfH, yMax - halfH);
+            // when the whole sheet fits with height to spare (tall phones), the spare goes below the launch point: more thumb room
+            c.Cy = yMax - yMin <= 2 * halfH + 1e-6f ? yMax - halfH : Mathf.Clamp(c.Cy, yMin + halfH, yMax - halfH);
             return c;
         }
 
@@ -127,7 +161,7 @@ namespace FlickCurling.Game
         {
             if (state == St.Menu || WholeVisible()) return null;
             float h = Mathf.Clamp(ch * 0.3f, 90, 170), w = h * (W + 8) / L;
-            return new Mini { X = cw - w - 10, Y = Mathf.Max(10, topPx), W = w, H = h, Ms = h / L };   // sits just under the HUD row
+            return new Mini { X = cw - w - 10 - insR, Y = Mathf.Max(10 + insT, hud.RightColumnBottom), W = w, H = h, Ms = h / L };   // under the HUD on the right
         }
 
         Mini? MiniHit(Vector2 p)

@@ -119,6 +119,28 @@ namespace FlickCurling.Game
             disc = Sprite.Create(dt, new Rect(0, 0, dt.width, dt.height), new Vector2(.5f, .5f), dt.width / 2f);
             Ui.Init(disc, stoneB, stoneW, bodyFont, displayFont);
 
+            // the table under the sheet, seen beside it on wide screens, and the sheet's drop shadow on it
+            var tt = BoardPainter.PaintTable();
+            var table = new GameObject("Table").AddComponent<SpriteRenderer>();
+            table.transform.SetParent(transform, false);
+            table.sprite = Sprite.Create(tt, new Rect(0, 0, tt.width, tt.height), new Vector2(.5f, .5f), tt.width / 60f, 0, SpriteMeshType.FullRect);
+            table.drawMode = SpriteDrawMode.Tiled;
+            table.size = new Vector2(1500, 1800);
+            table.sharedMaterial = unlitMaterial;
+            table.sortingOrder = -2;
+            table.transform.localPosition = new Vector3(W / 2, L / 2, 3);
+            var st = BoardPainter.PaintShadow();
+            const float blur = 3;
+            var shadow = new GameObject("SheetShadow").AddComponent<SpriteRenderer>();
+            shadow.transform.SetParent(transform, false);
+            shadow.sprite = Sprite.Create(st, new Rect(0, 0, st.width, st.height), new Vector2(.5f, .5f), 24 / blur, 0, SpriteMeshType.FullRect, new Vector4(24, 24, 24, 24));
+            shadow.drawMode = SpriteDrawMode.Sliced;
+            shadow.size = new Vector2(W + 8 + 2 * blur, L + 2 * blur);
+            shadow.color = new Color(0, 0, 0, 0.6f);
+            shadow.sharedMaterial = unlitMaterial;
+            shadow.sortingOrder = -1;
+            shadow.transform.localPosition = new Vector3(W / 2 + 1, L / 2 - 2, 2);
+
             var bgo = new GameObject("Board");
             bgo.transform.SetParent(transform, false);
             board = bgo.AddComponent<SpriteRenderer>();
@@ -513,6 +535,7 @@ namespace FlickCurling.Game
             string b = Loc.Team(Team.B), w = Loc.Team(Team.W);
             if (m.InLsd)
             {
+                if (hud.SideMode) { hud.SetTurn(t, Strong(NameOf(t)), Loc.T("hud.lsd"), $"{b} {FmtDist(m.Lsd.Dist[0])}\n{w} {FmtDist(m.Lsd.Dist[1])}"); return; }
                 hud.SetTurn(t, $"{Strong(Loc.T("hud.turn", ("name", NameOf(t))))}  {Loc.T("hud.lsd")}",
                     $"{b} {FmtDist(m.Lsd.Dist[0])}    {w} {FmtDist(m.Lsd.Dist[1])}", "");
                 return;
@@ -522,10 +545,19 @@ namespace FlickCurling.Game
                 int left = Mathf.Clamp(Sheet.Per - m.ThrownBy(team), 0, Sheet.Per);
                 return "<size=10>" + new string('●', left) + new string('○', Sheet.Per - left) + "</size>";
             }
+            string tickets = Loc.T("hud.tickets", ("b", b), ("bn", m.Tickets[0]), ("w", w), ("wn", m.Tickets[1]));
+            // non-breaking spaces keep "Shot 3/10" and "Black ●●○○○" together when a narrow card wraps
+            string shot = Loc.T("hud.shot", ("n", Math.Min(m.Shot + 1, Sheet.Shots)), ("total", Sheet.Shots)).Replace(' ', ' ');
+            string pipsB = b + " " + Pips(Team.B), pipsW = w + " " + Pips(Team.W);
+            if (hud.SideMode)
+            {
+                // narrow side column: the thrower (the dot shows whose turn it is), then one item per line
+                string head = m.Shot < Sheet.Shots ? NameOf(t) : Loc.T("hud.endOver");
+                hud.SetTurn(t, Strong(head), $"{shot}\n{pipsB}\n{pipsW}", tickets);
+                return;
+            }
             string who = m.Shot < Sheet.Shots ? Loc.T("hud.turn", ("name", NameOf(t))) : Loc.T("hud.endOver");
-            hud.SetTurn(t, $"{Strong(who)}  {Loc.T("hud.shot", ("n", Math.Min(m.Shot + 1, Sheet.Shots)), ("total", Sheet.Shots))}",
-                $"{b} {Pips(Team.B)}    {w} {Pips(Team.W)}",
-                Loc.T("hud.tickets", ("b", b), ("bn", m.Tickets[0]), ("w", w), ("wn", m.Tickets[1])));
+            hud.SetTurn(t, $"{Strong(who)}  {shot}", $"{pipsB}    {pipsW}", tickets);
         }
 
         // =====================================================================

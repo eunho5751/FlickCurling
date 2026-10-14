@@ -66,7 +66,7 @@ namespace FlickCurling.EditorTools
             new[] { "hud.endOver", "엔드 종료", "End over", "エンド終了" },
             new[] { "hud.shot", "샷 {n}/{total}", "Shot {n}/{total}", "ショット {n}/{total}" },
             new[] { "hud.lsd", "라스트 스톤 드로", "Last stone draw", "ラストストーンドロー" },
-            new[] { "hud.tickets", "쿠션권 {b} {bn} · {w} {wn}", "Cushion tickets {b} {bn} · {w} {wn}", "クッション券 {b} {bn}・{w} {wn}" },
+            new[] { "hud.tickets", "쿠션권 {b} {bn} · {w} {wn}", "Tickets {b} {bn} · {w} {wn}", "クッション券 {b} {bn}・{w} {wn}" },
             new[] { "hud.noRecord", "기록 없음", "No record", "記録なし" },
 
             // ---- last stone draw ----

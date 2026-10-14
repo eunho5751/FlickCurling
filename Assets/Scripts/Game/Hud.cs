@@ -30,12 +30,16 @@ namespace FlickCurling.Game
     {
         public readonly Canvas Canvas;
         readonly CanvasScaler scaler;
-        readonly RectTransform root, hudTop, scorePanel, scoreTable, br, more, toast, cardOv, cardRt, menu, menuCard, watchLv, labelLayer, miniFrame;
+        readonly RectTransform root, scorePanel, scoreTable, br, more, toast, cardOv, cardRt, menu, menuCard, watchLv, labelLayer, miniFrame;
         readonly TextMeshProUGUI scorePill, turn1, turn2, turn3, toastT, toastB, cardEyebrow, cardTitle, cardHead, cardBody, soundTxt, speedTxt;
         readonly Image turnDot, cardOvImg;
         readonly RectTransform cardActions;
         readonly Button speedBtn;
         readonly LayoutElement pillLe;
+        // safe-area root for the HUD, and the two side columns used on wide screens
+        readonly RectTransform safeRoot, safeTop, leftCol, rightCol, pillRt, turnRt;
+        bool sideMode, hudShown;
+        float insL, insT, insR, insB;
         readonly Pills modePills, mapPills, lvB, lvW;
         readonly List<(TextMeshProUGUI t, string key)> bound = new List<(TextMeshProUGUI, string)>();
         readonly List<(TextMeshProUGUI t, string code)> langButtons = new List<(TextMeshProUGUI, string)>();
@@ -58,37 +62,39 @@ namespace FlickCurling.Game
             go.AddComponent<GraphicRaycaster>();
             root = (RectTransform)go.transform;
 
+            // light vignette over the table and sheet edges
+            var vig = Ui.Rect(root, "Vignette").gameObject.AddComponent<Image>();
+            vig.sprite = Ui.Vignette; vig.raycastTarget = false; Ui.Stretch(vig.rectTransform);
             labelLayer = Ui.Rect(root, "Labels"); Ui.Stretch(labelLayer);
             miniFrame = Ui.Rect(root, "MinimapFrame");
             var mf = miniFrame.gameObject.AddComponent<Image>();
             mf.sprite = Ui.RoundStroke; mf.type = Image.Type.Sliced; mf.pixelsPerUnitMultiplier = 16f / 6; mf.color = Palette.Rgba(239, 226, 200, .25f); mf.raycastTarget = false;
             miniFrame.gameObject.SetActive(false);
+            safeRoot = Ui.Rect(root, "Safe"); Ui.Stretch(safeRoot);
 
-            // ---- top row: score pill + turn card ----
-            hudTop = Ui.Rect(root, "HudTop");
-            hudTop.anchorMin = new Vector2(0, 1); hudTop.anchorMax = new Vector2(1, 1); hudTop.pivot = new Vector2(0, 1);
-            hudTop.offsetMin = new Vector2(10, 0); hudTop.offsetMax = new Vector2(-10, -10);
-            // wraps like the prototype's flex row: the turn card drops below the score pill when they do not fit side by side
-            hudTop.gameObject.AddComponent<FlowLayout>();
-            Ui.Fit(hudTop.gameObject, false, true);
+            // ---- HUD pinned to the safe-area edges: score pill in the top-left corner, turn card in the top-right ----
+            leftCol = Column("LeftColumn", 0);
+            rightCol = Column("RightColumn", 1);
 
-            var pill = Ui.Panel(hudTop, "ScorePill", Palette.Glass, Palette.Line, 10);
+            var pill = Ui.Panel(leftCol, "ScorePill", Palette.Glass, Palette.Line, 10);
             Ui.HStack(pill.gameObject, 9, 9, 5, 5, 0, TextAnchor.MiddleLeft);
-            scorePill = Ui.NoWrap(Ui.Label(pill.transform, "", 13, Palette.Text));
+            scorePill = Ui.Label(pill.transform, "", 13, Palette.Text);
             pillLe = pill.gameObject.AddComponent<LayoutElement>();
+            pillRt = pill.rectTransform;
             var pb = pill.gameObject.AddComponent<Button>(); pb.targetGraphic = pill; pb.transition = Selectable.Transition.None;
             pb.onClick.AddListener(() => { bool open = !scorePanel.gameObject.activeSelf; ClosePopovers(); scorePanel.gameObject.SetActive(open); OnUiClick?.Invoke(); });
 
-            var turn = Ui.Panel(hudTop, "Turn", Palette.Glass, Palette.Line, 10);
+            var turn = Ui.Panel(rightCol, "Turn", Palette.Glass, Palette.Line, 10);
             Ui.VStack(turn.gameObject, 10, 10, 4, 4, 1, TextAnchor.MiddleLeft).childForceExpandWidth = false;
             var row1 = Ui.Rect(turn.transform, "Row1");
             Ui.HStack(row1.gameObject, 0, 0, 0, 0, 6, TextAnchor.MiddleLeft);
             turnDot = Ui.Dot(row1, Team.B);
-            turn1 = Ellipsis(Ui.Label(row1, "", 12, Palette.Muted));
-            turn2 = Ellipsis(Ui.Label(turn.transform, "", 11, Palette.Muted));
-            turn3 = Ellipsis(Ui.Label(turn.transform, "", 11, Palette.Muted));
+            turn1 = Flex(Ui.Label(row1, "", 12, Palette.Muted));
+            turn2 = Flex(Ui.Label(turn.transform, "", 11, Palette.Muted));
+            turn3 = Flex(Ui.Label(turn.transform, "", 11, Palette.Muted));
+            turnRt = turn.rectTransform;
 
-            scorePanel = Ui.Panel(root, "ScorePanel", Palette.Glass, Palette.Line, 10).rectTransform;
+            scorePanel = Ui.Panel(safeRoot, "ScorePanel", Palette.Glass, Palette.Line, 10).rectTransform;
             Ui.VStack(scorePanel.gameObject, 6, 6, 8, 8, 0);
             Ui.Fit(scorePanel.gameObject, true, true);
             scoreTable = Ui.Rect(scorePanel, "Table");
@@ -96,7 +102,7 @@ namespace FlickCurling.Game
             scorePanel.gameObject.SetActive(false);
 
             // ---- toast ----
-            var tImg = Ui.Panel(root, "Toast", Palette.Panel, Palette.Line, 8);
+            var tImg = Ui.Panel(safeRoot, "Toast", Palette.Panel, Palette.Line, 8);
             toast = tImg.rectTransform; tImg.raycastTarget = false;
             Ui.VStack(toast.gameObject, 14, 14, 9, 9, 2, TextAnchor.UpperCenter);
             Ui.Fit(toast.gameObject, false, true);
@@ -152,6 +158,9 @@ namespace FlickCurling.Game
 
             // ---- bottom right: settings (language, sound, menu), speed. Above the overlays, as in the prototype ----
             br = Ui.Rect(root, "HudBR");
+            // its own safe-area root, created last so the corner buttons draw above the cards and the menu
+            safeTop = Ui.Rect(root, "SafeTop"); Ui.Stretch(safeTop);
+            br.SetParent(safeTop, false);
             br.anchorMin = br.anchorMax = new Vector2(1, 0); br.pivot = new Vector2(1, 0); br.anchoredPosition = new Vector2(-12, 12);
             var bv = Ui.VStack(br.gameObject, 0, 0, 0, 0, 6, TextAnchor.LowerRight);
             bv.childForceExpandWidth = false;
@@ -191,11 +200,20 @@ namespace FlickCurling.Game
 
         TextMeshProUGUI Bind(TextMeshProUGUI t, string key) { bound.Add((t, key)); return t; }
 
-        static TextMeshProUGUI Ellipsis(TextMeshProUGUI t)
+        // a line that wraps when its card is narrower than the text
+        static TextMeshProUGUI Flex(TextMeshProUGUI t)
         {
-            Ui.NoWrap(t).overflowMode = TextOverflowModes.Ellipsis;
             var le = t.gameObject.AddComponent<LayoutElement>(); le.minWidth = 0; le.flexibleWidth = 1;
             return t;
+        }
+
+        // the turn card's width when nothing wraps
+        float TurnPreferredWidth()
+        {
+            float w = 17 + turn1.GetPreferredValues(turn1.text).x;
+            if (turn2.gameObject.activeSelf) w = Mathf.Max(w, turn2.GetPreferredValues(turn2.text).x);
+            if (turn3.gameObject.activeSelf) w = Mathf.Max(w, turn3.GetPreferredValues(turn3.text).x);
+            return w + 20 + 2;
         }
 
         // headings stay on one line and shrink for longer translations
@@ -267,31 +285,83 @@ namespace FlickCurling.Game
         public void Tick(float cssPx, float cw, float ch)
         {
             scaler.scaleFactor = cssPx;
-            // the score pill never shrinks below its text; the turn card takes what is left
-            pillLe.minWidth = scorePill.GetPreferredValues(scorePill.text).x + 18;
-            float cardW = Mathf.Min(420, cw - 32);
+            // the safe area: everything below is laid out inside it
+            float sw = cw - insL - insR, sh = ch - insT - insB;
+            if (!sideMode)
+            {
+                // top corners: the pill as wide as its text (up to 60% of the row), the turn card in what is left;
+                // a turn card that does not fit wraps its lines rather than leaving its corner
+                float rowW = sw - 20;
+                float pillW = Mathf.Min(scorePill.GetPreferredValues(scorePill.text).x + 18 + 2, rowW * 0.6f);
+                leftCol.sizeDelta = new Vector2(pillW, leftCol.sizeDelta.y);
+                rightCol.sizeDelta = new Vector2(Mathf.Min(TurnPreferredWidth(), rowW - pillW - 6), rightCol.sizeDelta.y);
+            }
+            float cardW = Mathf.Min(420, sw - 32);
             foreach (var rt in new[] { cardRt, menuCard })
             {
                 rt.sizeDelta = new Vector2(cardW, rt.sizeDelta.y);
                 // a card taller than the screen shrinks to fit rather than running off it
-                float h = rt.rect.height, room = ch - 32;
+                float h = rt.rect.height, room = sh - 32;
                 rt.localScale = Vector3.one * (h > room && h > 0 ? room / h : 1);
             }
             if (toast.gameObject.activeSelf && Time.unscaledTime > toastUntil) toast.gameObject.SetActive(false);
-            if (toast.gameObject.activeSelf) PlaceToast(cw, ch);
+            if (toast.gameObject.activeSelf) PlaceToast(sw, sh);
             var sp = scorePanel;
             sp.anchorMin = sp.anchorMax = new Vector2(0, 1); sp.pivot = new Vector2(0, 1);
-            sp.anchoredPosition = new Vector2(10, -(10 + hudTop.rect.height + 4));
+            float under = leftCol.rect.height;
+            sp.anchoredPosition = new Vector2(10, -(10 + under + 4));
         }
 
-        public bool HudVisible { set { hudTop.gameObject.SetActive(value); if (!value) scorePanel.gameObject.SetActive(false); } }
+        public bool HudVisible { set { hudShown = value; ApplyHudVisibility(); if (!value) scorePanel.gameObject.SetActive(false); } }
         public bool MenuVisible { set => menu.gameObject.SetActive(value); }
         public bool SpeedVisible { set => speedBtn.gameObject.SetActive(value); }
         public string SpeedText { set => speedTxt.text = value; }
         public string SoundText { set => soundTxt.text = value; }
 
         /// <summary>Bottom edge of the top HUD row plus a margin, in css px (the camera keeps the far end clear of it).</summary>
-        public float HudBottom => hudTop.gameObject.activeSelf ? 10 + hudTop.rect.height + 8 : 18;
+        public float HudBottom => insT + (hudShown && !sideMode ? 10 + Mathf.Max(leftCol.rect.height, rightCol.rect.height) + 8 : 18);
+
+        /// <summary>Where the right edge is free from (css px from the top): below the turn card in the side layout.</summary>
+        public float RightColumnBottom => hudShown ? insT + 10 + rightCol.rect.height + 8 : HudBottom;
+
+        public void SetInsets(float l, float t, float r, float b)
+        {
+            insL = l; insT = t; insR = r; insB = b;
+            foreach (var s in new[] { safeRoot, safeTop }) { s.offsetMin = new Vector2(l, b); s.offsetMax = new Vector2(-r, -t); }
+        }
+
+        RectTransform Column(string name, int side)
+        {
+            var col = Ui.Rect(safeRoot, name);
+            col.anchorMin = col.anchorMax = col.pivot = new Vector2(side, 1);
+            col.anchoredPosition = new Vector2(side == 0 ? 10 : -10, -10);
+            Ui.VStack(col.gameObject, 0, 0, 0, 0, 6, side == 0 ? TextAnchor.UpperLeft : TextAnchor.UpperRight);
+            Ui.Fit(col.gameObject, false, true);
+            col.gameObject.SetActive(false);
+            return col;
+        }
+
+        /// <summary>
+        /// Wide screens: the columns get a fixed width (colW, css px) and run down beside the sheet, with no top row
+        /// reserved above it. Narrow screens size the two corners to their content and reserve the row.
+        /// </summary>
+        public bool SideMode => sideMode;
+
+        public void SetSideLayout(bool side, float colW)
+        {
+            if (side)
+            {
+                leftCol.sizeDelta = new Vector2(colW, leftCol.sizeDelta.y);
+                rightCol.sizeDelta = new Vector2(colW, rightCol.sizeDelta.y);
+            }
+            sideMode = side;
+        }
+
+        void ApplyHudVisibility()
+        {
+            leftCol.gameObject.SetActive(hudShown);
+            rightCol.gameObject.SetActive(hudShown);
+        }
 
         public void ClosePopovers()
         {
@@ -405,7 +475,7 @@ namespace FlickCurling.Game
             {
                 cardOvImg.sprite = Ui.FadeUp; cardOvImg.color = Color.white;
                 cardRt.anchorMin = cardRt.anchorMax = new Vector2(0.5f, 0); cardRt.pivot = new Vector2(0.5f, 0);
-                cardRt.anchoredPosition = new Vector2(0, 16);
+                cardRt.anchoredPosition = new Vector2(0, 16 + insB);
             }
             else
             {

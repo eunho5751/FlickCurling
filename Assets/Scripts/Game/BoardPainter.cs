@@ -330,6 +330,60 @@ namespace FlickCurling.Game
             return t;
         }
 
+        /// <summary>
+        /// The table the sheet sits on: dark wooden planks running along the sheet, tileable (planks and grain are
+        /// periodic over the texture), for the room left beside and around the sheet on wide screens.
+        /// </summary>
+        public static Texture2D PaintTable(int size = 512)
+        {
+            var t = new Texture2D(size, size, TextureFormat.RGBA32, true) { name = "Table", wrapMode = TextureWrapMode.Repeat, filterMode = FilterMode.Trilinear };
+            var px = new Color[size * size];
+            var baseCol = Palette.Hex("#2b1d13");
+            const int planks = 4;
+            int pw = size / planks;
+            var r = Rng(11);
+            var tone = new float[planks];
+            var phase = new float[planks];
+            for (int p = 0; p < planks; p++) { tone[p] = 0.88f + (float)r() * 0.22f; phase[p] = (float)r() * 6.28f; }
+            const float TwoPi = Mathf.PI * 2;
+            for (int j = 0; j < size; j++)
+                for (int i = 0; i < size; i++)
+                {
+                    int p = i / pw;
+                    float u = (float)i / size, v = (float)j / size;
+                    // grain lines wander a little along the plank; integer frequencies keep the tile seamless
+                    float wobble = 0.012f * Mathf.Sin(TwoPi * 2 * v + phase[p]) + 0.006f * Mathf.Sin(TwoPi * 5 * v + 2 * phase[p]);
+                    float grain = Mathf.Sin(TwoPi * 37 * (u + wobble) + phase[p]) * 0.5f + Mathf.Sin(TwoPi * 91 * (u + wobble * 0.5f)) * 0.25f;
+                    float k = tone[p] * (1 + 0.07f * grain);
+                    int seam = i % pw;
+                    if (seam < 2 || seam > pw - 2) k *= 0.6f;   // the gap between planks
+                    var col = new Color(baseCol.r * k, baseCol.g * k, baseCol.b * k, 1);
+                    px[j * size + i] = col;
+                }
+            t.SetPixels(px);
+            t.Apply(true, true);
+            return t;
+        }
+
+        /// <summary>Soft-edged black rectangle for the sheet's drop shadow, drawn 9-sliced (border = blur).</summary>
+        public static Texture2D PaintShadow(int size = 64, int blur = 24)
+        {
+            var t = new Texture2D(size, size, TextureFormat.RGBA32, false) { name = "SheetShadow", wrapMode = TextureWrapMode.Clamp, filterMode = FilterMode.Bilinear };
+            var px = new Color[size * size];
+            for (int j = 0; j < size; j++)
+                for (int i = 0; i < size; i++)
+                {
+                    // distance outside the inner rectangle [blur, size - blur]
+                    float dx = Mathf.Max(0, Mathf.Max(blur - (i + 0.5f), (i + 0.5f) - (size - blur)));
+                    float dy = Mathf.Max(0, Mathf.Max(blur - (j + 0.5f), (j + 0.5f) - (size - blur)));
+                    float d = Mathf.Sqrt(dx * dx + dy * dy) / blur;
+                    px[j * size + i] = new Color(0, 0, 0, 1 - Mathf.SmoothStep(0, 1, d));
+                }
+            t.SetPixels(px);
+            t.Apply(false, true);
+            return t;
+        }
+
         /// <summary>White anti-aliased disc, tinted by the renderer (shadows, dots).</summary>
         public static Texture2D PaintDisc(int size = 64)
         {

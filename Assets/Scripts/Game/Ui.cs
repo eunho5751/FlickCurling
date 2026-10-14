@@ -15,7 +15,7 @@ namespace FlickCurling.Game
         // body (Noto Sans KR Regular) and display (Noto Sans KR Bold) TMP font assets; both fall back to Noto Sans JP for Japanese
         public static TMP_FontAsset Body, Display;
         static Material bodyStroke, displayStroke;
-        public static Sprite Round, RoundStroke, White, DotSprite, StoneB, StoneW, FadeUp;
+        public static Sprite Round, RoundStroke, White, DotSprite, StoneB, StoneW, FadeUp, Vignette;
         const int RoundPx = 48, RoundR = 16;
 
         public static void Init(Sprite dot, Sprite stoneB, Sprite stoneW, TMP_FontAsset body, TMP_FontAsset display)
@@ -37,6 +37,16 @@ namespace FlickCurling.Game
             }
             t.Apply();
             FadeUp = Sprite.Create(t, new Rect(0, 0, 1, 64), new Vector2(.5f, .5f), 100);
+            // light vignette: clear in the middle, darkening toward the corners
+            var v = new Texture2D(128, 128, TextureFormat.RGBA32, false) { wrapMode = TextureWrapMode.Clamp };
+            for (int j = 0; j < 128; j++)
+                for (int i = 0; i < 128; i++)
+                {
+                    float dx = (i + 0.5f) / 64f - 1, dy = (j + 0.5f) / 64f - 1, r = Mathf.Sqrt(dx * dx + dy * dy) / Mathf.Sqrt(2);
+                    v.SetPixel(i, j, Palette.Rgba(10, 6, 3, 0.42f * Mathf.SmoothStep(0, 1, Mathf.InverseLerp(0.45f, 1f, r))));
+                }
+            v.Apply();
+            Vignette = Sprite.Create(v, new Rect(0, 0, 128, 128), new Vector2(.5f, .5f), 100);
         }
 
         // canvas strokeText: a dark outline around world labels
