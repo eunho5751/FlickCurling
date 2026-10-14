@@ -1,2 +1,6 @@
 ﻿<Solution>
+  <Project Path="FlickCurling.Core.csproj" />
+  <Project Path="FlickCurling.Tests.EditMode.csproj" />
+  <Project Path="FlickCurling.Game.csproj" />
+  <Project Path="FlickCurling.Editor.csproj" />
 </Solution>
