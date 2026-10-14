@@ -1,0 +1,2023 @@
+<title>알까기 컬링</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Do+Hyeon&family=Gowun+Dodum&display=swap">
+<style>
+/* Layout: one-screen game table. Scoreboard strip on top, the sheet fills the middle, turn bar at the bottom; the dev panel slides over from the right. */
+:root{
+  color-scheme: dark;
+  --table:#20160f;
+  --panel:#2c2017;
+  --panel-2:#3a2b20;
+  --line:rgba(239,226,200,.14);
+  --text:#efe2c8;
+  --muted:#b39f84;
+  --brass:#d9a54c;
+  --brass-ink:#2a1b0c;
+  --ink-soft:#9fb2e0;
+  --ok:#9cc787;
+  --warn:#e6a85e;
+  --font-display:"Do Hyeon","Apple SD Gothic Neo","Malgun Gothic",sans-serif;
+  --font-body:"Gowun Dodum","Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;
+}
+html,body{height:100%}
+body{background:var(--table);color:var(--text);font-family:var(--font-body);font-size:14px;overflow:hidden}
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus-visible,input:focus-visible+label,input[type=range]:focus-visible,input[type=checkbox]:focus-visible{outline:2px solid var(--brass);outline-offset:2px}
+
+.app{height:100%}
+
+/* HUD floats over the field; containers let gestures through, only the panels catch taps */
+.glass{background:rgba(30,20,13,.8);border:1px solid var(--line);border-radius:10px;-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);box-shadow:0 4px 14px rgba(0,0,0,.3)}
+.hud-top{position:absolute;top:10px;left:10px;right:10px;display:flex;flex-direction:row;flex-wrap:wrap;align-items:stretch;gap:6px;pointer-events:none;z-index:2}
+.hud-top > *{pointer-events:auto}
+.score-pill{display:flex;align-items:center;gap:5px;padding:5px 9px;font-variant-numeric:tabular-nums;white-space:nowrap;font-size:13px}
+.score-pill b{font-family:var(--font-display);font-weight:400;font-size:19px;color:var(--brass);line-height:1}
+.score-pill .end{color:var(--muted);font-size:12px;margin-left:4px}
+.score-pill .chev{color:var(--muted);font-size:9px}
+.score-pill .dot{margin-right:0}
+.score-pill .hm{margin-left:2px}
+.score-panel{position:absolute;top:42px;left:0;padding:8px 6px;z-index:3}
+.score{border-collapse:collapse;font-variant-numeric:tabular-nums;font-size:13px}
+.score th,.score td{padding:3px 7px;text-align:center;border-left:1px solid var(--line)}
+.score thead th{color:var(--muted);font-weight:400;font-size:11px;letter-spacing:.06em}
+.score tbody th{text-align:left;font-weight:400;border-left:0;white-space:nowrap}
+.score td.cur,.score th.cur{background:var(--panel-2)}
+.score td.total{font-family:var(--font-display);font-size:17px;color:var(--brass)}
+.hm{display:inline-block;margin-left:5px;padding:0 5px;border-radius:3px;background:var(--brass);color:var(--brass-ink);font-size:10px;line-height:16px;vertical-align:1px}
+.dot{display:inline-block;width:11px;height:11px;border-radius:50%;margin-right:6px;vertical-align:-1px;box-shadow:inset -1px -2px 2px rgba(0,0,0,.35)}
+.dot.B{background:radial-gradient(circle at 35% 30%,#666,#111 60%)}
+.dot.W{background:radial-gradient(circle at 35% 30%,#fff,#d8d2c4 70%)}
+
+/* stage */
+.stage{position:relative;height:100%;overflow:hidden}
+canvas{display:block;width:100%;height:100%;touch-action:none;user-select:none;-webkit-user-select:none}
+.toast{position:absolute;z-index:4;left:50%;top:34%;transform:translateX(-50%);width:max-content;max-width:min(420px,calc(100vw - 32px));background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:9px 14px;box-shadow:0 8px 24px rgba(0,0,0,.4);pointer-events:none;text-align:center}
+.toast.low{top:54%}
+.toast b{display:block;font-family:var(--font-display);font-size:17px;font-weight:400;color:var(--brass);margin-bottom:2px}
+.toast span{color:var(--text);font-size:13px}
+
+.overlay{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding:16px;overflow:auto;background:rgba(20,13,8,.62)}
+.overlay.soft{align-items:flex-end;background:linear-gradient(to top,rgba(20,13,8,.75),rgba(20,13,8,0) 55%)}
+.card{width:100%;max-width:420px;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:20px;box-shadow:0 18px 48px rgba(0,0,0,.5);display:flex;flex-direction:column;gap:12px}
+.eyebrow{margin:0;color:var(--muted);font-size:11px;letter-spacing:.14em}
+.card h1,.card h2{margin:0;font-family:var(--font-display);font-weight:400;line-height:1.05;text-wrap:balance}
+.card h1{font-size:44px}
+.card h2{font-size:26px}
+.headline{margin:0;font-family:var(--font-display);font-size:34px;color:var(--brass);line-height:1.1}
+.card p{margin:0;line-height:1.55}
+.lede{color:var(--text)}
+.muted{color:var(--muted)}
+fieldset{border:0;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
+legend{padding:0;margin-bottom:6px;color:var(--muted);font-size:11px;letter-spacing:.12em}
+.pills{display:flex;flex-wrap:wrap;gap:6px}
+.pills input{position:absolute;opacity:0;pointer-events:none}
+.pills label{padding:7px 12px;border:1px solid var(--line);border-radius:999px;cursor:pointer;background:var(--panel-2);font-size:13px}
+.pills input:checked+label{background:var(--brass);color:var(--brass-ink);border-color:var(--brass)}
+.actions{display:flex;gap:8px;flex-wrap:wrap}
+.btn{padding:10px 16px;border-radius:8px;border:1px solid var(--line);background:var(--panel-2)}
+.btn.primary{background:var(--brass);color:var(--brass-ink);border-color:var(--brass);font-family:var(--font-display);font-size:18px;padding:9px 20px}
+.btn:hover{filter:brightness(1.08)}
+
+/* turn card + corner controls */
+.turn{padding:4px 10px;display:flex;flex-direction:column;justify-content:center;gap:1px;min-width:0}
+.turn-main{font-size:12px;color:var(--muted);white-space:nowrap}
+.turn-main b{font-family:var(--font-display);font-weight:400;font-size:16px;color:var(--text);margin-right:6px}
+.turn-sub{color:var(--muted);font-size:11px;display:flex;gap:0 8px;flex-wrap:wrap;white-space:nowrap}
+.pips{letter-spacing:0;font-size:10px}
+.tag{color:var(--ink-soft)}
+.tag.gold{color:var(--brass)}
+.hud-br{position:absolute;right:12px;bottom:12px;display:flex;flex-direction:column;align-items:flex-end;gap:6px;z-index:2}
+.hud-br > .btn + .btn{margin-top:0}
+.hud-br > .btn{padding:6px 12px;background:rgba(44,32,23,.92);font-size:14px;line-height:1.2}
+.more{display:flex;flex-direction:column;gap:2px;padding:6px}
+.lv-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.lv-name{width:2.6em;font-size:13px}
+.lv-name .dot{margin-right:4px}
+.more .btn{text-align:left;background:transparent;border-color:transparent;padding:8px 12px;font-size:13px}
+.more .btn:hover{background:var(--panel-2)}
+.spin{display:flex;align-items:center;gap:4px;padding:4px}
+.spin-label{color:var(--muted);font-size:11px;padding:0 4px 0 6px}
+.spin .btn{padding:6px 9px;font-size:13px;background:transparent;border-color:transparent}
+.spin .btn[aria-pressed="true"]{background:var(--brass);color:var(--brass-ink);border-color:var(--brass)}
+
+/* dev panel */
+.dev{position:fixed;top:0;right:0;bottom:0;width:min(320px,100%);background:var(--panel);border-left:1px solid var(--line);box-shadow:-12px 0 32px rgba(0,0,0,.45);overflow:auto;padding:calc(14px + env(safe-area-inset-top,0px)) 16px calc(14px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:16px;z-index:5}
+.dev-head{display:flex;justify-content:space-between;align-items:center}
+.dev h2{margin:0;font-family:var(--font-display);font-weight:400;font-size:22px}
+.dev h3{margin:0 0 8px;font-size:11px;letter-spacing:.12em;color:var(--muted);font-weight:400}
+.dev section{display:flex;flex-direction:column;gap:10px}
+.sw{display:flex;align-items:center;gap:8px;cursor:pointer}
+.sw input{width:18px;height:18px;accent-color:var(--brass)}
+.sl{display:grid;grid-template-columns:1fr auto;gap:4px 8px;align-items:center}
+.sl label{font-size:13px}
+.sl output{font-variant-numeric:tabular-nums;color:var(--brass)}
+.sl input{grid-column:1 / -1;width:100%;accent-color:var(--brass)}
+.reach{margin:0;font-size:12px;line-height:1.6;color:var(--muted);font-variant-numeric:tabular-nums}
+.reach .ok{color:var(--ok)} .reach .warn{color:var(--warn)}
+pre{margin:0;background:var(--table);border:1px solid var(--line);border-radius:6px;padding:10px;font-size:11px;line-height:1.5;overflow-x:auto;white-space:pre}
+
+@media (max-width:520px){
+  .card h1{font-size:36px}
+  .score th,.score td{padding:3px 5px}
+}
+</style>
+
+<div class="app">
+  <main class="stage" id="stage">
+    <canvas id="cv" aria-label="경기 판"></canvas>
+    <div class="hud-top" id="hudTop">
+      <button class="glass score-pill" id="scorePill" aria-expanded="false" aria-controls="scorePanel"></button>
+      <div class="glass turn" id="turn"></div>
+      <div class="glass score-panel" id="scorePanel" hidden><table class="score" id="score" aria-label="엔드별 점수"></table></div>
+    </div>
+    <div class="toast" id="toast" hidden><b id="toastT"></b><span id="toastB"></span></div>
+    <div class="hud-br">
+      <div class="glass more" id="more" hidden>
+        <button class="btn" id="menuBtn">메뉴로 나가기</button>
+        <button class="btn" id="soundBtn">소리 켬</button>
+        <button class="btn" id="devBtn">개발자 패널</button>
+      </div>
+      <div class="glass spin" id="spinBar" role="group" aria-label="쿠션 회전" hidden>
+        <span class="spin-label">회전</span>
+        <button class="btn" id="spinShort" data-spin="-1" aria-pressed="false">짧게</button>
+        <button class="btn" id="spinNone" data-spin="0" aria-pressed="true">기본</button>
+        <button class="btn" id="spinLong" data-spin="1" aria-pressed="false">길게</button>
+      </div>
+      <button class="btn" id="speedBtn" hidden aria-label="관전 속도">1배속</button>
+      <button class="btn" id="moreBtn" aria-expanded="false" aria-controls="more">설정</button>
+    </div>
+
+    <div class="overlay" id="menu">
+      <div class="card">
+        <p class="eyebrow">웹 프로토타입 · 룰과 손맛 검증용</p>
+        <h1>알까기 컬링</h1>
+        <p class="lede">바둑알을 튕겨 상대 알은 쳐내고 내 알만 중앙에 남기세요. 4엔드, 엔드당 10샷(1인당 알 5개)이며 중앙에 가장 가까운 쪽만 득점합니다.</p>
+        <p class="muted">최소 라인을 넘지 못하거나 백 라인을 넘어간 알은 무효입니다. 측벽 쿠션은 허용됩니다.</p>
+        <fieldset>
+          <legend>모드</legend>
+          <div class="pills">
+            <input type="radio" name="mode" id="m-pvp" value="pvp" checked><label for="m-pvp">2인 대전</label>
+            <input type="radio" name="mode" id="m-easy" value="easy"><label for="m-easy">AI 쉬움</label>
+            <input type="radio" name="mode" id="m-normal" value="normal"><label for="m-normal">AI 보통</label>
+            <input type="radio" name="mode" id="m-hard" value="hard"><label for="m-hard">AI 어려움</label>
+            <input type="radio" name="mode" id="m-watch" value="watch"><label for="m-watch">AI 관전</label>
+          </div>
+        </fieldset>
+        <fieldset id="watchLv" hidden>
+          <legend>관전할 AI 난이도</legend>
+          <div class="lv-row"><span class="lv-name"><span class="dot B"></span>흑</span>
+            <div class="pills">
+              <input type="radio" name="lvB" id="lvB-easy" value="easy"><label for="lvB-easy">쉬움</label>
+              <input type="radio" name="lvB" id="lvB-normal" value="normal"><label for="lvB-normal">보통</label>
+              <input type="radio" name="lvB" id="lvB-hard" value="hard" checked><label for="lvB-hard">어려움</label>
+            </div></div>
+          <div class="lv-row"><span class="lv-name"><span class="dot W"></span>백</span>
+            <div class="pills">
+              <input type="radio" name="lvW" id="lvW-easy" value="easy"><label for="lvW-easy">쉬움</label>
+              <input type="radio" name="lvW" id="lvW-normal" value="normal"><label for="lvW-normal">보통</label>
+              <input type="radio" name="lvW" id="lvW-hard" value="hard" checked><label for="lvW-hard">어려움</label>
+            </div></div>
+        </fieldset>
+        <fieldset>
+          <legend>맵</legend>
+          <div class="pills">
+            <input type="radio" name="map" id="p-base" value="base" checked><label for="p-base">기본</label>
+            <input type="radio" name="map" id="p-bumper" value="bumper"><label for="p-bumper">범퍼</label>
+            <input type="radio" name="map" id="p-zones" value="zones"><label for="p-zones">모래·빙판</label>
+            <input type="radio" name="map" id="p-kink" value="kink"><label for="p-kink">꺾인 측벽</label>
+            <input type="radio" name="map" id="p-random" value="random"><label for="p-random">랜덤</label>
+          </div>
+        </fieldset>
+        <div class="actions"><button class="btn primary" id="startBtn">경기 시작</button></div>
+      </div>
+    </div>
+
+    <div class="overlay" id="cardOv" hidden>
+      <div class="card">
+        <p class="eyebrow" id="cardEyebrow"></p>
+        <h2 id="cardTitle"></h2>
+        <p class="headline" id="cardHead"></p>
+        <p id="cardBody"></p>
+        <div class="actions" id="cardActions"></div>
+      </div>
+    </div>
+  </main>
+
+</div>
+
+<aside class="dev" id="dev" hidden aria-label="개발자 패널">
+  <div class="dev-head"><h2>개발자 패널</h2><button class="btn" id="devClose">닫기</button></div>
+  <section>
+    <h3>테스트 토글</h3>
+    <label class="sw"><input type="checkbox" id="optAim"> 조준선 (첫 충돌 지점까지)</label>
+    <label class="sw"><input type="checkbox" id="optFgz"> 프리 가드 존 (상대 가드 제거 금지)</label>
+    <label class="sw"><input type="checkbox" id="optBan"> 보호 기간 쿠션 금지</label>
+    <label class="sw"><input type="checkbox" id="optBlank"> 블랭크 엔드면 해머 이동 (믹스 더블 규칙)</label>
+    <label class="sw"><input type="checkbox" id="optLsd"> 라스트 스톤 드로로 1엔드 해머 결정 (끄면 동전)</label>
+    <label class="sw"><input type="checkbox" id="optPlaced"> 선공 보너스 가드 (해머 없는 쪽이 가드 1개를 깔고 시작)</label>
+    <label class="sw"><input type="checkbox" id="optPlacedHouse"> └ 해머 쪽 하우스 알도 배치 (믹스 더블식, 비교용)</label>
+    <div class="sl"><label for="slFgz">프리 가드 존 샷 수 (엔드 처음 N샷)</label><output id="oFgz"></output><input type="range" id="slFgz" min="1" max="6" step="1"></div>
+    <label class="sw"><input type="checkbox" id="optGutter"> 열린 측벽 (가드 존 옆 벽 없음, 나가면 추락)</label>
+    <label class="sw"><input type="checkbox" id="optLanes"> 발사 라인 선택 (좌·중·우, 알을 옆으로 끌어 변경)</label>
+    <label class="sw"><input type="checkbox" id="optTicket"> 쿠션권 (측벽에 닿는 샷은 쿠션권 1장 사용)</label>
+    <div class="sl"><label for="slTicket">쿠션권 수 (엔드당 1인)</label><output id="oTicket"></output><input type="range" id="slTicket" min="1" max="3" step="1"></div>
+    <label class="sw"><input type="checkbox" id="optRails"> 쿠션 구간 (탄력 레일만 튕김)</label>
+    <fieldset>
+      <legend>탄력 레일 배치</legend>
+      <div class="pills">
+        <input type="radio" name="railLayout" id="rlLow" value="low"><label for="rlLow">아래 벽</label>
+        <input type="radio" name="railLayout" id="rlTwo" value="two"><label for="rlTwo">두 구간 (이전)</label>
+      </div>
+    </fieldset>
+    <div class="sl"><label for="slLive">아래 벽 탄력 레일 끝 (최소 라인 = 64)</label><output id="oLive"></output><input type="range" id="slLive" min="64" max="130" step="2"></div>
+    <label class="sw"><input type="checkbox" id="optSpin"> 회전 (쿠션 짧게 / 길게)</label>
+  </section>
+  <section>
+    <h3>물리 수치</h3>
+    <div class="sl"><label for="slDecel">마찰 (감속, 단위/s²)</label><output id="oDecel"></output><input type="range" id="slDecel" min="20" max="150" step="1"></div>
+    <div class="sl"><label for="slStone">알끼리 반발 계수</label><output id="oStone"></output><input type="range" id="slStone" min="0.5" max="1" step="0.01"></div>
+    <div class="sl"><label for="slWall">측벽 반발 계수</label><output id="oWall"></output><input type="range" id="slWall" min="0.3" max="1" step="0.01"></div>
+    <fieldset class="seg-field">
+      <legend>반사 방식</legend>
+      <div class="pills">
+        <input type="radio" name="bounce" id="bPhys" value="phys"><label for="bPhys">물리</label>
+        <input type="radio" name="bounce" id="bMirror" value="mirror"><label for="bMirror">거울</label>
+      </div>
+      <p class="reach" id="bounceNote"></p>
+    </fieldset>
+    <div class="sl"><label for="slVmax">최대 세기 (초속, 단위/s)</label><output id="oVmax"></output><input type="range" id="slVmax" min="120" max="320" step="1"></div>
+    <p class="reach" id="reach"></p>
+    <div class="actions"><button class="btn" id="devReset">기본값으로</button></div>
+  </section>
+  <section>
+    <h3>Unity 이식용 값</h3>
+    <pre id="devJson"></pre>
+    <div class="actions"><button class="btn" id="devCopy">값 복사</button></div>
+  </section>
+</aside>
+
+<script>
+(() => {
+'use strict';
+
+/* ================= constants (world units: sheet width = 100) ================= */
+const W = 100, L = 222, HOG = 64, BACK = 200, R = 28, SR = 4, MAXDRAG = 36, DT = 1 / 180;
+const TEE = { x: 50, y: 172 }, LAUNCH = { x: 50, y: 14 };
+// launch lanes: the shooter picks left / centre / right on the start line. LAUNCH.x is moved to the chosen lane
+// for each shot (the AI moves it temporarily while it searches). +-15 keeps the bonus guard across the straight line to the button.
+const LANES = [35, 50, 65];
+const launchXs = () => (opts.lanes ? LANES : [LAUNCH.x]);
+const nearestLane = x => LANES.reduce((a, b) => (Math.abs(b - x) < Math.abs(a - x) ? b : a));
+const SHOTS = 10, PER = SHOTS / 2, ENDS = 4;
+const DEFAULTS = { decel: 60, eStone: 0.9, eWall: 0.75, vmax: 197 };
+const TEAM = { B: '흑', W: '백' };
+const other = t => (t === 'B' ? 'W' : 'B');
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
+
+const P = { ...DEFAULTS };
+const opts = { aim: true, fgz: false, placed: true, placedHouse: false, fgzShots: 4, sound: true, gutter: false, ticket: true, ticketCount: 2, lanes: true, rails: true, railLayout: 'low', liveTop: 80, cushionBan: false, spin: false, mirror: false, blankSwitch: true, lsd: true };
+try {
+  const saved = JSON.parse(localStorage.getItem('alkkagi-curling-dev-v7') || 'null');
+  if (saved) { Object.assign(P, saved.P || {}); Object.assign(opts, saved.opts || {}); }
+} catch (e) {}
+function saveDev() { try { localStorage.setItem('alkkagi-curling-dev-v7', JSON.stringify({ P, opts })); } catch (e) {} }
+// free guard zone: protects guards from removal AND bans cushions for its first opts.fgzShots shots of the end
+const fgzActive = () => opts.fgz && G.shot < opts.fgzShots && G.shot < SHOTS;
+const cushionBanned = () => !!opts.cushionBan && fgzActive();
+
+/* ================= maps ================= */
+const seg = (x1, y1, x2, y2) => ({ x1, y1, x2, y2 });
+const poly = pts => pts.slice(1).map((p, i) => seg(pts[i][0], pts[i][1], p[0], p[1]));
+const TOPY = L + 60;
+const BASE_WALLS = [seg(0, 0, 0, TOPY), seg(W, 0, W, TOPY), seg(0, 0, W, 0)];
+const LEFT_KINK = [[0, 0], [0, 84], [11, 100], [11, 116], [0, 132], [0, TOPY]];
+const RIGHT_KINK = LEFT_KINK.map(([x, y]) => [W - x, y]);
+const MAPS = {
+  base: { name: '기본', walls: BASE_WALLS, posts: [], zones: [], kinks: [] },
+  bumper: { name: '범퍼', walls: BASE_WALLS, zones: [], kinks: [],
+    posts: [{ x: 27, y: 108, r: 4 }, { x: 73, y: 108, r: 4 }, { x: 13, y: 160, r: 3.5 }, { x: 87, y: 160, r: 3.5 }] },
+  zones: { name: '모래·빙판', walls: BASE_WALLS, posts: [], kinks: [],
+    zones: [
+      { kind: 'sand', x1: 32, y1: 92, x2: 68, y2: 116, m: 2.6 },
+      { kind: 'ice', x1: 0, y1: 100, x2: 16, y2: 170, m: 0.35 },
+      { kind: 'ice', x1: 84, y1: 100, x2: 100, y2: 170, m: 0.35 }
+    ] },
+  kink: { name: '꺾인 측벽', walls: [...poly(LEFT_KINK), ...poly(RIGHT_KINK), seg(0, 0, W, 0)], posts: [], zones: [],
+    kinks: [LEFT_KINK.slice(1, 5), RIGHT_KINK.slice(1, 5)] }
+};
+function zoneMult(map, x, y) {
+  for (const z of map.zones) if (x >= z.x1 && x <= z.x2 && y >= z.y1 && y <= z.y2) return z.m;
+  return 1;
+}
+// Open side test: no side rails beside the guard zone (min line .. front of the house).
+// A stone whose centre leaves the sheet there falls off and is removed.
+const GAP_Y0 = HOG, GAP_Y1 = TEE.y - R;
+function clipOutGap(g) {
+  const lo = Math.min(g.y1, g.y2), hi = Math.max(g.y1, g.y2);
+  if (hi <= GAP_Y0 || lo >= GAP_Y1) return [g];
+  if (g.y1 === g.y2) return [];
+  const at = y => { const t = (y - g.y1) / (g.y2 - g.y1); return { x: g.x1 + t * (g.x2 - g.x1), y }; };
+  const out = [];
+  const a = { x: g.x1, y: g.y1 }, b = { x: g.x2, y: g.y2 };
+  const [p, q] = g.y1 < g.y2 ? [a, b] : [b, a];
+  if (p.y < GAP_Y0) { const c = at(GAP_Y0); out.push(seg(p.x, p.y, c.x, c.y)); }
+  if (q.y > GAP_Y1) { const c = at(GAP_Y1); out.push(seg(c.x, c.y, q.x, q.y)); }
+  return out;
+}
+// Rail windows test: only these stretches of side rail are lively; the rest is dead rail that soaks up the stone.
+// Low window: banks that come in behind a centre guard. High window: shallow banks into the back of the house.
+// 'low': only the side rails from the launch end up to opts.liveTop are lively. A bounce that low has to cross the
+// guard zone diagonally on its way to the house, so guards there can block it. 'two': the earlier two-window test.
+const railWindows = () => opts.railLayout === 'two' ? [[72, 96], [150, 172]] : [[0, opts.liveTop]];
+const DEAD_E = 0.15, DEAD_SLIDE = 0.45, SPIN_K = 0.35;
+const isBottomWall = g => g.y1 === 0 && g.y2 === 0;
+const inWindow = y => railWindows().some(([a, b]) => y >= a && y <= b);
+function splitRails(g) {
+  if (isBottomWall(g) || g.y1 === g.y2) return [g];
+  const lo = Math.min(g.y1, g.y2), hi = Math.max(g.y1, g.y2);
+  const cuts = [lo, ...railWindows().flat().filter(y => y > lo && y < hi), hi].sort((a, b) => a - b);
+  const at = y => g.x1 + (y - g.y1) / (g.y2 - g.y1) * (g.x2 - g.x1);
+  const out = [];
+  for (let i = 0; i < cuts.length - 1; i++) {
+    const a = cuts[i], b = cuts[i + 1];
+    if (b - a < 1e-6) continue;
+    out.push({ ...seg(at(a), a, at(b), b), dead: !inWindow((a + b) / 2) });
+  }
+  return out;
+}
+function buildField(base) {
+  let walls = base.walls, kinks = base.kinks;
+  if (opts.gutter) { walls = walls.flatMap(clipOutGap); kinks = []; }
+  if (opts.rails) walls = walls.flatMap(splitRails);
+  return { ...base, walls, kinks, gutter: !!opts.gutter, rails: !!opts.rails };
+}
+
+/* ================= physics (deterministic, fixed step) ================= */
+function hitSeg(s, g, ev) {
+  const dx = g.x2 - g.x1, dy = g.y2 - g.y1;
+  const t = clamp(((s.x - g.x1) * dx + (s.y - g.y1) * dy) / (dx * dx + dy * dy), 0, 1);
+  const qx = g.x1 + t * dx, qy = g.y1 + t * dy;
+  let nx = s.x - qx, ny = s.y - qy;
+  const d = Math.hypot(nx, ny);
+  if (d >= SR || d === 0) return;
+  nx /= d; ny /= d;
+  s.x = qx + nx * SR; s.y = qy + ny * SR;
+  const vn = s.vx * nx + s.vy * ny;
+  if (vn < 0) {
+    const e = g.dead ? DEAD_E : P.eWall;
+    if (opts.mirror && !g.dead) {
+      // mirror mode: angle out = angle in; restitution only takes speed off (dead rails stay physical)
+      s.vx -= 2 * vn * nx; s.vy -= 2 * vn * ny;
+      s.vx *= e; s.vy *= e;
+    } else {
+      // physical: only the part heading into the wall loses energy, so the rebound lies flatter
+      s.vx -= (1 + e) * vn * nx; s.vy -= (1 + e) * vn * ny;
+    }
+    // dead rail eats the slide along the wall; spin (lively rail only) stretches or shortens it
+    if (!isBottomWall(g)) {
+      const k = g.dead ? DEAD_SLIDE : 1 + (s.spin || 0) * SPIN_K;
+      if (k !== 1) { const tx = -ny, ty = nx, vt = s.vx * tx + s.vy * ty; s.vx += (k - 1) * vt * tx; s.vy += (k - 1) * vt * ty; }
+      s.spin = 0; // spin is spent on the first rail it meets
+    }
+    if (ev) ev.wall(s, -vn, g);
+  }
+}
+function hitPost(s, p, ev) {
+  let nx = s.x - p.x, ny = s.y - p.y;
+  const d = Math.hypot(nx, ny), min = SR + p.r;
+  if (d >= min || d === 0) return;
+  nx /= d; ny /= d;
+  s.x = p.x + nx * min; s.y = p.y + ny * min;
+  const vn = s.vx * nx + s.vy * ny;
+  if (vn < 0) {
+    s.vx -= (1 + P.eStone) * vn * nx; s.vy -= (1 + P.eStone) * vn * ny;
+    if (ev) ev.post(s, -vn);
+  }
+}
+function hitPair(a, b, ev) {
+  let nx = b.x - a.x, ny = b.y - a.y;
+  const d2 = nx * nx + ny * ny, min = 2 * SR;
+  if (d2 >= min * min) return;
+  const d = Math.sqrt(d2) || 1e-6;
+  nx /= d; ny /= d;
+  const ov = (min - d) / 2;
+  a.x -= nx * ov; a.y -= ny * ov; b.x += nx * ov; b.y += ny * ov;
+  const vn = (b.vx - a.vx) * nx + (b.vy - a.vy) * ny;
+  if (vn < 0) {
+    const j = -(1 + P.eStone) * vn / 2;
+    a.vx -= j * nx; a.vy -= j * ny; b.vx += j * nx; b.vy += j * ny;
+    if (ev) ev.hit(a, b, j);
+  }
+}
+function step(stones, map, ev) {
+  for (const s of stones) {
+    if (!s.live) continue;
+    const sp = Math.hypot(s.vx, s.vy);
+    if (sp === 0) continue;
+    const ns = sp - P.decel * zoneMult(map, s.x, s.y) * DT;
+    if (ns <= 0) { s.vx = 0; s.vy = 0; continue; }
+    const f = ns / sp;
+    s.vx *= f; s.vy *= f;
+    s.x += s.vx * DT; s.y += s.vy * DT;
+  }
+  for (const s of stones) {
+    if (!s.live) continue;
+    for (const g of map.walls) hitSeg(s, g, ev);
+    for (const p of map.posts) hitPost(s, p, ev);
+  }
+  for (let i = 0; i < stones.length; i++) {
+    const a = stones[i];
+    if (!a.live) continue;
+    for (let j = i + 1; j < stones.length; j++) if (stones[j].live) hitPair(a, stones[j], ev);
+  }
+  for (const s of stones) {
+    if (!s.live) continue;
+    if (s.y - SR > L + 1) { s.live = false; s.flew = true; s.vx = 0; s.vy = 0; }
+    else if (map.gutter && (s.x < 0 || s.x > W)) { // only reachable through the open side
+      s.live = false; s.fell = true; s.vx = 0; s.vy = 0;
+      if (ev && ev.fall) ev.fall(s);
+    }
+  }
+}
+const anyMoving = stones => stones.some(s => s.live && (s.vx !== 0 || s.vy !== 0));
+function simulate(stones, map, ev = null) {
+  for (let i = 0; i < 180 * 25 && anyMoving(stones); i++) step(stones, map, ev);
+}
+
+/* ================= rules ================= */
+function inGuardZone(s) { return s.y - SR >= HOG && s.y < TEE.y && dist(s, TEE) > R + SR; }
+// The min-line rule applies only to the stone just delivered (as in curling's hog-line rule);
+// a stone already in play that gets knocked back short of the line stays in play.
+function outReason(s, deliveredId) {
+  if (s.fell) return 'fall';
+  if (s.flew || s.y - SR > BACK) return 'back';
+  if (s.id === deliveredId && s.y - SR < HOG) return 'hog';
+  return null;
+}
+// Judge after every stone has stopped. Pure: does not mutate.
+function judge(stones, protectedIds, deliveredId) {
+  const removed = [];
+  for (const s of stones) {
+    if (!s.live && !s.flew && !s.fell) continue;
+    const why = outReason(s, deliveredId);
+    if (why) removed.push({ s, why });
+  }
+  const ids = new Set(removed.map(r => r.s.id));
+  const violation = protectedIds.some(id => ids.has(id));
+  return { removed, ids, violation };
+}
+function scoring(stones) {
+  const list = stones.filter(s => s.live).map(s => ({ s, d: dist(s, TEE) }))
+    .filter(o => o.d <= R + SR).sort((a, b) => a.d - b.d);
+  if (!list.length) return { team: null, points: 0, list, ids: [] };
+  const team = list[0].s.team;
+  const opp = list.find(o => o.s.team !== team);
+  if (opp && Math.abs(opp.d - list[0].d) < 1e-6) return { team: null, points: 0, list, ids: [], tie: true };
+  const lim = opp ? opp.d : Infinity;
+  const sc = list.filter(o => o.s.team === team && o.d < lim);
+  return { team, points: sc.length, list, ids: sc.map(o => o.s.id) };
+}
+
+/* ================= game state ================= */
+const G = {
+  state: 'menu', mode: 'pvp', mapKey: 'base', map: MAPS.base,
+  end: 1, shot: 0, hammer: 'W', cur: 'B', scores: { B: [], W: [] },
+  stones: [], nextId: 1, snapshot: [], protectedIds: [], shotId: null, cushions: 0,
+  fades: [], floats: [], measure: null, restore: null, aiPull: null, settleT: 0,
+  token: 0, hint: true, drag: null, aimHit: null,
+  lane: { B: 50, W: 50 }, laneTo: null, // launch lane per side (lane test rule)
+  tickets: { B: 2, W: 2 }, wallTouched: false, foul: false, // cushion tickets (test rule)
+  spinSel: 0 // -1 short rebound, 0 default, 1 long rebound (spin test)
+};
+const SPIN_NAME = { '-1': '쿠션 짧게', '0': '', '1': '쿠션 길게' };
+const isAI = team => !!(G.ai && G.ai[team]);
+const LV_NAME = { easy: '쉬움', normal: '보통', hard: '어려움' };
+const watching = () => G.mode === 'watch';
+const speed = () => (watching() ? G.speed || 1 : 1);
+const nameOf = team => TEAM[team] + (isAI(team) ? '(AI)' : '');
+const shooter = () => (G.shot % 2 === 0 ? other(G.hammer) : G.hammer);
+const endLabel = n => (n <= ENDS ? `${n}엔드` : '연장');
+const total = t => G.scores[t].reduce((a, b) => a + b, 0);
+const thrownBy = t => { let n = 0; for (let k = 0; k < G.shot; k++) if ((k % 2 === 0 ? other(G.hammer) : G.hammer) === t) n++; return n; };
+
+/* ================= DOM ================= */
+const $ = id => document.getElementById(id);
+const cv = $('cv'), ctx = cv.getContext('2d');
+const stage = $('stage');
+
+let toastTimer = 0;
+function toast(title, body, ms = 2400, low = false) {
+  $('toastT').textContent = title; $('toastB').textContent = body || '';
+  $('toast').classList.toggle('low', !!low);   // low: sit below the house so the stone being explained stays visible
+  $('toast').hidden = false;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { $('toast').hidden = true; }, ms);
+}
+let cardSeq = 0;
+function showCard({ eyebrow = '', title = '', head = '', body = '', soft = false, buttons = [] }) {
+  const seq = ++cardSeq, auto = watching() && buttons.length && !G.noAuto;
+  G.noAuto = false;
+  if (auto) {
+    const tok = G.token;
+    setTimeout(() => { if (tok === G.token && seq === cardSeq && !$('cardOv').hidden) { hideCard(); buttons[0].onClick(); } }, 2600 / speed());
+  }
+  $('cardEyebrow').textContent = eyebrow;
+  $('cardTitle').textContent = title;
+  $('cardHead').textContent = head; $('cardHead').hidden = !head;
+  $('cardBody').textContent = body; $('cardBody').hidden = !body;
+  const box = $('cardActions'); box.innerHTML = '';
+  buttons.forEach((b, i) => {
+    const el = document.createElement('button');
+    el.className = 'btn' + (i === 0 ? ' primary' : '');
+    el.id = 'cardBtn' + i;
+    el.textContent = b.label;
+    el.addEventListener('click', () => { hideCard(); audio(); b.onClick(); });
+    box.appendChild(el);
+  });
+  $('cardOv').classList.toggle('soft', soft);
+  $('cardOv').hidden = false;
+  setTimeout(() => { const f = $('cardBtn0'); if (f) f.focus({ preventScroll: true }); }, 30);
+}
+function hideCard() { $('cardOv').hidden = true; }
+
+function renderScore() {
+  const ends = Math.max(ENDS, G.end, G.scores.B.length);
+  let h = '<thead><tr><th></th>';
+  for (let i = 1; i <= ends; i++) h += `<th class="${G.state !== 'menu' && i === G.end ? 'cur' : ''}">${i <= ENDS ? i : '연장'}</th>`;
+  h += '<th>합</th></tr></thead><tbody>';
+  for (const t of ['B', 'W']) {
+    h += `<tr><th><span class="dot ${t}"></span>${nameOf(t)}${G.state !== 'menu' && G.hammer === t ? '<span class="hm">해머</span>' : ''}</th>`;
+    for (let i = 1; i <= ends; i++) {
+      const v = G.scores[t][i - 1];
+      h += `<td class="${G.state !== 'menu' && i === G.end ? 'cur' : ''}">${v === undefined ? '' : v}</td>`;
+    }
+    h += `<td class="total">${total(t)}</td></tr>`;
+  }
+  $('score').innerHTML = h + '</tbody>';
+  const hm = t => (G.state !== 'menu' && G.hammer === t ? '<span class="hm">해머</span>' : '');
+  $('scorePill').innerHTML = `흑${hm('B')} <b>${total('B')}</b><span class="muted">:</span><b>${total('W')}</b> 백${hm('W')}` +
+    `<span class="end">${G.state === 'menu' ? '대기' : endLabel(G.end)}</span><span class="chev" aria-hidden="true">▼</span>`;
+  $('scorePill').setAttribute('aria-label', `점수 흑 ${total('B')} 대 백 ${total('W')}, 엔드별 점수 보기`);
+}
+let lastTurnHTML = '';
+function renderTurn() {
+  let html;
+  if (G.state === 'menu') {
+    html = '<div class="turn-main"><b>대기 중</b></div>';
+  } else if (G.inLSD) {
+    html = `<div class="turn-main"><span class="dot ${G.cur}"></span><b>${nameOf(G.cur)} 차례</b><span class="muted">라스트 스톤 드로</span></div>` +
+      `<div class="turn-sub"><span>흑 ${fmtDist(G.lsd.dist.B)}</span><span>백 ${fmtDist(G.lsd.dist.W)}</span></div>`;
+  } else {
+    const t = G.cur;
+    const pips = team => { const left = clamp(PER - thrownBy(team), 0, PER); return '●'.repeat(left) + '○'.repeat(PER - left); };
+    // compact card: whose turn + shot number, then stones left (the end number lives in the score pill;
+    // guard protection and the cushion ban are shown on the board itself)
+    const who = G.shot < SHOTS ? `<b>${nameOf(t)} 차례</b>` : '<b>엔드 종료</b>';
+    html = `<div class="turn-main"><span class="dot ${t}"></span>${who}<span class="muted">샷 ${Math.min(G.shot + 1, SHOTS)}/${SHOTS}</span></div>` +
+      `<div class="turn-sub"><span>흑 <span class="pips">${pips('B')}</span></span><span>백 <span class="pips">${pips('W')}</span></span>` +
+      `</div>${opts.ticket ? `<div class="turn-sub"><span>쿠션권 흑 ${G.tickets.B} · 백 ${G.tickets.W}</span></div>` : ''}`;
+  }
+  if (html !== lastTurnHTML) { $('turn').innerHTML = html; lastTurnHTML = html; }
+  updateSpinBar();
+}
+function updateSpinBar() {
+  const show = !!opts.spin && G.state === 'aim';
+  if ($('spinBar').hidden === show) $('spinBar').hidden = !show;
+  for (const b of $('spinBar').querySelectorAll('button')) b.setAttribute('aria-pressed', String(Number(b.dataset.spin) === G.spinSel));
+}
+function renderHud() {
+  renderScore(); renderTurn();
+  // the camera keeps the far end of the sheet clear of the top HUD; re-fit if its height changed
+  if (g.cw && Math.abs(hudBottom() - g.topPx) > 4) resize();
+}
+function hudBottom() { return $('hudTop').getBoundingClientRect().bottom - stage.getBoundingClientRect().top + 8; }
+
+/* ================= sound (generated) ================= */
+let ac = null, noiseBuf = null, lastSound = 0;
+function audio() {
+  if (!opts.sound) return null;
+  try {
+    if (!ac) {
+      ac = new (window.AudioContext || window.webkitAudioContext)();
+      noiseBuf = ac.createBuffer(1, Math.floor(ac.sampleRate * 0.08), ac.sampleRate);
+      const d = noiseBuf.getChannelData(0);
+      for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / d.length, 3);
+    }
+    if (ac.state === 'suspended') ac.resume();
+  } catch (e) { return null; }
+  return ac;
+}
+function blip(vol, freq, q = 6, len = 0.06) {
+  const a = opts.sound && ac; if (!a || vol < 0.02) return;
+  const now = performance.now(); if (now - lastSound < 18) return; lastSound = now;
+  const src = a.createBufferSource(); src.buffer = noiseBuf;
+  const bp = a.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = freq; bp.Q.value = q;
+  const g = a.createGain(); const t = a.currentTime;
+  g.gain.setValueAtTime(Math.min(1, vol) * 0.9, t); g.gain.exponentialRampToValueAtTime(0.001, t + len);
+  src.connect(bp).connect(g).connect(a.destination); src.start(t); src.stop(t + len + 0.02);
+}
+function chime(n) {
+  const a = opts.sound && ac; if (!a) return;
+  const o = a.createOscillator(), g = a.createGain(), t = a.currentTime;
+  o.type = 'triangle'; o.frequency.value = 660 * Math.pow(1.26, n - 1);
+  g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.12, t + 0.01); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.35);
+  o.connect(g).connect(a.destination); o.start(t); o.stop(t + 0.4);
+}
+const liveEv = {
+  hit(a, b, j) {
+    blip(j / 70, 2600, 4, 0.05);
+    if (a.id === G.shotId || b.id === G.shotId) G.shotHitStone = true;   // later wall touches are not cushions
+  },
+  post(s, vn) { blip(vn / 70, 1500, 5, 0.07); },
+  wall(s, vn, g) {
+    blip(vn / 90, 420, 2, 0.09);
+    if (s.id !== G.shotId || G.state !== 'moving' || isBottomWall(g)) return;
+    // cushion ticket: the first wall touch of the shot uses the ticket, or fouls without one
+    // free guard zone: no cushions while it is active
+    // only a direct cushion counts: the shot stone reaching a side wall before it has touched any stone
+    const direct = !G.shotHitStone;
+    if (direct && cushionBanned() && !G.foul) {
+      G.foul = true; G.foulReason = 'fgz';
+      G.floats.push({ x: s.x, y: s.y - 6, text: '쿠션 금지', t: 0 });
+    }
+    if (direct && opts.ticket && !G.wallTouched && !G.foul) {
+      G.wallTouched = true;
+      if (G.tickets[s.team] > 0) { G.tickets[s.team]--; G.floats.push({ x: s.x, y: s.y - 6, text: '쿠션권 사용', t: 0 }); renderTurn(); }
+      else { G.foul = true; G.foulReason = 'ticket'; G.floats.push({ x: s.x, y: s.y - 6, text: '쿠션권 없음', t: 0 }); }
+    }
+    if (vn > 6) {
+      if (g.dead) { G.floats.push({ x: s.x, y: s.y, text: '죽은 레일', t: 0 }); return; }
+      G.cushions++;
+      G.floats.push({ x: s.x, y: s.y, text: `쿠션 ${G.cushions}`, t: 0 });
+      chime(G.cushions);
+    }
+  },
+  fall(s) {
+    blip(0.5, 260, 1.5, 0.18);
+    G.fades.push({ x: clamp(s.x, -SR, W + SR), y: s.y, team: s.team, a: 1, drop: true });
+    G.floats.push({ x: clamp(s.x, 6, W - 6), y: s.y, text: '추락', t: 0 });
+  }
+};
+
+/* ================= flow ================= */
+function readMenu() {
+  const mode = document.querySelector('input[name=mode]:checked').value;
+  let mapKey = document.querySelector('input[name=map]:checked').value;
+  if (mapKey === 'random') { const k = Object.keys(MAPS); mapKey = k[Math.floor(Math.random() * k.length)]; }
+  const lv = { B: document.querySelector('input[name=lvB]:checked').value, W: document.querySelector('input[name=lvW]:checked').value };
+  return { mode, mapKey, lv };
+}
+function startMatch(cfg) {
+  G.token++;
+  G.mode = cfg.mode; G.mapKey = cfg.mapKey; G.map = buildField(MAPS[cfg.mapKey]); G.lvCfg = cfg.lv;
+  G.ai = cfg.mode === 'pvp' ? { B: null, W: null }
+    : cfg.mode === 'watch' ? { B: (cfg.lv && cfg.lv.B) || 'hard', W: (cfg.lv && cfg.lv.W) || 'hard' }
+    : { B: null, W: cfg.mode };
+  $('speedBtn').hidden = cfg.mode !== 'watch';
+  $('hudTop').hidden = false;
+  G.scores = { B: [], W: [] }; G.end = 1; G.stones = []; G.fades = []; G.floats = []; G.shot = 0;
+  G.inLSD = false; G.lsd = null;
+  const modeName = cfg.mode === 'pvp' ? '2인 대전'
+    : cfg.mode === 'watch' ? `AI 관전 · 흑 ${LV_NAME[G.ai.B]} vs 백 ${LV_NAME[G.ai.W]}`
+    : 'AI ' + LV_NAME[cfg.mode];
+  $('menu').hidden = true;
+  cam.userMoved = false;
+  if (opts.lsd) {
+    // last stone draw: each side draws one stone to the button; the closer one takes hammer in end 1
+    G.hammer = null; G.cur = 'B'; G.state = 'coin';
+    G.inLSD = true; G.lsd = { order: ['B', 'W'], idx: 0, dist: {}, target: lsdTarget() };
+    renderHud();
+    Object.assign(cam, aimView(defaultZoom()), { target: null });
+    renderHud();
+    showCard({
+      eyebrow: `${G.map.name} 맵 · ${modeName}`,
+      title: '라스트 스톤 드로',
+      head: '표적에 가까운 쪽이 해머',
+      body: '하우스 안에 매번 다른 자리에 표적이 생깁니다. 각자 알 하나를 표적에 최대한 가깝게 굴리고, 더 가까운 쪽이 1엔드의 마지막 샷(해머)을 가집니다. 최소 라인에 못 미치거나 백 라인을 넘으면 기록이 없습니다.',
+      buttons: [{ label: `${nameOf('B')}부터 굴리기`, onClick: lsdShot }]
+    });
+    return;
+  }
+  G.hammer = Math.random() < 0.5 ? 'B' : 'W';
+  G.cur = other(G.hammer);
+  G.state = 'coin';
+  renderHud(); // the in-game HUD is taller than the menu one; refit before picking the zoom
+  Object.assign(cam, aimView(defaultZoom()), { target: null });
+  renderHud();
+  showCard({
+    eyebrow: `${G.map.name} 맵 · ${cfg.mode === 'pvp' ? '2인 대전' : 'AI ' + ({ easy: '쉬움', normal: '보통', hard: '어려움' })[cfg.mode]}`,
+    title: '동전 던지기',
+    head: `${nameOf(G.hammer)} 해머`,
+    body: `${nameOf(G.hammer)}이 1엔드의 마지막 샷을 가집니다. ${nameOf(other(G.hammer))}이 먼저 쏩니다.`,
+    buttons: [{ label: '1엔드 시작', onClick: startEnd }]
+  });
+}
+/* ---- last stone draw ---- */
+const LSD_NONE = Infinity;
+// a fresh target somewhere in the house for every draw, so there is no memorised "perfect" shot
+function lsdTarget() {
+  const a = Math.random() * Math.PI * 2, r = Math.sqrt(Math.random()) * (R - SR - 2);
+  return { x: TEE.x + Math.cos(a) * r, y: TEE.y + Math.sin(a) * r };
+}
+const fmtDist = d => (d === undefined ? '—' : Number.isFinite(d) ? d.toFixed(1) : '기록 없음');
+function lsdShot() {
+  const L0 = G.lsd;
+  G.stones = []; G.fades = []; G.shot = SHOTS;   // shot = SHOTS keeps end-only rules (free guard zone) out of the way
+  LAUNCH.x = 50; G.laneTo = null;                 // the draw is always thrown from the centre lane
+  G.cur = L0.order[L0.idx];
+  G.protectedIds = []; G.snapshot = [];
+  G.state = isAI(G.cur) ? 'ai' : 'aim';
+  cam.userMoved = false;
+  camTo(aimView(cam.zoom), 3.5);
+  renderHud();
+  if (G.state === 'ai') {
+    const token = G.token, n = NOISE[G.ai[G.cur]] || NOISE.normal;
+    const T = L0.target, d = Math.hypot(T.x - LAUNCH.x, T.y - LAUNCH.y);
+    setTimeout(() => {
+      if (token !== G.token || G.state !== 'ai') return;
+      G.state = 'ai-pull';
+      G.aiPull = { ang: angTo(T.x, T.y) + gauss() * n.a, pw: clamp(powFor(d) + gauss() * n.p, 0.1, 1), t: 0, spin: 0, label: '라스트 스톤 드로' };
+    }, (900 + Math.random() * 500) / speed());
+  }
+}
+function lsdAfter() {
+  const s = G.stones.find(t => t.id === G.shotId);
+  const ok = s && s.live && !s.flew && !s.fell && s.y - SR >= HOG && s.y - SR <= BACK;
+  const d = ok ? dist(s, G.lsd.target) : LSD_NONE;
+  G.lsd.dist[G.cur] = d;
+  if (!ok) toast('기록 없음', s && s.y - SR < HOG ? '최소 라인에 못 미쳤습니다.' : '판 밖으로 나갔습니다.', 1800);
+  G.lsdShow = ok ? { x: s.x, y: s.y, d, t: 0 } : { t: 0.6 };
+  G.state = 'lsd-show';
+  camTo(houseView(cam.zoom), 4);
+  renderTurn();
+}
+function lsdNext() {
+  G.lsdShow = null;
+  G.lsd.idx++;
+  if (G.lsd.idx < G.lsd.order.length) { lsdShot(); return; }
+  const dB = G.lsd.dist.B, dW = G.lsd.dist.W;
+  let win, how;
+  if (dB === dW) { win = Math.random() < 0.5 ? 'B' : 'W'; how = '두 기록이 같아 동전 던지기로 정했습니다.'; }
+  else { win = dB < dW ? 'B' : 'W'; how = `표적에 더 가까운 ${nameOf(win)}이 1엔드의 마지막 샷을 가집니다.`; }
+  G.hammer = win; G.cur = other(win);
+  G.stones = []; G.state = 'coin';
+  renderHud();
+  showCard({
+    eyebrow: '라스트 스톤 드로 결과', title: `${nameOf(win)} 해머`,
+    head: `흑 ${fmtDist(dB)} : ${fmtDist(dW)} 백`,
+    body: `${how} ${nameOf(other(win))}이 먼저 쏩니다.`,
+    buttons: [{ label: '1엔드 시작', onClick: () => { G.inLSD = false; G.lsd = null; startEnd(); } }]
+  });
+}
+/* ---- bonus guard: the side without hammer (no last shot) starts every end with one guard on the centre line
+   in front of the house. placedHouse adds the mixed-doubles stone for the hammer side behind the 4-foot (comparison only) ---- */
+const PLACE_GUARD = { x: TEE.x, y: TEE.y - R - SR - 10 };   // 130: in the guard zone, just short of the house
+const PLACE_HOUSE = { x: TEE.x, y: TEE.y + 9 + SR };          // 185: touching the back of the 4-foot ring
+function placedFor(hammer) {
+  const list = [{ team: other(hammer), x: PLACE_GUARD.x, y: PLACE_GUARD.y, vx: 0, vy: 0, live: true, placed: true }];
+  if (opts.placedHouse) list.push({ team: hammer, x: PLACE_HOUSE.x, y: PLACE_HOUSE.y, vx: 0, vy: 0, live: true, placed: true });
+  return list;
+}
+function startEnd() {
+  G.stones = opts.placed ? placedFor(G.hammer).map(s => ({ ...s, id: G.nextId++ })) : [];
+  if (opts.placed) toast('선공 보너스 가드', `${TEAM[other(G.hammer)]} 가드 1개 먼저 · ${TEAM[G.hammer]} 마지막 샷`, 2200, true);
+  G.shot = 0; G.fades = []; G.measure = null;
+  G.tickets = { B: opts.ticketCount, W: opts.ticketCount };
+  G.lane = { B: 50, W: 50 };   // every end starts on the centre lane; each side keeps its last lane within the end
+  prepareShot();
+}
+function prepareShot() {
+  renderHud();
+  if (G.shot >= SHOTS) { finishEnd(); return; }
+  G.cur = shooter();
+  LAUNCH.x = opts.lanes && G.lane ? G.lane[G.cur] : 50; G.laneTo = null;
+  G.snapshot = G.stones.filter(s => s.live).map(s => ({ ...s }));
+  G.protectedIds = fgzActive()
+    ? G.stones.filter(s => s.live && s.team !== G.cur && inGuardZone(s)).map(s => s.id) : [];
+  G.state = isAI(G.cur) ? 'ai' : 'aim';
+  G.spinSel = 0;
+  cam.userMoved = false;
+  camTo(aimView(cam.zoom), 3.5);
+  renderHud();
+  if (G.state === 'ai') runAI();
+}
+function release(ang, pw, spin = 0) {
+  if (G.laneTo != null) { LAUNCH.x = G.laneTo; G.laneTo = null; }
+  const v = pw * P.vmax;
+  const s = { id: G.nextId++, team: G.cur, x: LAUNCH.x, y: LAUNCH.y, vx: Math.sin(ang) * v, vy: Math.cos(ang) * v, live: true, spin: opts.spin ? spin : 0 };
+  G.stones.push(s);
+  G.shotId = s.id; G.cushions = 0; G.state = 'moving'; G.hint = false; G.drag = null; G.aiPull = null;
+  G.wallTouched = false; G.shotHitStone = false; G.foul = false; G.foulReason = null;
+  blip(0.4 + pw * 0.4, 1800, 3, 0.05);
+}
+function afterShot() {
+  if (G.inLSD) { lsdAfter(); return; }
+  const res = judge(G.stones, G.protectedIds, G.shotId);
+  // both fouls undo the whole shot: every stone goes back and only the shot stone is removed
+  if (res.violation || G.foul) {
+    G.state = 'restoring';
+    G.restore = { t: 0, from: new Map(G.stones.map(s => [s.id, { x: s.x, y: s.y }])) };
+    if (G.foul && G.foulReason === 'fgz') toast('쿠션 금지', '프리 가드 존이 적용되는 동안에는 측벽을 맞힐 수 없습니다. 알을 되돌리고 방금 쏜 알을 제거합니다.', 3600);
+    else if (G.foul) toast('쿠션권 없음', '이번 엔드의 쿠션권을 이미 썼습니다. 알을 되돌리고 방금 쏜 알을 제거합니다.', 3400);
+    else toast('프리 가드 존 위반', '보호 중인 상대 가드를 판 밖으로 보냈습니다. 알을 되돌리고 방금 쏜 알을 제거합니다.', 3400);
+    return;
+  }
+  const notes = [];
+  const why2text = { hog: '최소 라인을 넘지 못해 무효', back: '백 라인을 넘어가 무효', fall: '판 밖으로 떨어져 무효' };
+  for (const { s, why } of res.removed) {
+    if (!s.fell) G.fades.push({ x: s.x, y: s.y, team: s.team, a: 1 });
+    s.live = false;
+    if (s.id === G.shotId) notes.unshift(why2text[why]);
+  }
+  const knocked = res.removed.filter(r => r.s.id !== G.shotId);
+  if (knocked.length) {
+    const c = { B: 0, W: 0 }; knocked.forEach(r => c[r.s.team]++);
+    notes.push(['B', 'W'].filter(t => c[t]).map(t => `${TEAM[t]} ${c[t]}개 아웃`).join(', '));
+  }
+  G.stones = G.stones.filter(s => s.live);
+  if (notes.length) toast(notes[0], notes.slice(1).join(' · '));
+  G.state = 'settle'; G.settleT = 0.5;
+}
+function finishRestore() {
+  G.stones = G.snapshot.map(s => ({ ...s, vx: 0, vy: 0, live: true, flew: false, fell: false }));
+  G.restore = null; G.state = 'settle'; G.settleT = 0.3;
+}
+function finishEnd() {
+  const sc = scoring(G.stones);
+  G.scores.B.push(sc.team === 'B' ? sc.points : 0);
+  G.scores.W.push(sc.team === 'W' ? sc.points : 0);
+  const prevHammer = G.hammer;
+  // whoever did not score takes the hammer; on a blank end the hammer moves too when the mixed-doubles rule is on
+  if (sc.team) G.hammer = other(sc.team);
+  else if (opts.blankSwitch) G.hammer = other(prevHammer);
+  G.measure = { t: 0, sc, prevHammer, dur: 0.5 + sc.list.length * 0.3 + 0.7 };
+  G.state = 'measure';
+  cam.userMoved = false;
+  camTo(houseView(cam.zoom), 4);
+  renderHud();
+}
+function showEndCard() {
+  const { sc, prevHammer } = G.measure;
+  const tB = total('B'), tW = total('W');
+  let nextLabel, next;
+  if (G.end < ENDS) { nextLabel = `${G.end + 1}엔드 시작`; next = () => { G.end++; startEnd(); }; }
+  else if (G.end === ENDS && tB === tW) { nextLabel = '연장 엔드 시작'; next = () => { G.end++; startEnd(); }; }
+  else { nextLabel = '최종 결과 보기'; next = gameOver; }
+  const body = sc.team
+    ? `다음 엔드 해머: ${nameOf(G.hammer)} (점수를 내지 못한 쪽). 합계 흑 ${tB} : ${tW} 백`
+    : (opts.blankSwitch
+      ? `블랭크 엔드라 해머가 ${nameOf(G.hammer)}에게 넘어갑니다. 합계 흑 ${tB} : ${tW} 백`
+      : `아무도 득점하지 못해 ${nameOf(prevHammer)}이 해머를 유지합니다. 합계 흑 ${tB} : ${tW} 백`);
+  G.state = 'endcard';
+  showCard({
+    soft: true, eyebrow: `${endLabel(G.end)} 결과`, title: sc.team ? `${nameOf(sc.team)} 득점` : '블랭크 엔드',
+    head: sc.team ? `${sc.points}점` : '0 : 0', body,
+    buttons: [{ label: nextLabel, onClick: next }]
+  });
+}
+function gameOver() {
+  G.state = 'over'; G.noAuto = true;
+  const tB = total('B'), tW = total('W');
+  const win = tB === tW ? null : (tB > tW ? 'B' : 'W');
+  renderHud();
+  showCard({
+    eyebrow: '경기 종료', title: win ? `${nameOf(win)} 승리` : '무승부',
+    head: `흑 ${tB} : ${tW} 백`,
+    body: win ? '' : '연장 엔드까지 동점으로 끝났습니다.',
+    buttons: [
+      { label: watching() ? '다시 관전' : '다시 하기', onClick: () => startMatch({ mode: G.mode, mapKey: G.mapKey, lv: G.lvCfg }) },
+      { label: '메뉴로', onClick: toMenu }
+    ]
+  });
+}
+function toMenu() {
+  G.token++;
+  G.state = 'menu'; G.drag = null; G.aiPull = null; G.measure = null; G.restore = null; G.inLSD = false; G.lsd = null; G.lsdShow = null;
+  G.scores = { B: [], W: [] }; G.end = 1; G.shot = 0; LAUNCH.x = 50; G.laneTo = null;
+  G.stones = demoStones(); G.fades = []; G.floats = [];
+  hideCard(); $('menu').hidden = false; $('speedBtn').hidden = true; G.ai = null;
+  $('hudTop').hidden = true; // the menu card has the screen to itself
+  G.map = buildField(MAPS.base);
+  cam.zoom = 1; cam.cx = W / 2; cam.cy = L / 2; cam.target = null;
+  renderHud();
+}
+function demoStones() {
+  const pts = [['B', 50, 166], ['W', 58, 178], ['B', 41, 183], ['W', 50, 130], ['B', 72, 150], ['W', 30, 196]];
+  return pts.map(([team, x, y], i) => ({ id: -10 - i, team, x, y, vx: 0, vy: 0, live: true }));
+}
+
+/* ================= AI ================= */
+const NOISE = { easy: { a: 0.05, p: 0.07 }, normal: { a: 0.018, p: 0.03 }, hard: { a: 0.006, p: 0.012 } };
+const RANDOM = { easy: { n: 16, ang: 0.32 }, normal: { n: 50, ang: 0.72 }, hard: { n: 110, ang: 1.0 } };
+function gauss() { let u = 0, v = 0; while (u === 0) u = Math.random(); while (v === 0) v = Math.random(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); }
+const angTo = (x, y) => Math.atan2(x - LAUNCH.x, y - LAUNCH.y);
+const powFor = d => Math.sqrt(2 * P.decel * Math.max(d, 1)) / P.vmax;
+function bankShot(tx, ty, left) {
+  const xp = left ? SR : W - SR, e = P.eWall;
+  const eg = opts.mirror ? 1 : e; // geometry: mirror mode reflects like e = 1
+  const A = tx - xp, B = xp - LAUNCH.x;
+  const den = A - eg * B;
+  if (Math.abs(den) < 1e-6) return null;
+  const yh = (A * LAUNCH.y - eg * B * ty) / den;
+  if (yh <= LAUNCH.y + 5 || yh >= ty) return null;
+  const d1 = Math.hypot(xp - LAUNCH.x, yh - LAUNCH.y), d2 = Math.hypot(tx - xp, ty - yh);
+  const cx = (xp - LAUNCH.x) / d1, cy = (yh - LAUNCH.y) / d1;
+  const k2 = opts.mirror ? e * e : (e * cx) ** 2 + cy ** 2; // share of speed kept by the bounce, squared
+  const v0 = Math.sqrt(2 * P.decel * d1 + 2 * P.decel * d2 / k2);
+  return { ang: angTo(xp, yh), pw: v0 / P.vmax };
+}
+/* ---- lanes: the ways the next stone can reach a point (straight, or off a lively side rail) ---- */
+function bankPoint(tx, ty, left) {
+  const xp = left ? SR : W - SR, eg = opts.mirror ? 1 : P.eWall;
+  const A = tx - xp, B = xp - LAUNCH.x, den = A - eg * B;
+  if (Math.abs(den) < 1e-6) return null;
+  const yh = (A * LAUNCH.y - eg * B * ty) / den;
+  if (yh <= LAUNCH.y + 5 || yh >= ty) return null;
+  if (G.map.rails && !inWindow(yh)) return null;                 // that stretch of rail is dead
+  if (G.map.gutter && yh > GAP_Y0 && yh < GAP_Y1) return null;   // no rail there at all
+  return { x: xp, y: yh };
+}
+// every path a stone can take to (tx, ty): straight from each launch lane, plus off each lively rail when banks are allowed
+function lanesTo(tx, ty, banks = true) {
+  const t = { x: tx, y: ty }, out = [], keep = LAUNCH.x;
+  for (const lx of launchXs()) {
+    LAUNCH.x = lx;
+    const o = { x: lx, y: LAUNCH.y };
+    out.push([o, t]);
+    if (banks) for (const left of [true, false]) { const b = bankPoint(tx, ty, left); if (b) out.push([o, b, t]); }
+  }
+  LAUNCH.x = keep;
+  return out;
+}
+function segDist(p, a, b) {
+  const dx = b.x - a.x, dy = b.y - a.y, l2 = dx * dx + dy * dy;
+  const t = l2 ? clamp(((p.x - a.x) * dx + (p.y - a.y) * dy) / l2, 0, 1) : 0;
+  return Math.hypot(p.x - (a.x + t * dx), p.y - (a.y + t * dy));
+}
+function laneBlocked(lane, stones, skipId) {
+  for (const s of stones) {
+    if (!s.live || s.id === skipId) continue;
+    for (let i = 0; i < lane.length - 1; i++) {
+      const a = lane[i]; let b = lane[i + 1];
+      if (i === lane.length - 2) { // stop one stone short of the target, so stones behind it do not count
+        const dx = b.x - a.x, dy = b.y - a.y, l = Math.hypot(dx, dy) || 1, k = Math.max(0, (l - 2 * SR) / l);
+        b = { x: a.x + dx * k, y: a.y + dy * k };
+      }
+      if (segDist(s, a, b) < 2 * SR - 0.5) return true;
+    }
+  }
+  return false;
+}
+function blockedShare(tx, ty, stones, skipId, banks = true) {
+  const ls = lanesTo(tx, ty, banks);
+  let n = 0;
+  for (const l of ls) if (laneBlocked(l, stones, skipId)) n++;
+  return n / ls.length;
+}
+function xOnLane(lane, y) {
+  for (let i = 0; i < lane.length - 1; i++) {
+    const a = lane[i], b = lane[i + 1];
+    if ((y - a.y) * (y - b.y) <= 0 && a.y !== b.y) return a.x + (y - a.y) / (b.y - a.y) * (b.x - a.x);
+  }
+  return null;
+}
+const shooterAt = k => (k % 2 === 0 ? other(G.hammer) : G.hammer);
+const AI_WEIGHT = { easy: 0.3, normal: 0.8, hard: 1 };
+const INTENT = { draw: '드로우', guard: '가드', takeout: '테이크아웃', cut: '테이크아웃', 'hit-stay': '히트 앤 스테이', bank: '쿠션', 'bank-takeout': '쿠션 테이크아웃', window: '쿠션', random: '' };
+
+function aiCandidates(lvl, stones, team) {
+  const out = [], keep = LAUNCH.x, xs = launchXs();
+  const add = (ang, pw, tag, spin = 0) => { if (pw > 0.08 && Math.abs(ang) < 1.4) out.push({ ang, pw: Math.min(pw, 1), tag, spin, lx: LAUNCH.x }); };
+  const spins = opts.spin && lvl === 'hard' ? [0, -1, 1] : [0];
+  const canBank = !opts.ticket || G.tickets[team] > 0;   // no ticket left: cushions would foul
+  const houseTargets = [[50, 172], [50, 180], [50, 164], [43, 172], [57, 172], [50, 190], [38, 180], [62, 180]];
+  // guard spots: the usual three, plus spots that close a lane the opponent could use into the tee or into my
+  // stones in the house (rail lanes only count while the opponent still has a cushion ticket)
+  const spots = new Map([[50, 128], [43, 126], [57, 126]].map(([x, y]) => [x + ',' + y, [x, y, false]]));
+  if (lvl !== 'easy') {
+    const oppBanks = !opts.ticket || G.tickets[other(team)] > 0;
+    const targets = [[TEE.x, TEE.y]];
+    for (const s of stones) if (s.live && s.team === team && dist(s, TEE) <= R + SR) targets.push([s.x, s.y]);
+    for (const [tx, ty] of targets) for (const lane of lanesTo(tx, ty, oppBanks)) for (const gy of [96, 112, 128]) {
+      if (gy >= ty - 2 * SR) continue;
+      const gx = xOnLane(lane, gy);
+      if (gx == null || gx < 6 || gx > W - 6 || dist({ x: gx, y: gy }, TEE) <= R + SR) continue;
+      const key = Math.round(gx / 3) + ',' + gy;   // lanes that cross the same spot share one guard
+      if (!spots.has(key)) spots.set(key, [gx, gy, true]);
+    }
+  }
+  const opp = stones.filter(s => s.live && s.team !== team);
+  for (const lx of xs) {
+    LAUNCH.x = lx;
+    for (const [x, y] of houseTargets) {
+      const d = Math.hypot(x - LAUNCH.x, y - LAUNCH.y);
+      for (const f of [0.97, 1, 1.03]) add(angTo(x, y), powFor(d) * f, 'draw');
+    }
+    for (const [gx, gy, lane] of spots.values()) {
+      const d = Math.hypot(gx - LAUNCH.x, gy - LAUNCH.y);
+      for (const f of lane ? [0.98, 1.02] : [1]) add(angTo(gx, gy), powFor(d) * f, 'guard');
+    }
+    for (const s of opp) {
+      const a = angTo(s.x, s.y), d = Math.hypot(s.x - LAUNCH.x, s.y - LAUNCH.y);
+      add(a, 1, 'takeout'); add(a, 0.85, 'takeout'); add(a, powFor(d + 18), 'hit-stay');
+      if (lvl !== 'easy') for (const off of [-0.012, 0.012, -0.025, 0.025]) { add(a + off, 1, 'cut'); add(a + off, powFor(d + 18), 'cut'); }
+    }
+    if (canBank && (lvl === 'hard' || (G.map.rails && lvl === 'normal'))) {
+      const bankTargets = houseTargets.slice(0, 5).concat(opp.map(s => [s.x, s.y]));
+      for (const [x, y] of bankTargets) for (const left of [true, false]) {
+        const b = bankShot(x, y, left); if (!b) continue;
+        for (const sp of spins) {
+          for (const f of [0.97, 1, 1.04]) add(b.ang, b.pw * f, 'bank', sp);
+          add(b.ang, 1, 'bank-takeout', sp);
+        }
+      }
+    }
+    // rail windows: aim at the middle of each lively stretch over a range of power
+    if (canBank && G.map.rails && lvl !== 'easy') {
+      for (const g of G.map.walls) {
+        if (g.dead || isBottomWall(g) || g.x1 !== g.x2 || (g.x1 !== 0 && g.x1 !== W)) continue;
+        const xp = g.x1 === 0 ? SR : W - SR, ym = (g.y1 + g.y2) / 2;
+        for (const sp of spins) for (const pw of [0.55, 0.65, 0.75, 0.85, 0.95, 1]) add(angTo(xp, ym), pw, 'window', sp);
+      }
+    }
+  }
+  const r = RANDOM[lvl];
+  for (let i = 0; i < r.n; i++) {
+    LAUNCH.x = xs[i % xs.length];
+    add((Math.random() * 2 - 1) * r.ang, 0.4 + Math.random() * 0.6, 'random', opts.spin && lvl !== 'easy' ? Math.floor(Math.random() * 3) - 1 : 0);
+  }
+  LAUNCH.x = keep;
+  return out;
+}
+/* ---- end results are judged by win probability, so the AI weighs points against who holds the hammer next ----
+   Per-end outcomes for the side with hammer, measured from 205 AI-vs-AI ends (hammer scores n / is stolen from n). */
+const END_DIST = { H: { 1: .341, 2: .229, 3: .180, 4: .024, 5: .010 }, S: { 1: .176, 2: .039 } };
+const wpMemo = new Map();
+// chance that "me" wins: d = my lead, k = regulation ends still to play, h = I throw last next end, e = extra ends used
+function winProb(d, k, h, e) {
+  d = clamp(d, -15, 15);
+  if (k === 0) {
+    if (d > 0) return 1;
+    if (d < 0) return 0;
+    if (e >= 2) return 0.5;          // the game allows two extra ends, then it is a draw
+    return winProb(0, 1, h, e + 1);
+  }
+  const key = d + ',' + k + ',' + (h ? 1 : 0) + ',' + e;
+  if (wpMemo.has(key)) return wpMemo.get(key);
+  let v = 0;
+  for (const [n, p] of Object.entries(END_DIST.H)) v += p * (h ? winProb(d + +n, k - 1, false, e) : winProb(d - n, k - 1, true, e));
+  for (const [n, p] of Object.entries(END_DIST.S)) v += p * (h ? winProb(d - n, k - 1, true, e) : winProb(d + +n, k - 1, false, e));
+  wpMemo.set(key, v);
+  return v;
+}
+// value of a finished end for `team`, in 0..100
+function endValue(sc, team, ctx) {
+  const m = ctx.match;
+  let d = m.diff, hammerNext;
+  if (sc.team === team) { d += sc.points; hammerNext = false; }
+  else if (sc.team) { d -= sc.points; hammerNext = true; }
+  else hammerNext = opts.blankSwitch ? !ctx.hammer : ctx.hammer; // blank: the mixed-doubles rule passes the hammer
+  return 100 * winProb(d, m.endsLeft, hammerNext, m.extra);
+}
+// ctx: oppLeft = opponent stones still to come this end, hammer = this team throws last, w = how strategic this level is
+function evaluate(stones, team, shotsLeft, ctx = { oppLeft: 0, hammer: false, w: 1 }) {
+  const sc = scoring(stones);
+  const base = sc.team === team ? sc.points : (sc.team ? -sc.points : 0);
+  if (shotsLeft === 0) return ctx.match ? endValue(sc, team, ctx) : base * 100;
+  let v = base * 12;
+  for (const s of stones) {
+    const d = dist(s, TEE);
+    if (d <= R + SR) v += (s.team === team ? 4 : -5) * (1 - d / (R + SR));
+  }
+  const mine = stones.filter(s => s.team === team).length;
+  v += 0.3 * (mine - (stones.length - mine));
+  if (ctx.oppLeft > 0 && ctx.w > 0) {
+    const threat = Math.min(1, ctx.oppLeft / 2);
+    // 1) cover: a counting stone of mine is worth more when the opponent has no clear lane to it
+    if (sc.team === team) for (const id of sc.ids) {
+      const s = stones.find(t => t.id === id);
+      v += ctx.w * 1.5 * threat * blockedShare(s.x, s.y, stones, s.id, ctx.oppBanks !== false);
+    }
+    // 2) house access: a clogged house helps the side without hammer and hurts the side with it
+    v += ctx.w * (ctx.hammer ? -2 : 2.5) * threat * blockedShare(TEE.x, TEE.y, stones, null, ctx.oppBanks !== false);
+  }
+  return v;
+}
+function playShot(base, c, team, prot) {
+  const st = base.map(s => ({ ...s }));
+  const v = c.pw * P.vmax;
+  const newId = -1 - st.length;
+  st.push({ id: newId, team, x: c.lx ?? LAUNCH.x, y: LAUNCH.y, vx: Math.sin(c.ang) * v, vy: Math.cos(c.ang) * v, live: true, spin: opts.spin ? (c.spin || 0) : 0 });
+  simulate(st, G.map);
+  const res = judge(st, prot, newId);
+  if (res.violation) return null;
+  return st.filter(s => s.live && !res.ids.has(s.id));
+}
+// the replies an opponent would look at: draw to the tee, and take out / tap back my stones near the house,
+// straight or off a lively rail
+function replyCands(stones, myTeam) {
+  const out = [], keep = LAUNCH.x;
+  const canBank = !opts.ticket || G.tickets[other(myTeam)] > 0;
+  const add = (ang, pw) => { if (pw > 0.08 && Math.abs(ang) < 1.4) out.push({ ang, pw: Math.min(pw, 1), lx: LAUNCH.x }); };
+  const banks = (x, y, f) => { if (canBank) for (const left of [true, false]) { const b = bankShot(x, y, left); if (b && bankPoint(x, y, left)) for (const k of f) add(b.ang, b.pw * k); } };
+  for (const lx of launchXs()) {
+    LAUNCH.x = lx;
+    add(angTo(TEE.x, TEE.y), powFor(Math.hypot(TEE.x - LAUNCH.x, TEE.y - LAUNCH.y)));
+    banks(TEE.x, TEE.y, [1]);
+    for (const s of stones) {
+      if (!s.live || s.team !== myTeam || dist(s, TEE) > R + SR + 16) continue;
+      const a = angTo(s.x, s.y);
+      add(a, 1); add(a, powFor(Math.hypot(s.x - LAUNCH.x, s.y - LAUNCH.y) + 18));
+      banks(s.x, s.y, [1.08, 1.35]);
+    }
+  }
+  LAUNCH.x = keep;
+  return out;
+}
+// two-ply: my shot, then the opponent's most damaging reply (blended with their average, since people miss)
+function lookAhead(base, c, team, prot, shotsLeft, ctx) {
+  const after = playShot(base, c, team, prot);
+  if (!after) return -1e9;
+  if (shotsLeft === 0 || ctx.oppLeft === 0) return evaluate(after, team, shotsLeft, ctx);
+  const opp = other(team);
+  const protOpp = opts.fgz && G.shot + 1 < opts.fgzShots ? after.filter(s => s.team === team && inGuardZone(s)).map(s => s.id) : [];
+  const ctx2 = { oppLeft: ctx.oppLeft - 1, hammer: ctx.hammer, w: ctx.w, oppBanks: ctx.oppBanks };
+  let worst = Infinity, sum = 0, n = 0;
+  for (const r of replyCands(after, team)) {
+    const st2 = playShot(after, r, opp, protOpp);
+    if (!st2) continue;
+    const val = evaluate(st2, team, shotsLeft - 1, ctx2);
+    worst = Math.min(worst, val); sum += val; n++;
+  }
+  if (!n) return evaluate(after, team, shotsLeft, ctx);
+  return 0.75 * worst + 0.25 * (sum / n);
+}
+function evalShot(base, c, team, prot, shotsLeft, ctx) {
+  const st = base.map(s => ({ ...s }));
+  const v = c.pw * P.vmax;
+  st.push({ id: -1, team, x: c.lx ?? LAUNCH.x, y: LAUNCH.y, vx: Math.sin(c.ang) * v, vy: Math.cos(c.ang) * v, live: true, spin: opts.spin ? (c.spin || 0) : 0 });
+  let cushioned = false;
+  const banned = cushionBanned();
+  let touched = false;   // same rule as the live game: a wall after a stone hit is not a cushion
+  const ev = opts.ticket || banned ? { hit(a, b) { if (a.id === -1 || b.id === -1) touched = true; }, post() {}, wall(s, vn, g) { if (s.id === -1 && !touched && !isBottomWall(g)) cushioned = true; } } : null;
+  simulate(st, G.map, ev);
+  if (cushioned && banned) return -1e9;                         // cushion during the free guard zone
+  if (cushioned && opts.ticket && G.tickets[team] <= 0) return -1e9; // would foul
+  const res = judge(st, prot, -1);
+  if (res.violation) return -1e9;
+  const score = evaluate(st.filter(s => s.live && !res.ids.has(s.id)), team, shotsLeft, ctx);
+  c.cush = cushioned;
+  return cushioned && opts.ticket ? score - (ctx.tcost ?? 1.5) : score;   // spending a ticket has a cost
+}
+function runAI() {
+  const token = G.token, team = G.cur, lvl = G.ai[team] || 'normal';
+  const base = G.stones.filter(s => s.live).map(s => ({ ...s }));
+  const cands = aiCandidates(lvl, base, team);
+  const shotsLeft = SHOTS - G.shot - 1, prot = G.protectedIds.slice();
+  let oppLeft = 0;
+  for (let k = G.shot + 1; k < SHOTS; k++) if (shooterAt(k) !== team) oppLeft++;
+  let myLeft = 0;
+  for (let k = G.shot + 1; k < SHOTS; k++) if (shooterAt(k) === team) myLeft++;
+  // a ticket is worth keeping while I still have stones to throw, more so when it is my last one
+  const tcost = opts.ticket && myLeft > 0 ? (G.tickets[team] <= 1 ? 3 : 1.5) : 0;
+  const ctx = { oppLeft, hammer: G.hammer === team, w: AI_WEIGHT[lvl], tcost,
+    oppBanks: !opts.ticket || G.tickets[other(team)] > 0,
+    match: { diff: total(team) - total(other(team)), endsLeft: Math.max(0, ENDS - G.end), extra: Math.max(0, G.end - ENDS) } };
+  const t0 = performance.now();
+  let i = 0;
+  const chunk = () => {
+    if (token !== G.token || G.state !== 'ai') return;
+    const end = Math.min(cands.length, i + 24);
+    for (; i < end; i++) cands[i].score = evalShot(base, cands[i], team, prot, shotsLeft, ctx);
+    if (i < cands.length) { setTimeout(chunk, 0); return; }
+    cands.sort((a, b) => b.score - a.score);
+    if (lvl !== 'easy' && shotsLeft > 0 && ctx.oppLeft > 0 && !deep) {
+      // short list: the best few overall, plus the best guards and draws so set-up shots get a fair look
+      const wide = lvl === 'hard';
+      const pick = new Set(cands.slice(0, wide ? 12 : 6));
+      for (const tag of ['guard', 'draw', 'bank']) cands.filter(c => c.tag === tag).slice(0, tag === 'guard' ? (wide ? 8 : 4) : (wide ? 4 : 2)).forEach(c => pick.add(c));
+      deep = [...pick].filter(c => c.score > -1e8); di = 0;
+      setTimeout(deepChunk, 0); return;
+    }
+    finish();
+  };
+  let deep = null, di = 0;
+  const deepChunk = () => {
+    if (token !== G.token || G.state !== 'ai') return;
+    const end = Math.min(deep.length, di + 2);
+    for (; di < end; di++) deep[di].score2 = lookAhead(base, deep[di], team, prot, shotsLeft, ctx) - (deep[di].cush && opts.ticket ? tcost : 0);
+    if (di < deep.length) { setTimeout(deepChunk, 0); return; }
+    deep.sort((a, b) => b.score2 - a.score2);
+    cands.splice(0, cands.length, ...deep);
+    finish(true);
+  };
+  const finish = (looked) => {
+    if (lvl === 'hard' && !looked) {
+      for (const c of cands.slice(0, 6)) {
+        let sum = 0;
+        for (let k = 0; k < 4; k++) sum += evalShot(base, { ang: c.ang + gauss() * 0.01, pw: clamp(c.pw + gauss() * 0.02, 0.05, 1), spin: c.spin, lx: c.lx }, team, prot, shotsLeft, ctx);
+        c.score = 0.5 * c.score + 0.5 * (sum / 4);
+      }
+      cands.sort((a, b) => b.score - a.score);
+    }
+    const best = cands[0] || { ang: 0, pw: 0.7 };
+    let label = INTENT[best.tag] || '';
+    if (shotsLeft === 0 && cands[0]) { const r = playShot(base, best, team, prot); if (r && !scoring(r).team) label = '블랭크'; }
+    const lx = best.lx ?? 50;
+    if (opts.lanes && lx !== 50) label = (lx < 50 ? '왼쪽 라인' : '오른쪽 라인') + (label ? ' ' + label : '');
+    G.lane[team] = lx; G.laneTo = lx;   // slide the stone over while the AI "thinks" 
+    const n = NOISE[lvl];
+    const ang = best.ang + gauss() * n.a, pw = clamp(best.pw + gauss() * n.p, 0.1, 1);
+    const wait = Math.max(0, (1000 + Math.random() * 700) / speed() - (performance.now() - t0));
+    setTimeout(() => {
+      if (token !== G.token || G.state !== 'ai') return;
+      LAUNCH.x = lx; G.laneTo = null;
+      G.state = 'ai-pull'; G.aiPull = { ang, pw, t: 0, spin: best.spin || 0, label };
+    }, wait);
+  };
+  setTimeout(chunk, 40);
+}
+
+/* ================= camera ================= */
+// zoom 1 = the whole sheet in view. Scale s = sFit * zoom (px per world unit).
+// bottomPx: screen room kept under the launch point (pull-from-anywhere means the pull itself needs none).
+let g = { s: 1, sFit: 1, wFit: 1, cw: 0, ch: 0, maxPx: 120, bottomPx: 148, topPx: 80 };
+const cam = { zoom: 1, cx: W / 2, cy: L / 2, target: null, userMoved: false };
+const X = x => g.cw / 2 + (x - cam.cx) * g.s;
+const Y = y => g.ch / 2 - (y - cam.cy) * g.s;
+const maxZoom = () => Math.max(1, 8 / g.sFit);
+// the view stops a little past the back line: enough to see stones leave, without spending height on the out zone
+const VIEW_TOP = BACK + 10;
+// every screen starts with the whole sheet in view; pinch / ctrl+wheel / the zoom toggle zoom in when wanted
+function defaultZoom() { return 1; }
+function clampCam(c) {
+  c.zoom = clamp(c.zoom, 1, maxZoom());
+  const s = g.sFit * c.zoom, halfW = g.cw / (2 * s), halfH = g.ch / (2 * s);
+  const xMin = -6, xMax = W + 6, yMin = LAUNCH.y - g.bottomPx / s, yMax = VIEW_TOP + g.topPx / s;
+  c.cx = xMax - xMin <= 2 * halfW ? W / 2 : clamp(c.cx, xMin + halfW, xMax - halfW);
+  c.cy = yMax - yMin <= 2 * halfH + 1e-6 ? (yMin + yMax) / 2 : clamp(c.cy, yMin + halfH, yMax - halfH);
+  return c;
+}
+const aimView = z => clampCam({ zoom: z, cx: W / 2, cy: -1e9 });
+const houseView = z => clampCam({ zoom: z, cx: W / 2, cy: TEE.y });
+function camTo(view, speed = 5) { cam.target = { ...view, speed }; }
+function manual() { cam.userMoved = true; cam.target = null; }
+// the playing area (launch stone to just past the back line, rails included) is all on screen
+function wholeVisible() { return X(-4) >= -1 && X(W + 4) <= g.cw + 1 && Y(VIEW_TOP) >= -1 && Y(LAUNCH.y - SR) <= g.ch + 1; }
+function zoomAt(z, px, py) {
+  const wx = cam.cx + (px - g.cw / 2) / g.s, wy = cam.cy - (py - g.ch / 2) / g.s;
+  cam.zoom = clamp(z, 1, maxZoom());
+  const s2 = g.sFit * cam.zoom;
+  cam.cx = wx - (px - g.cw / 2) / s2; cam.cy = wy + (py - g.ch / 2) / s2;
+  clampCam(cam); g.s = g.sFit * cam.zoom;
+}
+function updateCam(dt) {
+  // follow the shot while it travels, unless the player moved the camera themselves
+  if (G.state === 'moving' && !cam.userMoved) {
+    const shot = G.stones.find(s => s.id === G.shotId && s.live && (s.vx || s.vy));
+    const focus = shot || G.stones.filter(s => s.live && (s.vx || s.vy))
+      .sort((a, b) => Math.hypot(b.vx, b.vy) - Math.hypot(a.vx, a.vy))[0];
+    if (focus) {
+      const s = g.s, sx = X(focus.x), sy = Y(focus.y);
+      let cx = cam.cx, cy = cam.cy;
+      if (sy < g.ch * 0.38) cy = focus.y - (g.ch * 0.12) / s;
+      else if (sy > g.ch * 0.78) cy = focus.y + (g.ch * 0.28) / s;
+      if (sx < g.cw * 0.25) cx = focus.x + (g.cw * 0.25) / s;
+      else if (sx > g.cw * 0.75) cx = focus.x - (g.cw * 0.25) / s;
+      cam.target = { ...clampCam({ zoom: cam.zoom, cx, cy }), speed: 7 };
+    }
+  }
+  const t = cam.target;
+  if (t) {
+    const k = 1 - Math.exp(-dt * t.speed);
+    cam.zoom += (t.zoom - cam.zoom) * k; cam.cx += (t.cx - cam.cx) * k; cam.cy += (t.cy - cam.cy) * k;
+    if (Math.abs(t.zoom - cam.zoom) < 0.002 && Math.abs(t.cx - cam.cx) < 0.05 && Math.abs(t.cy - cam.cy) < 0.05) {
+      cam.zoom = t.zoom; cam.cx = t.cx; cam.cy = t.cy; cam.target = null;
+    }
+  }
+  clampCam(cam); g.s = g.sFit * cam.zoom;
+}
+
+/* ================= minimap (shown whenever the sheet does not fit the view) ================= */
+function miniRect() {
+  if (G.state === 'menu' || wholeVisible()) return null;
+  const h = clamp(g.ch * 0.3, 90, 170), w = h * (W + 8) / L;
+  return { x: g.cw - w - 10, y: Math.max(10, g.topPx), w, h, ms: h / L }; // sits just under the HUD row
+}
+const mX = (m, x) => m.x + (x + 4) * m.ms, mY = (m, y) => m.y + (L - y) * m.ms;
+function miniHit(p) { const m = miniRect(); return m && p.x >= m.x && p.x <= m.x + m.w && p.y >= m.y && p.y <= m.y + m.h ? m : null; }
+function miniJump(m, p) {
+  cam.cx = (p.x - m.x) / m.ms - 4; cam.cy = L - (p.y - m.y) / m.ms;
+  manual(); clampCam(cam);
+}
+function drawMinimap() {
+  const m = miniRect(); if (!m) return;
+  ctx.save();
+  ctx.fillStyle = 'rgba(32,20,11,.82)'; ctx.strokeStyle = 'rgba(239,226,200,.25)'; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.roundRect(m.x - 3, m.y - 3, m.w + 6, m.h + 6, 6); ctx.fill(); ctx.stroke();
+  ctx.beginPath(); ctx.rect(m.x, m.y, m.w, m.h); ctx.clip();
+  ctx.fillStyle = '#5a3418'; ctx.fillRect(m.x, m.y, m.w, m.h);
+  if (G.map.gutter) {
+    ctx.fillStyle = '#20160f';
+    ctx.fillRect(m.x, mY(m, GAP_Y1), 4 * m.ms, (GAP_Y1 - GAP_Y0) * m.ms);
+    ctx.fillRect(mX(m, W), mY(m, GAP_Y1), 4 * m.ms, (GAP_Y1 - GAP_Y0) * m.ms);
+  }
+  if (cushionBanned()) {
+    ctx.fillStyle = 'rgba(214,64,44,.85)';
+    ctx.fillRect(mX(m, 0) - 2.5, m.y, 2.5, m.h); ctx.fillRect(mX(m, W), m.y, 2.5, m.h);
+  } else if (G.map.rails) {
+    for (const w of G.map.walls) {
+      if (w.dead || isBottomWall(w) || w.x1 !== w.x2) continue;
+      ctx.fillStyle = '#ffd98a';
+      ctx.fillRect(w.x1 === 0 ? m.x : mX(m, W), mY(m, Math.max(w.y1, w.y2)), 4 * m.ms, Math.abs(w.y2 - w.y1) * m.ms);
+    }
+  }
+  ctx.fillStyle = '#d6a463'; ctx.fillRect(mX(m, 0), m.y, W * m.ms, L * m.ms);
+  ctx.fillStyle = 'rgba(32,20,11,.5)'; ctx.fillRect(mX(m, 0), m.y, W * m.ms, (L - BACK) * m.ms);
+  ctx.strokeStyle = 'rgba(38,55,100,.9)'; ctx.lineWidth = (R - 18.5) * m.ms;
+  ctx.beginPath(); ctx.arc(mX(m, TEE.x), mY(m, TEE.y), (R + 18.5) / 2 * m.ms, 0, 7); ctx.stroke();
+  ctx.strokeStyle = 'rgba(178,64,44,.9)'; ctx.lineWidth = 6 * m.ms;
+  ctx.beginPath(); ctx.arc(mX(m, TEE.x), mY(m, TEE.y), 6 * m.ms, 0, 7); ctx.stroke();
+  ctx.fillStyle = '#3b2414';
+  ctx.fillRect(mX(m, 0), mY(m, HOG) - 0.75, W * m.ms, 1.5); ctx.fillRect(mX(m, 0), mY(m, BACK) - 0.75, W * m.ms, 1.5);
+  for (const p of G.map.posts) { ctx.fillStyle = '#c38f3a'; ctx.beginPath(); ctx.arc(mX(m, p.x), mY(m, p.y), Math.max(1.2, p.r * m.ms), 0, 7); ctx.fill(); }
+  for (const k of G.map.kinks) { ctx.fillStyle = '#5a3418'; ctx.beginPath(); k.forEach(([x, y], i) => (i ? ctx.lineTo(mX(m, x), mY(m, y)) : ctx.moveTo(mX(m, x), mY(m, y)))); ctx.fill(); }
+  if (opts.aim && (G.drag || G.state === 'ai-pull')) {
+    const ang = G.drag ? dragShot(G.drag).ang : G.aiPull.ang, hit = aimRay(ang);
+    ctx.strokeStyle = 'rgba(40,24,12,.8)'; ctx.lineWidth = 1; ctx.setLineDash([2, 2]);
+    ctx.beginPath(); ctx.moveTo(mX(m, LAUNCH.x), mY(m, LAUNCH.y)); ctx.lineTo(mX(m, hit.x), mY(m, hit.y)); ctx.stroke(); ctx.setLineDash([]);
+  }
+  const dot = (x, y, team) => { ctx.fillStyle = team === 'B' ? '#111' : '#fff'; ctx.strokeStyle = 'rgba(0,0,0,.5)'; ctx.lineWidth = 0.6; ctx.beginPath(); ctx.arc(mX(m, x), mY(m, y), Math.max(1.8, SR * m.ms), 0, 7); ctx.fill(); ctx.stroke(); };
+  for (const st of G.stones) if (st.live) dot(st.x, st.y, st.team);
+  if (['aim', 'ai', 'ai-pull'].includes(G.state)) dot(LAUNCH.x, LAUNCH.y, G.cur);
+  // current view
+  const x0 = cam.cx - g.cw / (2 * g.s), x1 = cam.cx + g.cw / (2 * g.s), y0 = cam.cy - g.ch / (2 * g.s), y1 = cam.cy + g.ch / (2 * g.s);
+  ctx.strokeStyle = '#ffd98a'; ctx.lineWidth = 1.5;
+  ctx.strokeRect(mX(m, x0), mY(m, y1), (x1 - x0) * m.ms, (y1 - y0) * m.ms);
+  ctx.restore();
+}
+
+/* ================= input: tap the stone to shoot, drag elsewhere to scroll, pinch / ctrl+wheel to zoom ================= */
+const pointers = new Map();
+let gesture = null;
+function screenPt(e) { const r = cv.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; }
+// which lane mark (if any) is under a screen point; the hit area never overlaps the neighbouring lane
+function laneHit(p) {
+  if (Math.abs(p.y - Y(LAUNCH.y)) > Math.max(22, (SR + 4) * g.s)) return null;
+  const r = Math.min(Math.max(22, (SR + 4) * g.s), (LANES[1] - LANES[0]) * g.s / 2);
+  for (const lx of LANES) if (Math.abs(p.x - X(lx)) <= r) return lx;
+  return null;
+}
+function setLane(lx) {
+  if (G.lane[G.cur] === lx && (G.laneTo ?? LAUNCH.x) === lx) return;
+  G.lane[G.cur] = lx; G.laneTo = lx; G.hint = false;
+  blip(0.15, 900, 2, 0.03);
+}
+function nearLaunch(p) { return Math.hypot(p.x - X(LAUNCH.x), p.y - Y(LAUNCH.y)) <= Math.max(26, (SR + 5) * g.s); }
+// pull is measured in screen pixels, so power precision does not depend on zoom
+// "pull from anywhere": on your turn a one-finger drag anywhere aims; the pull is measured from where the
+// finger went down, not from the stone, so there is always room to pull back and the finger never hides the stone
+const CANCEL_PW = 0.08;
+// touches on the sheet (rails included) aim on your turn; touches on the table around it always scroll
+function onSheet(p) {
+  const wx = cam.cx + (p.x - g.cw / 2) / g.s, wy = cam.cy - (p.y - g.ch / 2) / g.s;
+  return wx >= -4 && wx <= W + 4 && wy >= 0 && wy <= L;
+}
+function dragShot(d) {
+  const ux = d.cur.x - d.start.x, uy = d.cur.y - d.start.y, len = Math.hypot(ux, uy);
+  return { ang: Math.atan2(-ux, uy), pw: Math.min(len, g.maxPx) / g.maxPx, len, ux, uy };
+}
+cv.addEventListener('pointerdown', e => {
+  const p = screenPt(e);
+  pointers.set(e.pointerId, p);
+  try { cv.setPointerCapture(e.pointerId); } catch (_) {}
+  audio();
+  if (pointers.size === 2) {
+    G.drag = null;
+    const [a, b] = [...pointers.values()];
+    gesture = { kind: 'pinch', d0: Math.hypot(a.x - b.x, a.y - b.y) || 1, z0: cam.zoom, mid: { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 } };
+    return;
+  }
+  if (pointers.size > 2) return;
+  const m = miniHit(p);
+  if (m) { miniJump(m, p); gesture = { kind: 'mini' }; return; }
+  if (G.state === 'aim' && opts.lanes && !G.inLSD) {
+    const li = laneHit(p);
+    if (li != null) { gesture = { kind: 'lane?', start: p, lane: li }; return; }
+  }
+  if (G.state === 'aim' && onSheet(p)) { gesture = { kind: 'shoot' }; G.drag = { start: p, cur: p }; return; }
+  gesture = { kind: 'pan', last: p };
+});
+cv.addEventListener('pointermove', e => {
+  const p = screenPt(e);
+  if (!pointers.has(e.pointerId)) {
+    cv.style.cursor = miniHit(p) ? 'pointer' : G.state === 'aim' && onSheet(p) ? 'crosshair' : wholeVisible() ? 'default' : 'move';
+    return;
+  }
+  pointers.set(e.pointerId, p);
+  if (!gesture) return;
+  if (gesture.kind === 'lane?') {
+    const dx = p.x - gesture.start.x, dy = p.y - gesture.start.y;
+    if (Math.hypot(dx, dy) < 8) return;
+    // sideways = move the stone to another lane; anything else = a normal pull from this point
+    if (Math.abs(dx) > Math.abs(dy)) gesture = { kind: 'lane' };
+    else { const st = gesture.start; gesture = { kind: 'shoot' }; G.drag = { start: st, cur: p }; return; }
+  }
+  if (gesture.kind === 'lane') { if (G.state === 'aim') setLane(nearestLane(cam.cx + (p.x - g.cw / 2) / g.s)); return; }
+  if (gesture.kind === 'shoot') { if (G.drag) G.drag.cur = p; return; }
+  if (gesture.kind === 'mini') { const m = miniRect(); if (m) miniJump(m, { x: clamp(p.x, m.x, m.x + m.w), y: clamp(p.y, m.y, m.y + m.h) }); return; }
+  if (gesture.kind === 'pan') {
+    cam.cx -= (p.x - gesture.last.x) / g.s; cam.cy += (p.y - gesture.last.y) / g.s;
+    gesture.last = p; manual(); clampCam(cam); return;
+  }
+  if (gesture.kind === 'pinch' && pointers.size === 2) {
+    const [a, b] = [...pointers.values()];
+    const mid = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
+    cam.cx -= (mid.x - gesture.mid.x) / g.s; cam.cy += (mid.y - gesture.mid.y) / g.s;
+    gesture.mid = mid;
+    zoomAt(gesture.z0 * Math.hypot(a.x - b.x, a.y - b.y) / gesture.d0, mid.x, mid.y);
+    manual();
+  }
+});
+function endPointer(e) {
+  const p = screenPt(e);
+  pointers.delete(e.pointerId);
+  if (gesture && (gesture.kind === 'lane?' || gesture.kind === 'lane')) {
+    if (gesture.kind === 'lane?' && G.state === 'aim') setLane(gesture.lane);   // a tap on another lane mark
+    gesture = null; return;
+  }
+  if (gesture && gesture.kind === 'shoot') {
+    const d = G.drag;
+    G.drag = null; gesture = null;
+    if (!d) return;
+    d.cur = p;
+    const sh = dragShot(d);
+    // a tiny pull, or dragging back to where you started, cancels
+    if (e.type === 'pointerup' && G.state === 'aim' && sh.pw >= CANCEL_PW) release(sh.ang, sh.pw, G.spinSel);
+    return;
+  }
+  if (pointers.size === 0) gesture = null;
+  else if (gesture && gesture.kind === 'pinch') gesture = { kind: 'pan', last: [...pointers.values()][0] };
+}
+cv.addEventListener('pointerup', endPointer);
+cv.addEventListener('pointercancel', endPointer);
+cv.addEventListener('wheel', e => {
+  e.preventDefault();
+  const p = screenPt(e), k = e.deltaMode === 1 ? 16 : 1;
+  if (e.ctrlKey || e.metaKey) zoomAt(cam.zoom * Math.exp(-e.deltaY * k * 0.01), p.x, p.y);
+  else { cam.cx += e.deltaX * k / g.s; cam.cy -= e.deltaY * k / g.s; clampCam(cam); }
+  manual();
+}, { passive: false });
+
+function aimRay(ang) {
+  const dx = Math.sin(ang), dy = Math.cos(ang);
+  const live = G.stones.filter(s => s.live);
+  let x = LAUNCH.x, y = LAUNCH.y;
+  for (let i = 0; i < 1200; i++) {
+    x += dx * 0.35; y += dy * 0.35;
+    if (y > L + 4 || y < 0) return { x, y, kind: 'none' };
+    if (G.map.gutter && (x < 0 || x > W)) return { x, y, kind: 'none' };
+    for (const s of live) if (Math.hypot(s.x - x, s.y - y) < 2 * SR) return { x, y, kind: 'stone', s };
+    for (const p of G.map.posts) if (Math.hypot(p.x - x, p.y - y) < p.r + SR) return { x, y, kind: 'post' };
+    for (const w of G.map.walls) {
+      const ddx = w.x2 - w.x1, ddy = w.y2 - w.y1;
+      const t = clamp(((x - w.x1) * ddx + (y - w.y1) * ddy) / (ddx * ddx + ddy * ddy), 0, 1);
+      if (Math.hypot(x - (w.x1 + t * ddx), y - (w.y1 + t * ddy)) < SR) return { x, y, kind: 'wall' };
+    }
+  }
+  return { x, y, kind: 'none' };
+}
+
+/* ================= render ================= */
+let wood = null;
+function rng(seed) { return () => { seed = (seed * 16807) % 2147483647; return (seed - 1) / 2147483646; }; }
+function buildWood() {
+  // fixed-resolution texture (8 px per world unit) so zooming in stays sharp enough
+  const dpr = 2.5, w = W * 8, h = L * 8;
+  const c = document.createElement('canvas'); c.width = w; c.height = h;
+  const x = c.getContext('2d');
+  const gr = x.createLinearGradient(0, 0, w, 0);
+  gr.addColorStop(0, '#cf9b5a'); gr.addColorStop(0.5, '#ddae6c'); gr.addColorStop(1, '#cd985a');
+  x.fillStyle = gr; x.fillRect(0, 0, w, h);
+  const r = rng(7);
+  for (let i = 0; i < 150; i++) {
+    const x0 = r() * w, amp = (2 + r() * 10) * dpr, f = 0.002 + r() * 0.006, ph = r() * 6.28;
+    x.beginPath();
+    for (let yy = 0; yy <= h; yy += 6) {
+      const xx = x0 + Math.sin(yy * f / dpr + ph) * amp;
+      yy === 0 ? x.moveTo(xx, yy) : x.lineTo(xx, yy);
+    }
+    x.strokeStyle = `rgba(${r() < 0.5 ? '120,70,28' : '245,205,150'},${0.04 + r() * 0.09})`;
+    x.lineWidth = (0.6 + r() * 2.2) * dpr; x.stroke();
+  }
+  wood = c;
+  // sand speckles (world coords) built once per size
+  sandDots = [];
+  const r2 = rng(42);
+  for (let i = 0; i < 420; i++) sandDots.push([r2(), r2(), r2()]);
+}
+let sandDots = [];
+let dpr = 1;
+function resize() {
+  dpr = Math.min(window.devicePixelRatio || 1, 2.5);
+  const cw = stage.clientWidth, ch = stage.clientHeight;
+  if (!cw || !ch) return;
+  cv.width = Math.round(cw * dpr); cv.height = Math.round(ch * dpr);
+  const first = !g.cw;
+  // pull-from-anywhere needs no room under the launch point; a modest margin keeps the stone off the screen edge
+  // and within easy thumb reach
+  const maxPx = clamp(Math.min(cw, ch) * 0.3, 90, 150), bottomPx = 72;
+  const wFit = (cw - 20) / (W + 8);
+  const topPx = hudBottom();
+  const sFit = Math.max(0.4, Math.min(wFit, (ch - topPx - bottomPx) / (VIEW_TOP - LAUNCH.y)));
+  g = { ...g, cw, ch, maxPx, bottomPx, topPx, wFit, sFit };
+  if (!wood) buildWood();
+  if (first || G.state === 'menu') { cam.zoom = 1; cam.cx = W / 2; cam.cy = L / 2; cam.target = null; }
+  clampCam(cam); g.s = g.sFit * cam.zoom;
+}
+new ResizeObserver(resize).observe(stage);
+
+function circle(x, y, r) { ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); }
+function hline(y, w, color, dash) {
+  ctx.save(); ctx.strokeStyle = color; ctx.lineWidth = w; if (dash) ctx.setLineDash(dash);
+  ctx.beginPath(); ctx.moveTo(X(0), Y(y)); ctx.lineTo(X(W), Y(y)); ctx.stroke(); ctx.restore();
+}
+function label(text, x, y, color, align = 'left', size = 11) {
+  ctx.font = `${size}px "Gowun Dodum", sans-serif`; ctx.fillStyle = color; ctx.textAlign = align; ctx.textBaseline = 'middle';
+  ctx.fillText(text, x, y);
+}
+function drawStone(x, y, team, alpha = 1, scale = 1) {
+  const r = SR * g.s * scale, cx = X(x), cy = Y(y);
+  ctx.save(); ctx.globalAlpha = alpha;
+  ctx.fillStyle = 'rgba(45,22,6,.38)'; circle(cx + r * 0.16, cy + r * 0.26, r * 1.02); ctx.fill();
+  const gr = ctx.createRadialGradient(cx - r * 0.35, cy - r * 0.4, r * 0.08, cx, cy, r);
+  if (team === 'B') { gr.addColorStop(0, '#6a6a6a'); gr.addColorStop(0.42, '#232323'); gr.addColorStop(1, '#0b0b0b'); }
+  else { gr.addColorStop(0, '#ffffff'); gr.addColorStop(0.6, '#eeeae0'); gr.addColorStop(1, '#bcb4a3'); }
+  ctx.fillStyle = gr; circle(cx, cy, r); ctx.fill();
+  ctx.restore();
+}
+function drawBoard(time) {
+  const s = g.s;
+  // rails (with the open-side test, none beside the guard zone)
+  ctx.fillStyle = '#5a3418';
+  const railSpans = G.map.gutter ? [[0, GAP_Y0], [GAP_Y1, L]] : [[0, L]];
+  for (const [a, b] of railSpans) { ctx.fillRect(X(-4), Y(b), 4 * s, (b - a) * s); ctx.fillRect(X(W), Y(b), 4 * s, (b - a) * s); }
+  ctx.drawImage(wood, X(0), Y(L), W * s, L * s);
+  if (G.map.gutter) {
+    // worn, darkened edge where the sheet drops away
+    for (const x0 of [0, W - 2.5]) {
+      const gr = ctx.createLinearGradient(X(x0), 0, X(x0 + 2.5), 0);
+      gr.addColorStop(x0 === 0 ? 0 : 1, 'rgba(30,16,6,.6)'); gr.addColorStop(x0 === 0 ? 1 : 0, 'rgba(30,16,6,0)');
+      ctx.fillStyle = gr; ctx.fillRect(X(x0), Y(GAP_Y1), 2.5 * s, (GAP_Y1 - GAP_Y0) * s);
+    }
+    ctx.save(); ctx.translate(X(-2), Y((GAP_Y0 + GAP_Y1) / 2)); ctx.rotate(-Math.PI / 2);
+    label('열린 측벽', 0, 0, 'rgba(239,226,200,.55)', 'center', 10); ctx.restore();
+    ctx.save(); ctx.translate(X(W + 2), Y((GAP_Y0 + GAP_Y1) / 2)); ctx.rotate(Math.PI / 2);
+    label('열린 측벽', 0, 0, 'rgba(239,226,200,.55)', 'center', 10); ctx.restore();
+  }
+  // out zone
+  ctx.save();
+  ctx.beginPath(); ctx.rect(X(0), Y(L), W * s, (L - BACK) * s); ctx.clip();
+  ctx.fillStyle = 'rgba(32,20,11,.55)'; ctx.fillRect(X(0), Y(L), W * s, (L - BACK) * s);
+  ctx.strokeStyle = 'rgba(239,226,200,.07)'; ctx.lineWidth = 1;
+  for (let k = -L; k < W + L; k += 5) { ctx.beginPath(); ctx.moveTo(X(k), Y(BACK)); ctx.lineTo(X(k + (L - BACK)), Y(L)); ctx.stroke(); }
+  ctx.restore();
+  label('아웃', X(W / 2), Y((L + BACK) / 2), 'rgba(239,226,200,.55)', 'center', 12);
+  // guard zone
+  if (opts.fgz) {
+    const active = G.state !== 'menu' && fgzActive();
+    // from the min line up to the tee line, minus the house circle (stones in the house are never guards)
+    ctx.fillStyle = active ? 'rgba(43,61,107,.32)' : 'rgba(43,61,107,.15)';
+    // clip to the zone rectangle first, otherwise even-odd fills the half of the circle outside it
+    ctx.save();
+    ctx.beginPath(); ctx.rect(X(0), Y(TEE.y), W * s, (TEE.y - HOG) * s); ctx.clip();
+    ctx.beginPath();
+    ctx.rect(X(0), Y(TEE.y), W * s, (TEE.y - HOG) * s);
+    ctx.arc(X(TEE.x), Y(TEE.y), R * s, 0, Math.PI * 2);
+    ctx.fill('evenodd');
+    ctx.restore();
+    label(active ? '가드 존 · 보호 중' : '가드 존', X(2.5), Y(HOG + 4), active ? 'rgba(30,44,84,.85)' : 'rgba(30,44,84,.55)', 'left', 10);
+  }
+  // zones
+  for (const z of G.map.zones) {
+    const zx = X(z.x1), zy = Y(z.y2), zw = (z.x2 - z.x1) * s, zh = (z.y2 - z.y1) * s;
+    if (z.kind === 'sand') {
+      ctx.fillStyle = 'rgba(196,166,112,.92)'; ctx.fillRect(zx, zy, zw, zh);
+      ctx.fillStyle = 'rgba(110,82,40,.45)';
+      for (const [a, b, c] of sandDots) { ctx.fillRect(zx + a * zw, zy + b * zh, 0.6 + c * 1.2, 0.6 + c * 1.2); }
+      label('모래', zx + zw / 2, zy + zh / 2, 'rgba(70,46,18,.8)', 'center', 11);
+    } else {
+      ctx.fillStyle = 'rgba(214,236,246,.72)'; ctx.fillRect(zx, zy, zw, zh);
+      ctx.save(); ctx.beginPath(); ctx.rect(zx, zy, zw, zh); ctx.clip();
+      ctx.strokeStyle = 'rgba(255,255,255,.7)'; ctx.lineWidth = 1.2;
+      for (let k = 0; k < zh + zw; k += 14) { ctx.beginPath(); ctx.moveTo(zx, zy + k); ctx.lineTo(zx + zw, zy + k - zw); ctx.stroke(); }
+      ctx.restore();
+      ctx.save(); ctx.translate(zx + zw / 2, zy + zh / 2); ctx.rotate(-Math.PI / 2);
+      label('빙판', 0, 0, 'rgba(40,70,100,.75)', 'center', 11); ctx.restore();
+    }
+  }
+  // house
+  const ring = (rad, width, color) => { ctx.strokeStyle = color; ctx.lineWidth = width * s; circle(X(TEE.x), Y(TEE.y), rad * s); ctx.stroke(); };
+  ring((R + 18.5) / 2, R - 18.5, 'rgba(38,55,100,.88)');
+  ring(6, 6, 'rgba(178,64,44,.9)');
+  ctx.lineWidth = 1; ctx.strokeStyle = 'rgba(40,24,12,.5)';
+  for (const rr of [R, 18.5, 9, 3]) { circle(X(TEE.x), Y(TEE.y), rr * s); ctx.stroke(); }
+  // lines
+  ctx.save(); ctx.strokeStyle = 'rgba(52,32,16,.45)'; ctx.lineWidth = 1; ctx.setLineDash([4, 4]);
+  ctx.beginPath(); ctx.moveTo(X(50), Y(HOG)); ctx.lineTo(X(50), Y(BACK)); ctx.stroke(); ctx.restore();
+  hline(TEE.y, 1, 'rgba(52,32,16,.55)');
+  hline(HOG, 3, '#3b2414');
+  hline(BACK, 2, '#3b2414');
+  label('최소 라인', X(2.5), Y(HOG) + 9, 'rgba(52,32,16,.9)', 'left', 10);
+  label('백 라인', X(2.5), Y(BACK) + 9, 'rgba(52,32,16,.9)', 'left', 10);
+  // launch marks: one per lane (the current lane is drawn by the waiting stone itself)
+  for (const lx of launchXs()) {
+    ctx.strokeStyle = 'rgba(52,32,16,.5)'; ctx.lineWidth = 1.5;
+    circle(X(lx), Y(LAUNCH.y), (SR + 1.6) * s); ctx.stroke();
+  }
+  if (opts.lanes) { ctx.fillStyle = 'rgba(52,32,16,.35)'; ctx.fillRect(X(LANES[0]), Y(LAUNCH.y) - 1, (LANES[2] - LANES[0]) * s, 2); }
+  // posts
+  for (const p of G.map.posts) {
+    ctx.fillStyle = 'rgba(45,22,6,.4)'; circle(X(p.x) + 2, Y(p.y) + 3, p.r * s); ctx.fill();
+    const gr = ctx.createRadialGradient(X(p.x) - p.r * s * 0.3, Y(p.y) - p.r * s * 0.35, 1, X(p.x), Y(p.y), p.r * s);
+    gr.addColorStop(0, '#f6d58a'); gr.addColorStop(0.55, '#c38f3a'); gr.addColorStop(1, '#7a5016');
+    ctx.fillStyle = gr; circle(X(p.x), Y(p.y), p.r * s); ctx.fill();
+  }
+  // kinked rails
+  for (const k of G.map.kinks) {
+    ctx.beginPath(); k.forEach(([x, y], i) => (i ? ctx.lineTo(X(x), Y(y)) : ctx.moveTo(X(x), Y(y)))); ctx.closePath();
+    ctx.fillStyle = '#5a3418'; ctx.fill(); ctx.strokeStyle = '#7a4a26'; ctx.lineWidth = 1.5; ctx.stroke();
+  }
+  // rail inner edge highlight
+  ctx.fillStyle = 'rgba(255,220,170,.18)';
+  for (const [a, b] of railSpans) { ctx.fillRect(X(0) - 1.5, Y(b), 1.5, (b - a) * s); ctx.fillRect(X(W), Y(b), 1.5, (b - a) * s); }
+  // rail windows: brass = lively, dark felt = dead
+  if (G.map.rails) {
+    for (const w of G.map.walls) {
+      if (isBottomWall(w)) continue;
+      const lively = !w.dead;
+      if (w.x1 === w.x2 && (w.x1 === 0 || w.x1 === W)) {
+        // side walls run past the end of the sheet; draw only the part beside it
+        const bot = Math.max(0, Math.min(w.y1, w.y2)), top = Math.min(L, Math.max(w.y1, w.y2)), h = top - bot;
+        if (h <= 0) continue;
+        const rx = w.x1 === 0 ? X(-4) : X(W);
+        ctx.fillStyle = lively ? '#d9a54c' : '#2a1910';
+        ctx.fillRect(rx, Y(top), 4 * s, h * s);
+        if (lively) {
+          ctx.fillStyle = 'rgba(255,226,150,.85)';
+          ctx.fillRect(w.x1 === 0 ? X(0) : X(W) - 2, Y(top), 2, h * s);
+          ctx.save(); ctx.translate(rx + 2 * s, Y((bot + top) / 2)); ctx.rotate(w.x1 === 0 ? -Math.PI / 2 : Math.PI / 2);
+          label('탄력', 0, 0, '#2a1b0c', 'center', 10); ctx.restore();
+        }
+      } else {
+        ctx.strokeStyle = lively ? '#d9a54c' : '#2a1910'; ctx.lineWidth = Math.max(3, 1.2 * s);
+        ctx.beginPath(); ctx.moveTo(X(w.x1), Y(w.y1)); ctx.lineTo(X(w.x2), Y(w.y2)); ctx.stroke();
+      }
+    }
+  }
+  // cushion ban while the free guard zone is active: only the rail face a stone would touch turns faintly red
+  if (G.state !== 'menu' && cushionBanned()) {
+    ctx.save();
+    // side walls run past the end of the sheet (they keep stones in the out zone too); only draw along the sheet
+    ctx.beginPath(); ctx.rect(X(-6), Y(L), (W + 12) * s, L * s); ctx.clip();
+    ctx.strokeStyle = 'rgba(214,64,44,.75)'; ctx.lineWidth = 5; ctx.lineCap = 'butt';
+    for (const w of G.map.walls) {
+      if (isBottomWall(w)) continue;
+      // nudge the line onto the rail side of the contact face
+      const nx = w.x1 === 0 && w.x2 === 0 ? -2.5 : w.x1 === W && w.x2 === W ? 2.5 : 0;
+      ctx.beginPath(); ctx.moveTo(X(w.x1) + nx, Y(w.y1)); ctx.lineTo(X(w.x2) + nx, Y(w.y2)); ctx.stroke();
+    }
+    ctx.restore();
+  }
+}
+function arrowHead(x1, y1, x2, y2, size, color) {
+  const a = Math.atan2(y2 - y1, x2 - x1);
+  ctx.fillStyle = color; ctx.beginPath();
+  ctx.moveTo(x2, y2);
+  ctx.lineTo(x2 - size * Math.cos(a - 0.45), y2 - size * Math.sin(a - 0.45));
+  ctx.lineTo(x2 - size * Math.cos(a + 0.45), y2 - size * Math.sin(a + 0.45));
+  ctx.closePath(); ctx.fill();
+}
+function drawAim(ang, pw, pull) {
+  const s = g.s, lx = X(LAUNCH.x), ly = Y(LAUNCH.y);
+  // power arc
+  // dark backing ring so the gauge reads on wood, the guard-zone tint and the dark table alike
+  const gr = (SR + 4) * s;
+  ctx.strokeStyle = 'rgba(32,20,11,.6)'; ctx.lineWidth = 8;
+  circle(lx, ly, gr); ctx.stroke();
+  ctx.strokeStyle = 'rgba(239,226,200,.18)'; ctx.lineWidth = 4;
+  circle(lx, ly, gr); ctx.stroke();
+  // one continuous ramp blue -> violet -> red (never through yellow, which vanishes on the wood)
+  const col = `hsl(${(220 + 145 * pw) % 360}, 65%, ${58 - 6 * pw}%)`;
+  ctx.strokeStyle = col; ctx.lineWidth = 4.5; ctx.lineCap = 'round'; ctx.beginPath();
+  ctx.arc(lx, ly, gr, -Math.PI / 2, -Math.PI / 2 + pw * Math.PI * 2); ctx.stroke();
+  ctx.lineCap = 'butt';
+  // direction arrow
+  const dx = Math.sin(ang), dy = -Math.cos(ang), len = 18 + pw * 70, r0 = SR * s + 6;
+  const sx = lx + dx * r0, sy = ly + dy * r0, ex = lx + dx * (r0 + len), ey = ly + dy * (r0 + len);
+  ctx.strokeStyle = col; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(sx, sy); ctx.lineTo(ex, ey); ctx.stroke();
+  arrowHead(sx, sy, ex, ey, 9, col);
+  // aim line to first contact
+  if (opts.aim) {
+    const hit = aimRay(ang);
+    ctx.save(); ctx.setLineDash([5, 5]); ctx.strokeStyle = 'rgba(40,24,12,.6)'; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.moveTo(lx, ly); ctx.lineTo(X(hit.x), Y(hit.y)); ctx.stroke(); ctx.restore();
+    const noTicket = opts.ticket && !G.inLSD && G.state === 'aim' && G.tickets[G.cur] <= 0;
+    if (hit.kind === 'wall' && (cushionBanned() || noTicket)) {
+      ctx.strokeStyle = '#c0503a'; ctx.lineWidth = 2; circle(X(hit.x), Y(hit.y), SR * s); ctx.stroke();
+      ctx.save(); ctx.font = '12px "Gowun Dodum", sans-serif'; ctx.textAlign = hit.x < W / 2 ? 'left' : 'right'; ctx.textBaseline = 'middle';
+      const lx2 = X(hit.x) + (hit.x < W / 2 ? 1 : -1) * (SR * s + 6);
+      ctx.lineWidth = 4; ctx.strokeStyle = 'rgba(32,20,11,.85)'; ctx.strokeText(noTicket ? '쿠션권 없음' : '쿠션 금지', lx2, Y(hit.y));
+      ctx.fillStyle = '#ff9c84'; ctx.fillText(noTicket ? '쿠션권 없음' : '쿠션 금지', lx2, Y(hit.y)); ctx.restore();
+    } else if (hit.kind !== 'none') { ctx.strokeStyle = 'rgba(40,24,12,.55)'; ctx.lineWidth = 1.2; circle(X(hit.x), Y(hit.y), SR * s); ctx.stroke(); }
+  }
+  ctx.save();
+  ctx.font = '15px "Do Hyeon", sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  const tx = lx + dx * (r0 + len + 18), ty = ly + dy * (r0 + len + 18);
+  ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(32,20,11,.75)'; ctx.strokeText(`${Math.round(pw * 100)}%`, tx, ty);
+  ctx.fillStyle = '#ffe2a6'; ctx.fillText(`${Math.round(pw * 100)}%`, tx, ty);
+  ctx.restore();
+}
+function draw(time) {
+  const s = g.s;
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.fillStyle = '#20160f'; ctx.fillRect(0, 0, g.cw, g.ch);
+  if (!wood) return;
+  drawBoard(time);
+
+  const playing = ['aim', 'ai', 'ai-pull', 'moving', 'settle'].includes(G.state);
+  // live scoring glow
+  if (playing || G.state === 'menu') {
+    const sc = scoring(G.stones);
+    for (const id of sc.ids) {
+      const st = G.stones.find(x => x.id === id);
+      ctx.strokeStyle = 'rgba(255,214,120,.55)'; ctx.lineWidth = 3;
+      circle(X(st.x), Y(st.y), (SR + 1.4) * s); ctx.stroke();
+    }
+  }
+  // protected stones
+  if (playing && G.protectedIds.length && G.state !== 'settle') {
+    ctx.save(); ctx.setLineDash([3, 3]); ctx.strokeStyle = 'rgba(28,44,92,.9)'; ctx.lineWidth = 2;
+    for (const id of G.protectedIds) { const st = G.stones.find(x => x.id === id); if (st && st.live) { circle(X(st.x), Y(st.y), (SR + 1.6) * s); ctx.stroke(); } }
+    ctx.restore();
+  }
+  // fades
+  if (G.inLSD && G.lsd) {
+    // the draw target: a ring with a cross, drawn under the stones
+    const T = G.lsd.target, tx = X(T.x), ty = Y(T.y), rr = Math.max(7, SR * g.s * 0.9);
+    const pulse = matchMedia('(prefers-reduced-motion: reduce)').matches ? 0.5 : (Math.sin(time / 260) + 1) / 2;
+    ctx.save();
+    ctx.strokeStyle = 'rgba(32,20,11,.75)'; ctx.lineWidth = 5; circle(tx, ty, rr); ctx.stroke();
+    ctx.strokeStyle = `rgba(255,217,138,${0.75 + 0.25 * pulse})`; ctx.lineWidth = 2.5; circle(tx, ty, rr); ctx.stroke();
+    ctx.lineWidth = 2; ctx.beginPath();
+    ctx.moveTo(tx - rr * 1.6, ty); ctx.lineTo(tx - rr * 0.5, ty); ctx.moveTo(tx + rr * 0.5, ty); ctx.lineTo(tx + rr * 1.6, ty);
+    ctx.moveTo(tx, ty - rr * 1.6); ctx.lineTo(tx, ty - rr * 0.5); ctx.moveTo(tx, ty + rr * 0.5); ctx.lineTo(tx, ty + rr * 1.6);
+    ctx.stroke();
+    ctx.fillStyle = '#ffd98a'; circle(tx, ty, 2); ctx.fill();
+    ctx.restore();
+  }
+  for (const f of G.fades) drawStone(f.x, f.y, f.team, f.a, f.drop ? 0.4 + 0.6 * f.a : 1);
+  // stones
+  if (G.state === 'restoring') {
+    const t = Math.min(1, G.restore.t), e = t * t * (3 - 2 * t);
+    for (const snap of G.snapshot) {
+      const from = G.restore.from.get(snap.id) || snap;
+      drawStone(from.x + (snap.x - from.x) * e, from.y + (snap.y - from.y) * e, snap.team);
+    }
+    const shot = G.stones.find(x => x.id === G.shotId);
+    if (shot) drawStone(shot.x, shot.y, shot.team, 1 - e);
+  } else {
+    for (const st of G.stones) if (st.live) drawStone(st.x, st.y, st.team);
+  }
+  // pending stone at launch
+  if (['aim', 'ai', 'ai-pull'].includes(G.state)) {
+    if (G.state === 'aim' && !G.drag) {
+      const pulse = matchMedia('(prefers-reduced-motion: reduce)').matches ? 0.5 : (Math.sin(time / 300) + 1) / 2;
+      ctx.strokeStyle = `rgba(217,165,76,${0.35 + pulse * 0.45})`; ctx.lineWidth = 2;
+      circle(X(LAUNCH.x), Y(LAUNCH.y), (SR + 2.5 + pulse * 1.5) * s); ctx.stroke();
+    }
+    const lx = X(LAUNCH.x), ly = Y(LAUNCH.y);
+    if (G.drag) {
+      const sh = dragShot(G.drag), k = sh.len > g.maxPx ? g.maxPx / sh.len : 1;
+      const st = G.drag.start, cu = G.drag.cur;
+      // where the finger went down, and a faint line to the finger
+      ctx.save(); ctx.strokeStyle = 'rgba(239,226,200,.45)'; ctx.lineWidth = 1.5;
+      circle(st.x, st.y, 10); ctx.stroke();
+      ctx.setLineDash([4, 4]); ctx.beginPath(); ctx.moveTo(st.x, st.y); ctx.lineTo(cu.x, cu.y); ctx.stroke(); ctx.restore();
+      if (sh.pw < CANCEL_PW) {
+        ctx.save(); ctx.font = '13px "Gowun Dodum", sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.lineWidth = 4; ctx.strokeStyle = 'rgba(32,20,11,.85)'; ctx.strokeText('뒤로 당기세요 · 여기서 놓으면 취소', st.x, st.y - 24);
+        ctx.fillStyle = '#efe2c8'; ctx.fillText('뒤로 당기세요 · 여기서 놓으면 취소', st.x, st.y - 24); ctx.restore();
+      } else {
+        drawAim(sh.ang, sh.pw, { x: lx + sh.ux * k, y: ly + sh.uy * k });
+      }
+    } else if (G.state === 'ai-pull') {
+      const a = G.aiPull, pw = a.pw * Math.min(1, a.t);
+      drawAim(a.ang, pw, { x: lx - Math.sin(a.ang) * pw * g.maxPx, y: ly + Math.cos(a.ang) * pw * g.maxPx });
+    }
+    drawStone(LAUNCH.x, LAUNCH.y, G.cur);
+    const note = G.state === 'aim' && G.hint && !G.drag ? (opts.lanes && !G.inLSD ? '알을 옆으로 끌면 라인 변경 · 당겨서 발사' : '화면 아무 곳이나 누르고 뒤로 당겼다 놓으세요') : G.state === 'ai' ? `${nameOf(G.cur)} 생각 중…` : G.state === 'ai-pull' && G.aiPull.label ? `${nameOf(G.cur)} · ${G.aiPull.label}` : '';
+    if (note) {
+      ctx.save(); ctx.font = '13px "Gowun Dodum", sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.lineWidth = 4; ctx.strokeStyle = 'rgba(32,20,11,.85)'; ctx.strokeText(note, lx, ly - SR * s - 16);
+      ctx.fillStyle = '#efe2c8'; ctx.fillText(note, lx, ly - SR * s - 16); ctx.restore();
+    }
+    // chosen spin, shown on the stone as a ring arrow and a short label
+    const sp = G.state === 'ai-pull' ? (G.aiPull.spin || 0) : G.state === 'aim' ? G.spinSel : 0;
+    if (opts.spin && sp) {
+      const r0 = SR * s + 4;
+      ctx.save(); ctx.strokeStyle = '#ffd98a'; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.arc(lx, ly, r0, sp > 0 ? -2.4 : -0.74, sp > 0 ? -0.74 : -2.4, sp < 0); ctx.stroke();
+      ctx.font = '13px "Gowun Dodum", sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.lineWidth = 4; ctx.strokeStyle = 'rgba(32,20,11,.85)'; ctx.strokeText(SPIN_NAME[sp], lx, ly - r0 - 12);
+      ctx.fillStyle = '#ffd98a'; ctx.fillText(SPIN_NAME[sp], lx, ly - r0 - 12); ctx.restore();
+    }
+  }
+  // last stone draw: distance from the pin
+  if (G.state === 'lsd-show' && G.lsdShow && G.lsdShow.d !== undefined) {
+    const m = G.lsdShow, p = clamp(m.t / 0.5, 0, 1), T = G.lsd.target;
+    ctx.save(); ctx.strokeStyle = 'rgba(255,214,120,.95)'; ctx.lineWidth = 2.5;
+    ctx.beginPath(); ctx.moveTo(X(T.x), Y(T.y)); ctx.lineTo(X(T.x + (m.x - T.x) * p), Y(T.y + (m.y - T.y) * p)); ctx.stroke();
+    if (p >= 1) {
+      ctx.font = '16px "Do Hyeon", sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      const tx = X(m.x), ty = Y(m.y) - SR * g.s - 14;
+      ctx.lineWidth = 4; ctx.strokeStyle = 'rgba(32,20,11,.85)'; ctx.strokeText(m.d.toFixed(1), tx, ty);
+      ctx.fillStyle = '#ffd98a'; ctx.fillText(m.d.toFixed(1), tx, ty);
+    }
+    ctx.restore();
+  }
+  // measurement
+  if (G.state === 'measure' || G.state === 'endcard') {
+    const m = G.measure, t = G.state === 'endcard' ? 99 : m.t;
+    let rank = 0;
+    m.sc.list.forEach((o, i) => {
+      const p = clamp((t - 0.35 - i * 0.3) / 0.25, 0, 1);
+      if (p <= 0) return;
+      const scorer = m.sc.ids.includes(o.s.id);
+      ctx.strokeStyle = scorer ? 'rgba(255,214,120,.95)' : 'rgba(40,24,12,.55)';
+      ctx.lineWidth = scorer ? 2.5 : 1.5;
+      ctx.beginPath(); ctx.moveTo(X(TEE.x), Y(TEE.y));
+      ctx.lineTo(X(TEE.x + (o.s.x - TEE.x) * p), Y(TEE.y + (o.s.y - TEE.y) * p)); ctx.stroke();
+      if (p >= 1 && scorer) {
+        rank++;
+        ctx.strokeStyle = 'rgba(255,214,120,.95)'; ctx.lineWidth = 3; circle(X(o.s.x), Y(o.s.y), (SR + 1.5) * s); ctx.stroke();
+        ctx.fillStyle = '#d9a54c'; circle(X(o.s.x) + SR * s, Y(o.s.y) - SR * s, 8); ctx.fill();
+        label(String(rank), X(o.s.x) + SR * s, Y(o.s.y) - SR * s + 0.5, '#2a1b0c', 'center', 11);
+      }
+    });
+    ctx.fillStyle = '#2a1b0c'; circle(X(TEE.x), Y(TEE.y), 2.5); ctx.fill();
+  }
+  // floating texts
+  for (const f of G.floats) {
+    ctx.save(); ctx.globalAlpha = 1 - f.t;
+    ctx.font = `${16}px "Do Hyeon", sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(32,20,11,.8)';
+    const fx = clamp(X(f.x), X(10), X(90)), fy = Y(f.y + 8 + f.t * 10);
+    ctx.strokeText(f.text, fx, fy); ctx.fillStyle = '#ffd98a'; ctx.fillText(f.text, fx, fy);
+    ctx.restore();
+  }
+  drawMinimap();
+}
+
+/* ================= loop ================= */
+let last = performance.now(), acc = 0;
+function frame(now) {
+  const rdt = Math.min(0.05, (now - last) / 1000); last = now;
+  const dt = rdt * speed();          // game clock (physics, animations); the camera keeps real time
+  if (G.state === 'moving') {
+    acc += dt;
+    while (acc >= DT) { step(G.stones, G.map, liveEv); acc -= DT; }
+    if (!anyMoving(G.stones)) { acc = 0; afterShot(); }
+  } else acc = 0;
+  if (G.state === 'restoring') { G.restore.t += dt / 0.9; if (G.restore.t >= 1) finishRestore(); }
+  if (G.state === 'settle') { G.settleT -= dt; if (G.settleT <= 0) { G.shot++; prepareShot(); } }
+  if (G.laneTo != null) {
+    const d = G.laneTo - LAUNCH.x, stp = 110 * dt;
+    if (Math.abs(d) <= stp) { LAUNCH.x = G.laneTo; G.laneTo = null; } else LAUNCH.x += Math.sign(d) * stp;
+  }
+  if (G.state === 'ai-pull') { G.aiPull.t += dt / 0.6; if (G.aiPull.t >= 1.15) release(G.aiPull.ang, G.aiPull.pw, G.aiPull.spin || 0); }
+  if (G.state === 'measure') { G.measure.t += dt; if (G.measure.t >= G.measure.dur) showEndCard(); }
+  if (G.state === 'lsd-show') { G.lsdShow.t += dt; if (G.lsdShow.t >= 1.8) lsdNext(); }
+  for (const f of G.fades) f.a -= dt / 0.5;
+  G.fades = G.fades.filter(f => f.a > 0);
+  for (const f of G.floats) f.t += dt / 1.2;
+  G.floats = G.floats.filter(f => f.t < 1);
+  if (G.state === 'moving' || G.state === 'settle') renderTurn();
+  if (g.cw) { updateCam(rdt * Math.sqrt(speed())); draw(now); }
+  requestAnimationFrame(frame);
+}
+
+/* ================= dev panel ================= */
+const sliders = [
+  ['slDecel', 'oDecel', 'decel', v => v.toFixed(0)],
+  ['slStone', 'oStone', 'eStone', v => v.toFixed(2)],
+  ['slWall', 'oWall', 'eWall', v => v.toFixed(2)],
+  ['slVmax', 'oVmax', 'vmax', v => v.toFixed(0)]
+];
+function syncDev() {
+  for (const [sl, o, key, fmt] of sliders) { $(sl).value = P[key]; $(o).textContent = fmt(P[key]); }
+  $('optAim').checked = opts.aim; $('optFgz').checked = opts.fgz;
+  $('optGutter').checked = !!opts.gutter; $('optTicket').checked = !!opts.ticket; $('optLanes').checked = !!opts.lanes;
+  $('slTicket').value = opts.ticketCount; $('oTicket').textContent = opts.ticketCount; $('slTicket').disabled = !opts.ticket;
+  $('optRails').checked = !!opts.rails; $('optSpin').checked = !!opts.spin;
+  $('optBan').checked = !!opts.cushionBan; $('optBan').disabled = !opts.fgz;
+  $('optBlank').checked = !!opts.blankSwitch; $('optLsd').checked = !!opts.lsd; $('optPlaced').checked = !!opts.placed; $('optPlacedHouse').checked = !!opts.placedHouse; $('optPlacedHouse').disabled = !opts.placed;
+  $('rlLow').checked = opts.railLayout !== 'two'; $('rlTwo').checked = opts.railLayout === 'two';
+  $('slLive').value = opts.liveTop; $('oLive').textContent = opts.liveTop;
+  $('slLive').disabled = !opts.rails || opts.railLayout === 'two';
+  for (const r of document.querySelectorAll('input[name=railLayout]')) r.disabled = !opts.rails;
+  $('bPhys').checked = !opts.mirror; $('bMirror').checked = !!opts.mirror;
+  {
+    const out = Math.atan(Math.tan(Math.PI / 4) / P.eWall) * 180 / Math.PI;
+    $('bounceNote').textContent = opts.mirror
+      ? `들어온 각도 그대로 튕기고, 속도만 ${Math.round(P.eWall * 100)}%로 줄어듭니다.`
+      : `벽 쪽 속도만 줄어 반사가 벽 쪽으로 눕습니다. 45°로 들어오면 ${out.toFixed(1)}°로 나갑니다.`;
+  }
+  $('slFgz').value = opts.fgzShots; $('oFgz').textContent = opts.fgzShots; $('slFgz').disabled = !opts.fgz;
+  const reach = p => (p * P.vmax) ** 2 / (2 * P.decel);
+  const toTee = TEE.y - LAUNCH.y, toBack = BACK + SR - LAUNCH.y;
+  const full = reach(1), seventy = reach(0.7);
+  const okFull = full > toBack, okSev = Math.abs(seventy - toTee) <= 12;
+  $('reach').innerHTML =
+    `최대 세기 비거리 <b class="${okFull ? 'ok' : 'warn'}">${full.toFixed(0)}</b> (백 라인 통과에 ${toBack.toFixed(0)} 필요)<br>` +
+    `70% 세기 비거리 <b class="${okSev ? 'ok' : 'warn'}">${seventy.toFixed(0)}</b> (티까지 ${toTee.toFixed(0)})<br>` +
+    `<span>기믹 구역 밖, 직선 기준 계산값</span>`;
+  $('devJson').textContent = JSON.stringify({
+    units: 'sheet width = 100',
+    sheet: { width: W, length: L, launchY: LAUNCH.y, minLineY: HOG, teeY: TEE.y, houseRadius: R, backLineY: BACK, stoneRadius: SR },
+    physics: { deceleration: P.decel, stoneRestitution: P.eStone, wallRestitution: P.eWall, wallBounce: opts.mirror ? 'mirror angle, speed x restitution' : 'physical (normal component x restitution)', maxSpeed: P.vmax, maxPullPx: 'clamp(min(screenW, screenH) * 0.3, 90, 150)', fixedStep: '1/180' },
+    rules: { ends: ENDS, shotsPerEnd: SHOTS, stonesPerPlayer: PER, freeGuardZone: opts.fgz, freeGuardZoneShots: opts.fgzShots, cushionBannedDuringFreeGuardZone: !!opts.cushionBan, blankEndPassesHammer: !!opts.blankSwitch, firstHammer: opts.lsd ? 'last stone draw' : 'coin toss', bonusGuard: opts.placed ? { at: PLACE_GUARD, houseStoneForHammer: opts.placedHouse ? PLACE_HOUSE : false } : false, aimLine: opts.aim,
+      openSides: opts.gutter ? { fromY: GAP_Y0, toY: GAP_Y1 } : false, cushionTicketsPerEnd: opts.ticket ? opts.ticketCount : null, launchLanes: opts.lanes ? LANES : [50],
+      railWindows: opts.rails ? { layout: opts.railLayout, livelyY: railWindows(), deadRestitution: DEAD_E, deadSlideKeep: DEAD_SLIDE } : false,
+      spin: opts.spin ? { choices: ['short', 'none', 'long'], slideFactor: SPIN_K, spentOnFirstRail: true } : false }
+  }, null, 2);
+  $('soundBtn').textContent = opts.sound ? '소리 켬' : '소리 끔';
+}
+for (const [sl, , key] of sliders) $(sl).addEventListener('input', e => { P[key] = parseFloat(e.target.value); saveDev(); syncDev(); });
+$('optAim').addEventListener('change', e => { opts.aim = e.target.checked; saveDev(); syncDev(); });
+$('optFgz').addEventListener('change', e => { opts.fgz = e.target.checked; saveDev(); syncDev(); renderHud(); });
+$('optGutter').addEventListener('change', e => {
+  opts.gutter = e.target.checked; saveDev(); syncDev();
+  G.map = buildField(MAPS[G.state === 'menu' ? 'base' : G.mapKey]);
+});
+$('optTicket').addEventListener('change', e => { opts.ticket = e.target.checked; saveDev(); syncDev(); renderHud(); });
+$('slTicket').addEventListener('input', e => { opts.ticketCount = parseInt(e.target.value, 10); saveDev(); syncDev(); renderHud(); });
+$('optLanes').addEventListener('change', e => { opts.lanes = e.target.checked; if (!opts.lanes) { LAUNCH.x = 50; G.laneTo = null; } saveDev(); syncDev(); });
+for (const r of document.querySelectorAll('input[name=bounce]')) r.addEventListener('change', e => { opts.mirror = e.target.value === 'mirror'; saveDev(); syncDev(); });
+$('slFgz').addEventListener('input', e => { opts.fgzShots = parseInt(e.target.value, 10); saveDev(); syncDev(); renderHud(); });
+const rebuildField = () => { G.map = buildField(MAPS[G.state === 'menu' ? 'base' : G.mapKey]); };
+$('optBan').addEventListener('change', e => { opts.cushionBan = e.target.checked; saveDev(); syncDev(); renderHud(); });
+$('optBlank').addEventListener('change', e => { opts.blankSwitch = e.target.checked; saveDev(); syncDev(); });
+$('optLsd').addEventListener('change', e => { opts.lsd = e.target.checked; saveDev(); syncDev(); });
+$('optPlaced').addEventListener('change', e => { opts.placed = e.target.checked; saveDev(); syncDev(); });
+$('optPlacedHouse').addEventListener('change', e => { opts.placedHouse = e.target.checked; saveDev(); syncDev(); });
+for (const r of document.querySelectorAll('input[name=railLayout]')) r.addEventListener('change', e => { opts.railLayout = e.target.value; saveDev(); syncDev(); rebuildField(); });
+$('slLive').addEventListener('input', e => { opts.liveTop = parseInt(e.target.value, 10); saveDev(); syncDev(); rebuildField(); });
+$('optRails').addEventListener('change', e => {
+  opts.rails = e.target.checked; saveDev(); syncDev();
+  G.map = buildField(MAPS[G.state === 'menu' ? 'base' : G.mapKey]);
+});
+$('optSpin').addEventListener('change', e => { opts.spin = e.target.checked; G.spinSel = 0; saveDev(); syncDev(); renderHud(); });
+$('devReset').addEventListener('click', () => { Object.assign(P, DEFAULTS); saveDev(); syncDev(); });
+$('devBtn').addEventListener('click', () => { $('dev').hidden = false; $('devClose').focus(); });
+$('devClose').addEventListener('click', () => { $('dev').hidden = true; $('devBtn').focus(); });
+$('devCopy').addEventListener('click', () => {
+  const text = $('devJson').textContent;
+  const sel = () => { const r = document.createRange(); r.selectNodeContents($('devJson')); const s = getSelection(); s.removeAllRanges(); s.addRange(r); };
+  try {
+    navigator.clipboard.writeText(text).then(() => { $('devCopy').textContent = '복사됨'; setTimeout(() => { $('devCopy').textContent = '값 복사'; }, 1500); }, sel);
+  } catch (e) { sel(); }
+});
+$('soundBtn').addEventListener('click', () => { opts.sound = !opts.sound; saveDev(); syncDev(); if (opts.sound) audio(); });
+$('menuBtn').addEventListener('click', () => { closePopovers(); toMenu(); });
+function closePopovers() {
+  $('scorePanel').hidden = true; $('scorePill').setAttribute('aria-expanded', 'false');
+  $('more').hidden = true; $('moreBtn').setAttribute('aria-expanded', 'false');
+}
+$('scorePill').addEventListener('click', () => {
+  const open = $('scorePanel').hidden;
+  closePopovers(); $('scorePanel').hidden = !open; $('scorePill').setAttribute('aria-expanded', String(open));
+});
+$('moreBtn').addEventListener('click', () => {
+  const open = $('more').hidden;
+  closePopovers(); $('more').hidden = !open; $('moreBtn').setAttribute('aria-expanded', String(open));
+});
+$('devBtn').addEventListener('click', closePopovers);
+for (const b of $('spinBar').querySelectorAll('button')) b.addEventListener('click', () => { G.spinSel = Number(b.dataset.spin); updateSpinBar(); });
+cv.addEventListener('pointerdown', closePopovers);
+$('startBtn').addEventListener('click', () => { audio(); startMatch(readMenu()); });
+for (const r of document.querySelectorAll('input[name=mode]')) r.addEventListener('change', () => { $('watchLv').hidden = !$('m-watch').checked; });
+$('speedBtn').addEventListener('click', () => {
+  G.speed = { 1: 2, 2: 4, 4: 1 }[G.speed || 1];
+  $('speedBtn').textContent = `${G.speed}배속`;
+});
+
+/* ================= boot ================= */
+syncDev();
+resize();
+toMenu();
+requestAnimationFrame(t => { last = t; frame(t); });
+})();
+</script>
