@@ -75,7 +75,7 @@ namespace FlickCurling.Game
             float freeSide = (safeW - (W + 8) * sSide) / 2;
             bool wasSide = hud.SideMode;
             hud.SetSideLayout(inGame && freeSide >= SideMin, freeSide - 20);
-            if (hud.SideMode != wasSide && m != null) RenderHud();   // the turn card is laid out differently in a column
+            if (hud.SideMode != wasSide && m != null) RenderHud();   // the score pill is laid out differently in a column
             topPx = hud.HudBottom;
             sFit = Mathf.Max(0.4f, Mathf.Min(wFit, (ch - topPx - bottomPx) / viewH));
             if (force || state == St.Menu) { zoom = 1; cx = W / 2; cy = L / 2; camTarget = null; }
@@ -438,6 +438,7 @@ namespace FlickCurling.Game
             under.Clear(); aim.Clear(); over.Clear(); mini.Clear();
             BeginStones(); hud.BeginLabels();
             DrawBoardLabels();
+            DrawTurnInfo();
 
             bool playing = state == St.Aim || state == St.Ai || state == St.AiPull || state == St.Moving || state == St.Settle;
             // live scoring glow
@@ -592,6 +593,31 @@ namespace FlickCurling.Game
         }
 
         static Vector2 Rot(Vector2 v, float a) => new Vector2(v.x * Mathf.Cos(a) - v.y * Mathf.Sin(a), v.x * Mathf.Sin(a) + v.y * Mathf.Cos(a));
+
+        // printed on the sheet between the launch line and the min line, sized in sheet units like the other markings;
+        // it fades while a shot is being aimed so the aim arrow reads over it
+        void DrawTurnInfo()
+        {
+            var info = TurnInfo();
+            if (!info.HasValue) return;
+            float a = drag != null || state == St.AiPull ? 0.3f : 0.82f;
+            var ink = Palette.Rgba(52, 32, 16, a);
+            // who-throws-first phase: a title line above the turn line, larger than the rest
+            float up = 0;
+            if (info.Value.title != null) { hud.Label(info.Value.title, X(W / 2), Y(56), Mathf.RoundToInt(5.8f * s), ink, 0, true); up = -5.5f; }
+            // a human to aim (every turn in 2-player play, the player's turns against the AI): red, larger, and a
+            // short pulse when the turn starts; AI turns keep the printed-ink look
+            if (state == St.Aim && !IsAI(m.Cur))
+            {
+                float k = Mathf.Clamp01((Time.unscaledTime - turnStartT) / 0.45f);
+                float pulse = 1 + 0.25f * (1 - k) * (1 - k);
+                // the house red: brass blends into the light wood, red stands out on it
+                var hot = Palette.WithA(Palette.Hex("#a3341f"), drag != null ? 0.45f : 1);
+                hud.Label(info.Value.head, X(W / 2), Y(52.5f + up), Mathf.RoundToInt(5f * s * pulse), hot, 0, true);
+            }
+            else hud.Label(info.Value.head, X(W / 2), Y(52 + up), Mathf.RoundToInt(4.2f * s), ink, 0, true);
+            hud.Label(info.Value.sub, X(W / 2), Y(45 + up), Mathf.RoundToInt(3.4f * s), ink);
+        }
 
         void DrawBoardLabels()
         {

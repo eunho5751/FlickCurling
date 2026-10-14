@@ -66,6 +66,7 @@ namespace FlickCurling.Game
         int aiToken;
         float aiT0;
         Func<CardSpec> cardFactory;   // rebuilds the visible card after a language change
+        float turnStartT = -10;       // when a human last got the aim (turn-text pulse)
 
         // ---- scheduled callbacks (prototype setTimeout), real time ----
         readonly List<(float at, Action a)> timers = new List<(float, Action)>();
@@ -86,6 +87,8 @@ namespace FlickCurling.Game
         float Speed => Watching ? speed : 1;
         bool IsAI(Team t) => ai[(int)t].HasValue;
         string NameOf(Team t) => Loc.Team(t) + (IsAI(t) ? Loc.T("team.ai") : "");
+        // the HUD shows the side as a stone icon rather than its name
+        string SideOf(Team t, int scalePct = 115) => Ui.Icon(t, scalePct) + (IsAI(t) ? Loc.T("team.ai") : "");
         static string EndLabel(int n) => n <= Sheet.Ends ? Loc.T("hud.end", ("n", n)) : Loc.T("hud.extra");
         string Versus(int b, int w) => Loc.T("score.versus", ("b", Loc.Team(Team.B)), ("bv", b), ("wv", w), ("w", Loc.Team(Team.W)));
 
@@ -253,6 +256,7 @@ namespace FlickCurling.Game
             fades.Clear();
             laneTo = null;
             state = IsAI(m.Cur) ? St.Ai : St.Aim;
+            if (state == St.Aim) turnStartT = Time.unscaledTime;
             userMoved = false;
             CamTo(AimView(zoom), 3.5f);
             RenderHud();
@@ -318,6 +322,7 @@ namespace FlickCurling.Game
             m.BeginShot();
             laneTo = null;
             state = IsAI(m.Cur) ? St.Ai : St.Aim;
+            if (state == St.Aim) turnStartT = Time.unscaledTime;
             userMoved = false;
             CamTo(AimView(zoom), 3.5f);
             RenderHud();
@@ -506,8 +511,15 @@ namespace FlickCurling.Game
             string Hm(Team t) => hammerKnown && m.Hammer == t ? $"<color=#d9a54c><size=10> {hammer}</size></color>" : "";
             string B(int v) => $"<color=#d9a54c><size=19><b>{v}</b></size></color>";
             int tB = m.Total(Team.B), tW = m.Total(Team.W);
-            hud.SetScorePill($"{Loc.Team(Team.B)}{Hm(Team.B)} {B(tB)}<color=#b39f84> : </color>{B(tW)} {Loc.Team(Team.W)}{Hm(Team.W)}" +
-                             $"<color=#b39f84><size=12>  {(state == St.Menu ? Loc.T("hud.idle") : EndLabel(m.End))} </size><size=9>▼</size></color>");
+            string end = $"<color=#b39f84><size=12>{(state == St.Menu ? Loc.T("hud.idle") : EndLabel(m.End))} </size><size=9>▼</size></color>";
+            string iconB = Ui.Icon(Team.B, 140), iconW = Ui.Icon(Team.W, 140);
+            if (hud.SideMode)
+            {
+                // narrow side column: the score, then who has the hammer, then the end
+                string hm = hammerKnown ? $"\n{Ui.Icon(m.Hammer, 110)}<color=#d9a54c><size=11> {hammer}</size></color>" : "";
+                hud.SetScorePill($"{iconB} {B(tB)}<color=#b39f84> : </color>{B(tW)} {iconW}{hm}\n{end}");
+            }
+            else hud.SetScorePill($"{iconB}{Hm(Team.B)} {B(tB)}<color=#b39f84> : </color>{B(tW)} {iconW}{Hm(Team.W)}  {end}");
 
             int ends = Math.Max(Sheet.Ends, Math.Max(m.End, m.Scores[0].Count));
             var rows = new List<string[]>();
@@ -517,47 +529,36 @@ namespace FlickCurling.Game
             rows.Add(head.ToArray());
             foreach (var t in new[] { Team.B, Team.W })
             {
-                var r = new List<string> { NameOf(t) + Hm(t) };
+                var r = new List<string> { SideOf(t, 130) + Hm(t) };
                 for (int i = 1; i <= ends; i++) r.Add(i - 1 < m.Scores[(int)t].Count ? m.Scores[(int)t][i - 1].ToString() : "");
                 r.Add(m.Total(t).ToString());
                 rows.Add(r.ToArray());
             }
             hud.SetScoreTable(rows, state != St.Menu ? m.End : -1);
-            RenderTurn();
         }
 
-        static string Strong(string s) => $"<size=16><color=#efe2c8><b>{s}</b></color></size>";
-
-        void RenderTurn()
+        /// <summary>
+        /// The turn info printed on the sheet between the launch line and the min line: whose turn and the shot number,
+        /// then each side's stones left (during the last stone draw: the draw and both distances). Null in the menu.
+        /// </summary>
+        (string title, string head, string sub)? TurnInfo()
         {
-            if (state == St.Menu) { hud.SetTurn(null, Strong(Loc.T("hud.waiting")), "", ""); return; }
+            if (state == St.Menu) return null;
             var t = m.Cur;
-            string b = Loc.Team(Team.B), w = Loc.Team(Team.W);
+            string b = Ui.Icon(Team.B, 130), w = Ui.Icon(Team.W, 130);
             if (m.InLsd)
-            {
-                if (hud.SideMode) { hud.SetTurn(t, Strong(NameOf(t)), Loc.T("hud.lsd"), $"{b} {FmtDist(m.Lsd.Dist[0])}\n{w} {FmtDist(m.Lsd.Dist[1])}"); return; }
-                hud.SetTurn(t, $"{Strong(Loc.T("hud.turn", ("name", NameOf(t))))}  {Loc.T("hud.lsd")}",
-                    $"{b} {FmtDist(m.Lsd.Dist[0])}    {w} {FmtDist(m.Lsd.Dist[1])}", "");
-                return;
-            }
+                return (Loc.T("hud.lsd"), Loc.T("hud.turn", ("name", SideOf(t))),
+                        $"{b} {FmtDist(m.Lsd.Dist[0])}      {w} {FmtDist(m.Lsd.Dist[1])}");
             string Pips(Team team)
             {
                 int left = Mathf.Clamp(Sheet.Per - m.ThrownBy(team), 0, Sheet.Per);
-                return "<size=10>" + new string('●', left) + new string('○', Sheet.Per - left) + "</size>";
+                // a little smaller than the side icon, so the pips do not read as more side markers
+                return "<size=80%>" + new string('●', left) + new string('○', Sheet.Per - left) + "</size>";
             }
-            string tickets = Loc.T("hud.tickets", ("b", b), ("bn", m.Tickets[0]), ("w", w), ("wn", m.Tickets[1]));
-            // non-breaking spaces keep "Shot 3/10" and "Black ●●○○○" together when a narrow card wraps
-            string shot = Loc.T("hud.shot", ("n", Math.Min(m.Shot + 1, Sheet.Shots)), ("total", Sheet.Shots)).Replace(' ', ' ');
-            string pipsB = b + " " + Pips(Team.B), pipsW = w + " " + Pips(Team.W);
-            if (hud.SideMode)
-            {
-                // narrow side column: the thrower (the dot shows whose turn it is), then one item per line
-                string head = m.Shot < Sheet.Shots ? NameOf(t) : Loc.T("hud.endOver");
-                hud.SetTurn(t, Strong(head), $"{shot}\n{pipsB}\n{pipsW}", tickets);
-                return;
-            }
-            string who = m.Shot < Sheet.Shots ? Loc.T("hud.turn", ("name", NameOf(t))) : Loc.T("hud.endOver");
-            hud.SetTurn(t, $"{Strong(who)}  {shot}", $"{pipsB}    {pipsW}", tickets);
+            string head = m.Shot < Sheet.Shots
+                ? $"{Loc.T("hud.turn", ("name", SideOf(t)))} ({m.Shot + 1} / {Sheet.Shots})"
+                : Loc.T("hud.endOver");
+            return (null, head, $"{b} {Pips(Team.B)}      {w} {Pips(Team.W)}");
         }
 
         // =====================================================================
@@ -574,7 +575,6 @@ namespace FlickCurling.Game
             public void OnTicket(Stone s, bool used)
             {
                 g.floats.Add(new Float { X = (float)s.X, Y = (float)s.Y - 6, Text = Loc.T(used ? "float.ticketUsed" : "float.noTicket") });
-                if (used) g.RenderTurn();
             }
             public void OnCushion(Stone s, int n)
             {
@@ -619,7 +619,6 @@ namespace FlickCurling.Game
             fades.RemoveAll(f => f.A <= 0);
             foreach (var f in floats) f.T += dt / 1.2f;
             floats.RemoveAll(f => f.T >= 1);
-            if (state == St.Moving || state == St.Settle) RenderTurn();
 
             Resize(false);
             UpdateCam(rdt * Mathf.Sqrt(Speed));

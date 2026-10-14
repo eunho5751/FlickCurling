@@ -154,15 +154,11 @@ MonoBehaviour:
       m_Items:
       - rid: 4297768082125881571
   - m_Id: 2262749199
-    m_Localized: hammer
+    m_Localized: Last
     m_Metadata:
       m_Items: []
   - m_Id: 2262749200
     m_Localized: Idle
-    m_Metadata:
-      m_Items: []
-  - m_Id: 2262749201
-    m_Localized: Waiting
     m_Metadata:
       m_Items: []
   - m_Id: 2262749202
@@ -179,7 +175,7 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 2262749205
-    m_Localized: '{name}''s turn'
+    m_Localized: '{name} to throw'
     m_Metadata:
       m_Items:
       - rid: 4297768082125881571
@@ -187,13 +183,8 @@ MonoBehaviour:
     m_Localized: End over
     m_Metadata:
       m_Items: []
-  - m_Id: 2262749207
-    m_Localized: Shot {n}/{total}
-    m_Metadata:
-      m_Items:
-      - rid: 4297768082125881571
   - m_Id: 2262749208
-    m_Localized: Last stone draw
+    m_Localized: Turn Order Shot
     m_Metadata:
       m_Items: []
   - m_Id: 2262749209
@@ -211,18 +202,17 @@ MonoBehaviour:
       m_Items:
       - rid: 4297768082125881571
   - m_Id: 2262749212
-    m_Localized: Last Stone Draw
+    m_Localized: Turn Order Shot
     m_Metadata:
       m_Items: []
   - m_Id: 2262749213
-    m_Localized: Closest to the target gets the hammer
+    m_Localized: Closest to the target throws last
     m_Metadata:
       m_Items: []
   - m_Id: 2262749214
     m_Localized: A target appears somewhere new in the house each game. Each side
-      draws one stone as close to it as possible; the closer one throws the last
-      shot of end 1 (the hammer). Stopping short of the min line or going past the
-      back line leaves no record.
+      draws one stone as close to it as possible; the closer one throws last in end
+      1. Stopping short of the min line or going past the back line leaves no record.
     m_Metadata:
       m_Items: []
   - m_Id: 2262749215
@@ -231,11 +221,11 @@ MonoBehaviour:
       m_Items:
       - rid: 4297768082125881571
   - m_Id: 2262749216
-    m_Localized: Last stone draw result
+    m_Localized: Turn order shot result
     m_Metadata:
       m_Items: []
   - m_Id: 2262749217
-    m_Localized: '{name} has the hammer'
+    m_Localized: '{name} throws last'
     m_Metadata:
       m_Items:
       - rid: 4297768082125881571
@@ -295,12 +285,13 @@ MonoBehaviour:
       m_Items:
       - rid: 4297768082125881571
   - m_Id: 2262749230
-    m_Localized: 'Hammer next end: {name} (the side that didn''t score). Total {score}'
+    m_Localized: Next end, {name} throws last (the side that didn't score). Total
+      {score}
     m_Metadata:
       m_Items:
       - rid: 4297768082125881571
   - m_Id: 2262749231
-    m_Localized: Blank end, so the hammer passes to {name}. Total {score}
+    m_Localized: Blank end, so {name} now throws last. Total {score}
     m_Metadata:
       m_Items:
       - rid: 4297768082125881571
@@ -310,7 +301,7 @@ MonoBehaviour:
       m_Items:
       - rid: 4297768082125881571
   - m_Id: 2262749233
-    m_Localized: Lead bonus guard
+    m_Localized: First-thrower bonus guard
     m_Metadata:
       m_Items: []
   - m_Id: 2262749234
@@ -433,7 +424,7 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 2262749262
-    m_Localized: last stone draw
+    m_Localized: target throw
     m_Metadata:
       m_Items: []
   - m_Id: 2262749263
@@ -490,7 +481,6 @@ MonoBehaviour:
         - id: 2262749198
         - id: 2262749202
         - id: 2262749205
-        - id: 2262749207
         - id: 2262749209
         - id: 2262749211
         - id: 2262749215

@@ -151,10 +151,6 @@ MonoBehaviour:
     m_Key: hud.idle
     m_Metadata:
       m_Items: []
-  - m_Id: 2262749201
-    m_Key: hud.waiting
-    m_Metadata:
-      m_Items: []
   - m_Id: 2262749202
     m_Key: hud.end
     m_Metadata:
@@ -173,10 +169,6 @@ MonoBehaviour:
       m_Items: []
   - m_Id: 2262749206
     m_Key: hud.endOver
-    m_Metadata:
-      m_Items: []
-  - m_Id: 2262749207
-    m_Key: hud.shot
     m_Metadata:
       m_Items: []
   - m_Id: 2262749208

@@ -15,6 +15,8 @@ namespace FlickCurling.Game
         // body (Noto Sans KR Regular) and display (Noto Sans KR Bold) TMP font assets; both fall back to Noto Sans JP for Japanese
         public static TMP_FontAsset Body, Display;
         static Material bodyStroke, displayStroke;
+        // inline side icons for text: <sprite name="B"> / <sprite name="W">
+        public static TMP_SpriteAsset Stones;
         public static Sprite Round, RoundStroke, White, DotSprite, StoneB, StoneW, FadeUp, Vignette;
         const int RoundPx = 48, RoundR = 16;
 
@@ -24,6 +26,7 @@ namespace FlickCurling.Game
             Display = display ? display : Body;
             bodyStroke = StrokeMaterial(Body);
             displayStroke = StrokeMaterial(Display);
+            Stones = MakeStoneSprites();
             DotSprite = dot; StoneB = stoneB; StoneW = stoneW;
             White = Sprite.Create(Texture2D.whiteTexture, new Rect(0, 0, 4, 4), new Vector2(.5f, .5f), 100);
             Round = MakeRound(false);
@@ -48,6 +51,36 @@ namespace FlickCurling.Game
             v.Apply();
             Vignette = Sprite.Create(v, new Rect(0, 0, 128, 128), new Vector2(.5f, .5f), 100);
         }
+
+        static TMP_SpriteAsset MakeStoneSprites()
+        {
+            var tex = BoardPainter.PaintStoneIcons();
+            int s = tex.height;
+            var sa = ScriptableObject.CreateInstance<TMP_SpriteAsset>();
+            sa.name = "Stones";
+            // a fresh asset has no version stamp, and TMP would try to upgrade it from the legacy sprite list
+            typeof(TMP_Asset).GetField("m_Version", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)?.SetValue(sa, "1.1.0");
+            sa.spriteSheet = tex;
+            var mat = new Material(Shader.Find("TextMeshPro/Sprite")) { name = "Stones" };
+            mat.mainTexture = tex;
+            sa.material = mat;
+            string[] names = { "B", "W" };
+            for (int i = 0; i < 2; i++)
+            {
+                // no face info on the asset, so TMP sizes each icon to the font's ascent; the bearing drops it a
+                // little below the baseline so it sits centred on the text
+                var g = new TMP_SpriteGlyph((uint)i, new UnityEngine.TextCore.GlyphMetrics(s, s, 0, s * 0.86f, s * 1.12f),
+                    new UnityEngine.TextCore.GlyphRect(i * s, 0, s, s), 1, 0);
+                sa.spriteGlyphTable.Add(g);
+                sa.spriteCharacterTable.Add(new TMP_SpriteCharacter(0xFFFE, sa, g) { name = names[i] });
+            }
+            sa.UpdateLookupTables();
+            return sa;
+        }
+
+        /// <summary>The side as a stone icon in rich text. scale is relative to the surrounding text.</summary>
+        public static string Icon(Core.Team t, int scalePct = 115) =>
+            $"<size={scalePct}%><sprite name=\"{(t == Core.Team.B ? "B" : "W")}\"></size>";
 
         // canvas strokeText: a dark outline around world labels
         static Material StrokeMaterial(TMP_FontAsset f)
@@ -129,7 +162,7 @@ namespace FlickCurling.Game
             var t = rt.gameObject.AddComponent<TextMeshProUGUI>();
             t.font = display ? Display : Body;
             t.fontSize = size; t.color = color; t.alignment = Align(align); t.text = text;
-            t.richText = true; t.raycastTarget = false;
+            t.richText = true; t.raycastTarget = false; t.spriteAsset = Stones;
             t.textWrappingMode = TextWrappingModes.Normal;
             t.overflowMode = TextOverflowModes.Overflow;
             return t;

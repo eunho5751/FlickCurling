@@ -31,13 +31,13 @@ namespace FlickCurling.Game
         public readonly Canvas Canvas;
         readonly CanvasScaler scaler;
         readonly RectTransform root, scorePanel, scoreTable, br, more, toast, cardOv, cardRt, menu, menuCard, watchLv, labelLayer, miniFrame;
-        readonly TextMeshProUGUI scorePill, turn1, turn2, turn3, toastT, toastB, cardEyebrow, cardTitle, cardHead, cardBody, soundTxt, speedTxt;
-        readonly Image turnDot, cardOvImg;
+        readonly TextMeshProUGUI scorePill, toastT, toastB, cardEyebrow, cardTitle, cardHead, cardBody, soundTxt, speedTxt;
+        readonly Image cardOvImg;
         readonly RectTransform cardActions;
         readonly Button speedBtn;
         readonly LayoutElement pillLe;
         // safe-area root for the HUD, and the two side columns used on wide screens
-        readonly RectTransform safeRoot, safeTop, leftCol, rightCol, pillRt, turnRt;
+        readonly RectTransform safeRoot, safeTop, leftCol, pillRt;
         bool sideMode, hudShown;
         float insL, insT, insR, insB;
         readonly Pills modePills, mapPills, lvB, lvW;
@@ -72,9 +72,8 @@ namespace FlickCurling.Game
             miniFrame.gameObject.SetActive(false);
             safeRoot = Ui.Rect(root, "Safe"); Ui.Stretch(safeRoot);
 
-            // ---- HUD pinned to the safe-area edges: score pill in the top-left corner, turn card in the top-right ----
+            // ---- HUD pinned to the safe-area edges: score pill in the top-left corner (turn info is printed on the sheet) ----
             leftCol = Column("LeftColumn", 0);
-            rightCol = Column("RightColumn", 1);
 
             var pill = Ui.Panel(leftCol, "ScorePill", Palette.Glass, Palette.Line, 10);
             Ui.HStack(pill.gameObject, 9, 9, 5, 5, 0, TextAnchor.MiddleLeft);
@@ -84,17 +83,8 @@ namespace FlickCurling.Game
             var pb = pill.gameObject.AddComponent<Button>(); pb.targetGraphic = pill; pb.transition = Selectable.Transition.None;
             pb.onClick.AddListener(() => { bool open = !scorePanel.gameObject.activeSelf; ClosePopovers(); scorePanel.gameObject.SetActive(open); OnUiClick?.Invoke(); });
 
-            var turn = Ui.Panel(rightCol, "Turn", Palette.Glass, Palette.Line, 10);
-            Ui.VStack(turn.gameObject, 10, 10, 4, 4, 1, TextAnchor.MiddleLeft).childForceExpandWidth = false;
-            var row1 = Ui.Rect(turn.transform, "Row1");
-            Ui.HStack(row1.gameObject, 0, 0, 0, 0, 6, TextAnchor.MiddleLeft);
-            turnDot = Ui.Dot(row1, Team.B);
-            turn1 = Flex(Ui.Label(row1, "", 12, Palette.Muted));
-            turn2 = Flex(Ui.Label(turn.transform, "", 11, Palette.Muted));
-            turn3 = Flex(Ui.Label(turn.transform, "", 11, Palette.Muted));
-            turnRt = turn.rectTransform;
-
-            scorePanel = Ui.Panel(safeRoot, "ScorePanel", Palette.Glass, Palette.Line, 10).rectTransform;
+            // opaque: without the prototype's backdrop blur, a see-through table mixes with the board labels under it
+            scorePanel = Ui.Panel(safeRoot, "ScorePanel", Palette.Panel, Palette.Line, 10).rectTransform;
             Ui.VStack(scorePanel.gameObject, 6, 6, 8, 8, 0);
             Ui.Fit(scorePanel.gameObject, true, true);
             scoreTable = Ui.Rect(scorePanel, "Table");
@@ -200,21 +190,6 @@ namespace FlickCurling.Game
 
         TextMeshProUGUI Bind(TextMeshProUGUI t, string key) { bound.Add((t, key)); return t; }
 
-        // a line that wraps when its card is narrower than the text
-        static TextMeshProUGUI Flex(TextMeshProUGUI t)
-        {
-            var le = t.gameObject.AddComponent<LayoutElement>(); le.minWidth = 0; le.flexibleWidth = 1;
-            return t;
-        }
-
-        // the turn card's width when nothing wraps
-        float TurnPreferredWidth()
-        {
-            float w = 17 + turn1.GetPreferredValues(turn1.text).x;
-            if (turn2.gameObject.activeSelf) w = Mathf.Max(w, turn2.GetPreferredValues(turn2.text).x);
-            if (turn3.gameObject.activeSelf) w = Mathf.Max(w, turn3.GetPreferredValues(turn3.text).x);
-            return w + 20 + 2;
-        }
 
         // headings stay on one line and shrink for longer translations
         static TextMeshProUGUI FitOneLine(TextMeshProUGUI t, int min)
@@ -289,12 +264,10 @@ namespace FlickCurling.Game
             float sw = cw - insL - insR, sh = ch - insT - insB;
             if (!sideMode)
             {
-                // top corners: the pill as wide as its text (up to 60% of the row), the turn card in what is left;
-                // a turn card that does not fit wraps its lines rather than leaving its corner
+                // top-left corner: the pill as wide as its text, wrapping only if the row is narrower
                 float rowW = sw - 20;
-                float pillW = Mathf.Min(scorePill.GetPreferredValues(scorePill.text).x + 18 + 2, rowW * 0.6f);
+                float pillW = Mathf.Min(scorePill.GetPreferredValues(scorePill.text).x + 18 + 2, rowW);
                 leftCol.sizeDelta = new Vector2(pillW, leftCol.sizeDelta.y);
-                rightCol.sizeDelta = new Vector2(Mathf.Min(TurnPreferredWidth(), rowW - pillW - 6), rightCol.sizeDelta.y);
             }
             float cardW = Mathf.Min(420, sw - 32);
             foreach (var rt in new[] { cardRt, menuCard })
@@ -319,10 +292,10 @@ namespace FlickCurling.Game
         public string SoundText { set => soundTxt.text = value; }
 
         /// <summary>Bottom edge of the top HUD row plus a margin, in css px (the camera keeps the far end clear of it).</summary>
-        public float HudBottom => insT + (hudShown && !sideMode ? 10 + Mathf.Max(leftCol.rect.height, rightCol.rect.height) + 8 : 18);
+        public float HudBottom => insT + (hudShown && !sideMode ? 10 + leftCol.rect.height + 8 : 18);
 
-        /// <summary>Where the right edge is free from (css px from the top): below the turn card in the side layout.</summary>
-        public float RightColumnBottom => hudShown ? insT + 10 + rightCol.rect.height + 8 : HudBottom;
+        /// <summary>Where the right edge is free from (css px from the top): nothing sits in the top-right corner.</summary>
+        public float RightColumnBottom => insT + 10;
 
         public void SetInsets(float l, float t, float r, float b)
         {
@@ -342,8 +315,8 @@ namespace FlickCurling.Game
         }
 
         /// <summary>
-        /// Wide screens: the columns get a fixed width (colW, css px) and run down beside the sheet, with no top row
-        /// reserved above it. Narrow screens size the two corners to their content and reserve the row.
+        /// Wide screens: the score column gets a fixed width (colW, css px) beside the sheet, with no top row reserved
+        /// above it. Narrow screens size the pill to its text and reserve the row.
         /// </summary>
         public bool SideMode => sideMode;
 
@@ -352,7 +325,7 @@ namespace FlickCurling.Game
             if (side)
             {
                 leftCol.sizeDelta = new Vector2(colW, leftCol.sizeDelta.y);
-                rightCol.sizeDelta = new Vector2(colW, rightCol.sizeDelta.y);
+
             }
             sideMode = side;
         }
@@ -360,7 +333,7 @@ namespace FlickCurling.Game
         void ApplyHudVisibility()
         {
             leftCol.gameObject.SetActive(hudShown);
-            rightCol.gameObject.SetActive(hudShown);
+
         }
 
         public void ClosePopovers()
@@ -371,17 +344,6 @@ namespace FlickCurling.Game
 
         public void SetScorePill(string rich) { if (scorePill.text != rich) scorePill.text = rich; }
 
-        public void SetTurn(Team? dot, string l1, string l2, string l3)
-        {
-            turnDot.gameObject.SetActive(dot.HasValue);
-            if (dot.HasValue) turnDot.sprite = dot == Team.B ? Ui.StoneB : Ui.StoneW;
-            if (turn1.text != l1) turn1.text = l1;
-            if (turn2.text != l2) turn2.text = l2;
-            turn2.gameObject.SetActive(!string.IsNullOrEmpty(l2));
-            if (turn3.text != l3) turn3.text = l3;
-            turn3.gameObject.SetActive(!string.IsNullOrEmpty(l3));
-        }
-
         string lastTable;
 
         /// <summary>The end-by-end score table. cells[row][col]; row 0 is the header. curCol highlights the current end.</summary>
@@ -391,6 +353,9 @@ namespace FlickCurling.Game
             if (key == lastTable) return;
             lastTable = key;
             for (int i = scoreTable.childCount - 1; i >= 0; i--) UnityEngine.Object.Destroy(scoreTable.GetChild(i).gameObject);
+            // the name column fits its widest entry (side icon, "(AI)", hammer badge)
+            float nameW = 96;
+            foreach (var row0 in cells) nameW = Mathf.Max(nameW, scorePill.GetPreferredValues(row0[0], 1000, 100).x * 13 / scorePill.fontSize + 18);
             for (int r = 0; r < cells.Count; r++)
             {
                 var row = Ui.Rect(scoreTable, "Row");
@@ -405,7 +370,7 @@ namespace FlickCurling.Game
                     }
                     Ui.HStack(cell.gameObject, 7, 7, 3, 3, 0, c == 0 ? TextAnchor.MiddleLeft : TextAnchor.MiddleCenter);
                     var le = cell.gameObject.AddComponent<LayoutElement>();
-                    le.preferredWidth = c == 0 ? 96 : (last ? 40 : 32);
+                    le.preferredWidth = c == 0 ? nameW : (last ? 40 : 32);
                     int size = r == 0 ? 11 : (last ? 17 : 13);
                     var col = r == 0 ? Palette.Muted : (last ? Palette.Brass : Palette.Text);
                     Ui.NoWrap(Ui.Label(cell, cells[r][c], size, col, last && r > 0, c == 0 ? TextAnchor.MiddleLeft : TextAnchor.MiddleCenter));

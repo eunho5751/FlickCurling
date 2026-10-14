@@ -311,6 +311,13 @@ namespace FlickCurling.Game
         public static Texture2D PaintStone(Team team, int size = 128)
         {
             var t = new Texture2D(size, size, TextureFormat.RGBA32, true) { name = "Stone_" + team, wrapMode = TextureWrapMode.Clamp, filterMode = FilterMode.Trilinear };
+            t.SetPixels(StonePixels(team, size));
+            t.Apply(true, true);
+            return t;
+        }
+
+        static Color[] StonePixels(Team team, int size)
+        {
             var px = new Color[size * size];
             float r = size / 2f - 1, c = size / 2f;
             var stops = team == Team.B
@@ -325,9 +332,7 @@ namespace FlickCurling.Game
                     col.a = cov;
                     px[j * size + i] = col;
                 }
-            t.SetPixels(px);
-            t.Apply(true, true);
-            return t;
+            return px;
         }
 
         /// <summary>
@@ -381,6 +386,35 @@ namespace FlickCurling.Game
                 }
             t.SetPixels(px);
             t.Apply(false, true);
+            return t;
+        }
+
+        /// <summary>
+        /// Side icons for text (black and white stones side by side in one 2:1 atlas): the stone with a thin dark rim
+        /// so the white one reads on the wood as well as on the dark panels.
+        /// </summary>
+        public static Texture2D PaintStoneIcons(int size = 96)
+        {
+            var t = new Texture2D(size * 2, size, TextureFormat.RGBA32, true) { name = "StoneIcons", wrapMode = TextureWrapMode.Clamp, filterMode = FilterMode.Trilinear };
+            var px = new Color[size * 2 * size];
+            var rim = Palette.Rgba(24, 14, 6, .85f);
+            for (int k = 0; k < 2; k++)
+            {
+                var src = StonePixels(k == 0 ? Team.B : Team.W, size);
+                float c = size / 2f, r = size / 2f - 1;
+                for (int j = 0; j < size; j++)
+                    for (int i = 0; i < size; i++)
+                    {
+                        float d = Dist(i + 0.5f, j + 0.5f, c, c);
+                        var s = src[j * size + i];
+                        // rim: about 6% of the radius at the edge
+                        float rimCov = Mathf.Clamp01((d - (r - r * 0.06f)) * 1.5f) * Mathf.Clamp01(r - d + 0.5f);
+                        var col = Color.Lerp(s, new Color(rim.r, rim.g, rim.b, s.a), rimCov * rim.a);
+                        px[j * size * 2 + k * size + i] = col;
+                    }
+            }
+            t.SetPixels(px);
+            t.Apply(true, true);
             return t;
         }
 
