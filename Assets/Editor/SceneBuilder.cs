@@ -58,6 +58,8 @@ namespace FlickCurling.EditorTools
             so.FindProperty("shapeMaterial").objectReferenceValue = shapeMat;
             so.FindProperty("mainCam").objectReferenceValue = cam;
             so.FindProperty("miniCam").objectReferenceValue = mini;
+            so.FindProperty("bodyFont").objectReferenceValue = AssetDatabase.LoadAssetAtPath<TMPro.TMP_FontAsset>(FontBuilder.BodyPath);
+            so.FindProperty("displayFont").objectReferenceValue = AssetDatabase.LoadAssetAtPath<TMPro.TMP_FontAsset>(FontBuilder.DisplayPath);
             so.ApplyModifiedPropertiesWithoutUndo();
 
             Directory.CreateDirectory("Assets/Scenes");

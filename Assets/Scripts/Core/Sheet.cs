@@ -17,7 +17,6 @@ namespace FlickCurling.Core
         public const double CancelPw = 0.08;
 
         public static Team Other(Team t) => t == Team.B ? Team.W : Team.B;
-        public static string Name(Team t) => t == Team.B ? "흑" : "백";
         public static double Clamp(double v, double a, double b) => Math.Max(a, Math.Min(b, v));
         public static double Hypot(double x, double y) => Math.Sqrt(x * x + y * y);
         public static double Dist(double ax, double ay, double bx, double by) => Hypot(ax - bx, ay - by);

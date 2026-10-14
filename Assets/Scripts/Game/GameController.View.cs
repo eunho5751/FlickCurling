@@ -466,7 +466,7 @@ namespace FlickCurling.Game
                     var faint = Palette.Rgba(239, 226, 200, .45f);
                     aim.Ring(World(drag.Start), U(10), U(1.5f), faint);
                     aim.Dashed(World(drag.Start), World(drag.Cur), U(1.5f), U(4), U(4), faint);
-                    if (sh.pw < Sheet.CancelPw) hud.Label("뒤로 당기세요 · 여기서 놓으면 취소", drag.Start.x, drag.Start.y - 24, 13, Palette.Text, 0, false, true);
+                    if (sh.pw < Sheet.CancelPw) hud.Label(Loc.T("hint.cancel"), drag.Start.x, drag.Start.y - 24, 13, Palette.Text, 0, false, true);
                     else DrawAim(sh.ang, sh.pw);
                 }
                 else if (state == St.AiPull)
@@ -474,9 +474,9 @@ namespace FlickCurling.Game
                     DrawAim(aiPull.Ang, (float)aiPull.Pw * Mathf.Min(1, aiPull.T));
                 }
                 DrawStone(lp.x, lp.y, m.Cur);
-                string note = state == St.Aim && hint && drag == null ? (!m.InLsd ? "알을 옆으로 끌면 라인 변경 · 당겨서 발사" : "화면 아무 곳이나 누르고 뒤로 당겼다 놓으세요")
-                    : state == St.Ai ? $"{NameOf(m.Cur)} 생각 중…"
-                    : state == St.AiPull && !string.IsNullOrEmpty(aiPull.Label) ? $"{NameOf(m.Cur)} · {aiPull.Label}" : "";
+                string note = state == St.Aim && hint && drag == null ? Loc.T(!m.InLsd ? "hint.lanes" : "hint.pull")
+                    : state == St.Ai ? Loc.T("ai.thinking", ("name", NameOf(m.Cur)))
+                    : state == St.AiPull && IntentLabel(aiPull) != "" ? Loc.T("ai.pulling", ("name", NameOf(m.Cur)), ("intent", IntentLabel(aiPull))) : "";
                 if (note != "") hud.Label(note, lx, ly - SR * s - 16, 13, Palette.Text, 0, false, true);
             }
             // last stone draw: distance from the target
@@ -550,7 +550,7 @@ namespace FlickCurling.Game
             {
                 aim.Ring(hit.p, SR, U(2), Palette.Hex("#c0503a"));
                 bool leftSide = hit.p.x < W / 2;
-                hud.Label("쿠션권 없음", X(hit.p.x) + (leftSide ? 1 : -1) * (SR * s + 6), Y(hit.p.y), 12, Palette.Hex("#ff9c84"), leftSide ? -1 : 1, false, true);
+                hud.Label(Loc.T("float.noTicket"), X(hit.p.x) + (leftSide ? 1 : -1) * (SR * s + 6), Y(hit.p.y), 12, Palette.Hex("#ff9c84"), leftSide ? -1 : 1, false, true);
             }
             else if (hit.kind != HitKind.None) aim.Ring(hit.p, SR, U(1.2f), Palette.Rgba(40, 24, 12, .55f));
             float tl = r0 + len + 18;
@@ -562,23 +562,23 @@ namespace FlickCurling.Game
         void DrawBoardLabels()
         {
             var f = m.Field;
-            hud.Label("아웃", X(W / 2), Y((L + BACK) / 2), 12, Palette.Rgba(239, 226, 200, .55f));
+            hud.Label(Loc.T("board.out"), X(W / 2), Y((L + BACK) / 2), 12, Palette.Rgba(239, 226, 200, .55f));
             var ink = Palette.Rgba(52, 32, 16, .9f);
-            hud.Label("최소 라인", X(2.5f), Y(HOG) + 9, 10, ink, -1);
-            hud.Label("백 라인", X(2.5f), Y(BACK) + 9, 10, ink, -1);
+            hud.Label(Loc.T("board.minLine"), X(2.5f), Y(HOG) + 9, 10, ink, -1);
+            hud.Label(Loc.T("board.backLine"), X(2.5f), Y(BACK) + 9, 10, ink, -1);
             foreach (var w in f.Walls)
             {
                 if (w.Dead || !w.IsSide) continue;
                 float bot = Mathf.Max(0, (float)Math.Min(w.Y1, w.Y2)), top = Mathf.Min(L, (float)Math.Max(w.Y1, w.Y2));
                 if (top <= bot) continue;
                 bool left = w.X1 == 0;
-                hud.Label("탄력", X(left ? -2 : W + 2), Y((bot + top) / 2), 10, Palette.BrassInk, 0, false, false, left ? 90 : -90);
+                hud.Label(Loc.T("board.lively"), X(left ? -2 : W + 2), Y((bot + top) / 2), 10, Palette.BrassInk, 0, false, false, left ? 90 : -90);
             }
             foreach (var z in f.Zones)
             {
                 float zx = (float)(z.X1 + z.X2) / 2, zy = (float)(z.Y1 + z.Y2) / 2;
-                if (z.Kind == ZoneKind.Sand) hud.Label("모래", X(zx), Y(zy), 11, Palette.Rgba(70, 46, 18, .8f));
-                else hud.Label("빙판", X(zx), Y(zy), 11, Palette.Rgba(40, 70, 100, .75f), 0, false, false, 90);
+                if (z.Kind == ZoneKind.Sand) hud.Label(Loc.T("board.sand"), X(zx), Y(zy), 11, Palette.Rgba(70, 46, 18, .8f));
+                else hud.Label(Loc.T("board.ice"), X(zx), Y(zy), 11, Palette.Rgba(40, 70, 100, .75f), 0, false, false, 90);
             }
         }
 

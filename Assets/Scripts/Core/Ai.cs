@@ -30,7 +30,8 @@ namespace FlickCurling.Core
     public sealed class AiDecision
     {
         public double Ang, Pw, Lx;
-        public string Label;
+        /// <summary>What the shot is for, shown while the AI pulls: draw, guard, takeout, hit-stay, bank, bank-takeout, blank, lsd, or "".</summary>
+        public string Intent;
     }
 
     /// <summary>
@@ -73,10 +74,11 @@ namespace FlickCurling.Core
         {
             { AiLevel.Easy, 0.3 }, { AiLevel.Normal, 0.8 }, { AiLevel.Hard, 1 }
         };
+        // candidate tag -> the intent shown to the player
         static readonly Dictionary<string, string> Intent = new Dictionary<string, string>
         {
-            { "draw", "드로우" }, { "guard", "가드" }, { "takeout", "테이크아웃" }, { "cut", "테이크아웃" },
-            { "hit-stay", "히트 앤 스테이" }, { "bank", "쿠션" }, { "bank-takeout", "쿠션 테이크아웃" }, { "window", "쿠션" }, { "random", "" }
+            { "draw", "draw" }, { "guard", "guard" }, { "takeout", "takeout" }, { "cut", "takeout" },
+            { "hit-stay", "hit-stay" }, { "bank", "bank" }, { "bank-takeout", "bank-takeout" }, { "window", "bank" }, { "random", "" }
         };
         // Per-end outcomes for the side with hammer, measured from 205 AI-vs-AI ends (hammer scores n / is stolen from n).
         static readonly (int n, double p)[] EndH = { (1, .341), (2, .229), (3, .180), (4, .024), (5, .010) };
@@ -494,14 +496,13 @@ namespace FlickCurling.Core
             if (shotsLeft == 0 && cands.Count > 0)
             {
                 var r = PlayShot(bas, best, team);
-                if (!Rules.Scoring(r).Team.HasValue) label = "블랭크";
+                if (!Rules.Scoring(r).Team.HasValue) label = "blank";
             }
             double lx0 = best.Lx;
-            if (lx0 != 50) label = (lx0 < 50 ? "왼쪽 라인" : "오른쪽 라인") + (label != "" ? " " + label : "");
             var n = Noise[lvl];
             double fa = best.Ang + rng.Gauss() * n.a;
             double fp = Sheet.Clamp(best.Pw + rng.Gauss() * n.p, 0.1, 1);
-            return new AiDecision { Ang = fa, Pw = fp, Lx = lx0, Label = label };
+            return new AiDecision { Ang = fa, Pw = fp, Lx = lx0, Intent = label };
         }
 
         /// <summary>Last stone draw: straight at the target from the centre lane, with this level's error.</summary>
@@ -512,7 +513,7 @@ namespace FlickCurling.Core
             double d = Sheet.Hypot(tx - 50, ty - LY);
             double ang = AngTo(50, tx, ty) + rng.Gauss() * n.a;
             double pw = Sheet.Clamp(PowFor(d) + rng.Gauss() * n.p, 0.1, 1);
-            return new AiDecision { Ang = ang, Pw = pw, Lx = 50, Label = "라스트 스톤 드로" };
+            return new AiDecision { Ang = ang, Pw = pw, Lx = 50, Intent = "lsd" };
         }
     }
 }

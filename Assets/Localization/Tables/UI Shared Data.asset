@@ -1,0 +1,452 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5b11a58205ec3474ca216360e9fa74a8, type: 3}
+  m_Name: UI Shared Data
+  m_EditorClassIdentifier: Unity.Localization::UnityEngine.Localization.Tables.SharedTableData
+  m_TableCollectionName: UI
+  m_TableCollectionNameGuidString: ca82b0ca7af4a4140a457493e5e46b36
+  m_Entries:
+  - m_Id: 2195640320
+    m_Key: team.B
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2250166272
+    m_Key: team.W
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2254360576
+    m_Key: team.ai
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2254360577
+    m_Key: level.easy
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2254360578
+    m_Key: level.normal
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2254360579
+    m_Key: level.hard
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2254360580
+    m_Key: map.base
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2254360581
+    m_Key: map.bumper
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2254360582
+    m_Key: map.zones
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2254360583
+    m_Key: map.kink
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2254360584
+    m_Key: map.random
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2254360585
+    m_Key: mode.pvp
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2254360586
+    m_Key: mode.easy
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2254360587
+    m_Key: mode.normal
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2254360588
+    m_Key: mode.hard
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2254360589
+    m_Key: mode.watch
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2254360590
+    m_Key: mode.vsAi
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2262749184
+    m_Key: mode.watchVs
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2262749185
+    m_Key: menu.eyebrow
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2262749186
+    m_Key: menu.title
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2262749187
+    m_Key: menu.lede
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2262749188
+    m_Key: menu.note
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2262749189
+    m_Key: menu.mode
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2262749190
+    m_Key: menu.watchLevels
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2262749191
+    m_Key: menu.map
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2262749192
+    m_Key: menu.start
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2262749193
+    m_Key: settings.button
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2262749194
+    m_Key: settings.toMenu
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2262749195
+    m_Key: settings.soundOn
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2262749196
+    m_Key: settings.soundOff
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2262749197
+    m_Key: settings.language
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2262749198
+    m_Key: settings.speed
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2262749199
+    m_Key: hud.hammer
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2262749200
+    m_Key: hud.idle
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2262749201
+    m_Key: hud.waiting
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2262749202
+    m_Key: hud.end
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2262749203
+    m_Key: hud.extra
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2262749204
+    m_Key: hud.total
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2262749205
+    m_Key: hud.turn
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2262749206
+    m_Key: hud.endOver
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2262749207
+    m_Key: hud.shot
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2262749208
+    m_Key: hud.lsd
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2262749209
+    m_Key: hud.tickets
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2262749210
+    m_Key: hud.noRecord
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2262749211
+    m_Key: lsd.eyebrow
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2262749212
+    m_Key: lsd.title
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2262749213
+    m_Key: lsd.head
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2262749214
+    m_Key: lsd.body
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2262749215
+    m_Key: lsd.throwFirst
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2262749216
+    m_Key: lsd.resultEyebrow
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2262749217
+    m_Key: lsd.hasHammer
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2262749218
+    m_Key: lsd.coin
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2262749219
+    m_Key: lsd.closer
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2262749220
+    m_Key: lsd.shortOfHog
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2262749221
+    m_Key: lsd.offSheet
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2262749222
+    m_Key: end.firstThrow
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2262749223
+    m_Key: end.start
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2262749224
+    m_Key: end.startExtra
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2262749225
+    m_Key: end.final
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2262749226
+    m_Key: end.result
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2262749227
+    m_Key: end.scored
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2262749228
+    m_Key: end.blank
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2262749229
+    m_Key: end.points
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2262749230
+    m_Key: end.bodyScored
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2262749231
+    m_Key: end.bodyBlank
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2262749232
+    m_Key: score.versus
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2262749233
+    m_Key: bonus.title
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2262749234
+    m_Key: bonus.body
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2262749235
+    m_Key: over.eyebrow
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2262749236
+    m_Key: over.win
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2262749237
+    m_Key: over.draw
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2262749238
+    m_Key: over.drawBody
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2262749239
+    m_Key: over.again
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2262749240
+    m_Key: over.watchAgain
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2262749241
+    m_Key: over.menu
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2262749242
+    m_Key: out.hog
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2262749243
+    m_Key: out.back
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2262749244
+    m_Key: out.knocked
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2262749245
+    m_Key: foul.title
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2262749246
+    m_Key: foul.body
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2262749247
+    m_Key: hint.lanes
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2262749248
+    m_Key: hint.pull
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2262749249
+    m_Key: hint.cancel
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2262749250
+    m_Key: ai.thinking
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2262749251
+    m_Key: ai.pulling
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2262749252
+    m_Key: ai.laneLeft
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2262749253
+    m_Key: ai.laneRight
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2262749254
+    m_Key: ai.withLane
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2262749255
+    m_Key: intent.draw
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2262749256
+    m_Key: intent.guard
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2262749257
+    m_Key: intent.takeout
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2262749258
+    m_Key: intent.hit-stay
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2262749259
+    m_Key: intent.bank
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2262749260
+    m_Key: intent.bank-takeout
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2262749261
+    m_Key: intent.blank
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2262749262
+    m_Key: intent.lsd
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2262749263
+    m_Key: float.ticketUsed
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2262749264
+    m_Key: float.noTicket
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2262749265
+    m_Key: float.cushion
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2262749266
+    m_Key: float.deadRail
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2262749267
+    m_Key: board.out
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2262749268
+    m_Key: board.minLine
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2262749269
+    m_Key: board.backLine
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2262749270
+    m_Key: board.lively
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2262749271
+    m_Key: board.sand
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2262749272
+    m_Key: board.ice
+    m_Metadata:
+      m_Items: []
+  m_Metadata:
+    m_Items: []
+  m_KeyGenerator:
+    rid: 4297768082125881566
+  references:
+    version: 2
+    RefIds:
+    - rid: 4297768082125881566
+      type: {class: DistributedUIDGenerator, ns: UnityEngine.Localization.Tables, asm: Unity.Localization}
+      data:
+        m_CustomEpoch: 1791990318312

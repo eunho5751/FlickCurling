@@ -1,0 +1,513 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e9620f8c34305754d8cc9a7e49e852d9, type: 3}
+  m_Name: UI_en
+  m_EditorClassIdentifier: Unity.Localization::UnityEngine.Localization.Tables.StringTable
+  m_LocaleId:
+    m_Code: en
+  m_SharedData: {fileID: 11400000, guid: ca82b0ca7af4a4140a457493e5e46b36, type: 2}
+  m_Metadata:
+    m_Items:
+    - rid: 4297768082125881571
+  m_TableData:
+  - m_Id: 2195640320
+    m_Localized: Black
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2250166272
+    m_Localized: White
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2254360576
+    m_Localized: ' (AI)'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2254360577
+    m_Localized: Easy
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2254360578
+    m_Localized: Normal
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2254360579
+    m_Localized: Hard
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2254360580
+    m_Localized: Classic
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2254360581
+    m_Localized: Bumpers
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2254360582
+    m_Localized: Sand & Ice
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2254360583
+    m_Localized: Bent Rails
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2254360584
+    m_Localized: Random
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2254360585
+    m_Localized: 2 Players
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2254360586
+    m_Localized: AI Easy
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2254360587
+    m_Localized: AI Normal
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2254360588
+    m_Localized: AI Hard
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2254360589
+    m_Localized: Watch AI
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2254360590
+    m_Localized: AI {level}
+    m_Metadata:
+      m_Items:
+      - rid: 4297768082125881571
+  - m_Id: 2262749184
+    m_Localized: "Watch AI \xB7 {b} {lb} vs {w} {lw}"
+    m_Metadata:
+      m_Items:
+      - rid: 4297768082125881571
+  - m_Id: 2262749185
+    m_Localized: "Unity port \xB7 testing the rules and feel"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2262749186
+    m_Localized: Flick Curling
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2262749187
+    m_Localized: Flick go stones to knock your opponent's out and leave only yours
+      in the middle. Four ends of 10 shots (5 stones each); only the side closest
+      to the centre scores.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2262749188
+    m_Localized: A stone that stops short of the min line or goes past the back line
+      doesn't count. Banking off the side rails is allowed.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2262749189
+    m_Localized: MODE
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2262749190
+    m_Localized: AI LEVELS TO WATCH
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2262749191
+    m_Localized: MAP
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2262749192
+    m_Localized: Start
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2262749193
+    m_Localized: Settings
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2262749194
+    m_Localized: Back to menu
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2262749195
+    m_Localized: Sound on
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2262749196
+    m_Localized: Sound off
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2262749197
+    m_Localized: Language
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2262749198
+    m_Localized: "{n}\xD7 speed"
+    m_Metadata:
+      m_Items:
+      - rid: 4297768082125881571
+  - m_Id: 2262749199
+    m_Localized: hammer
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2262749200
+    m_Localized: Idle
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2262749201
+    m_Localized: Waiting
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2262749202
+    m_Localized: End {n}
+    m_Metadata:
+      m_Items:
+      - rid: 4297768082125881571
+  - m_Id: 2262749203
+    m_Localized: Extra
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2262749204
+    m_Localized: Total
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2262749205
+    m_Localized: '{name}''s turn'
+    m_Metadata:
+      m_Items:
+      - rid: 4297768082125881571
+  - m_Id: 2262749206
+    m_Localized: End over
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2262749207
+    m_Localized: Shot {n}/{total}
+    m_Metadata:
+      m_Items:
+      - rid: 4297768082125881571
+  - m_Id: 2262749208
+    m_Localized: Last stone draw
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2262749209
+    m_Localized: "Cushion tickets {b} {bn} \xB7 {w} {wn}"
+    m_Metadata:
+      m_Items:
+      - rid: 4297768082125881571
+  - m_Id: 2262749210
+    m_Localized: No record
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2262749211
+    m_Localized: "{map} map \xB7 {mode}"
+    m_Metadata:
+      m_Items:
+      - rid: 4297768082125881571
+  - m_Id: 2262749212
+    m_Localized: Last Stone Draw
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2262749213
+    m_Localized: Closest to the target gets the hammer
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2262749214
+    m_Localized: A target appears somewhere new in the house each game. Each side
+      draws one stone as close to it as possible; the closer one throws the last
+      shot of end 1 (the hammer). Stopping short of the min line or going past the
+      back line leaves no record.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2262749215
+    m_Localized: '{name} throws first'
+    m_Metadata:
+      m_Items:
+      - rid: 4297768082125881571
+  - m_Id: 2262749216
+    m_Localized: Last stone draw result
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2262749217
+    m_Localized: '{name} has the hammer'
+    m_Metadata:
+      m_Items:
+      - rid: 4297768082125881571
+  - m_Id: 2262749218
+    m_Localized: The two records were equal, so a coin toss decided it.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2262749219
+    m_Localized: '{name} was closer to the target and throws the last shot of end
+      1.'
+    m_Metadata:
+      m_Items:
+      - rid: 4297768082125881571
+  - m_Id: 2262749220
+    m_Localized: It stopped short of the min line.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2262749221
+    m_Localized: It went off the sheet.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2262749222
+    m_Localized: '{name} throws first.'
+    m_Metadata:
+      m_Items:
+      - rid: 4297768082125881571
+  - m_Id: 2262749223
+    m_Localized: Start end {n}
+    m_Metadata:
+      m_Items:
+      - rid: 4297768082125881571
+  - m_Id: 2262749224
+    m_Localized: Start the extra end
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2262749225
+    m_Localized: See the final result
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2262749226
+    m_Localized: '{end} result'
+    m_Metadata:
+      m_Items:
+      - rid: 4297768082125881571
+  - m_Id: 2262749227
+    m_Localized: '{name} scores'
+    m_Metadata:
+      m_Items:
+      - rid: 4297768082125881571
+  - m_Id: 2262749228
+    m_Localized: Blank end
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2262749229
+    m_Localized: '{n:plural:{} point|{} points}'
+    m_Metadata:
+      m_Items:
+      - rid: 4297768082125881571
+  - m_Id: 2262749230
+    m_Localized: 'Hammer next end: {name} (the side that didn''t score). Total {score}'
+    m_Metadata:
+      m_Items:
+      - rid: 4297768082125881571
+  - m_Id: 2262749231
+    m_Localized: Blank end, so the hammer passes to {name}. Total {score}
+    m_Metadata:
+      m_Items:
+      - rid: 4297768082125881571
+  - m_Id: 2262749232
+    m_Localized: '{b} {bv} : {wv} {w}'
+    m_Metadata:
+      m_Items:
+      - rid: 4297768082125881571
+  - m_Id: 2262749233
+    m_Localized: Lead bonus guard
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2262749234
+    m_Localized: "{guard} starts with a guard \xB7 {hammer} has the last shot"
+    m_Metadata:
+      m_Items:
+      - rid: 4297768082125881571
+  - m_Id: 2262749235
+    m_Localized: Game over
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2262749236
+    m_Localized: '{name} wins'
+    m_Metadata:
+      m_Items:
+      - rid: 4297768082125881571
+  - m_Id: 2262749237
+    m_Localized: Draw
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2262749238
+    m_Localized: Still level after the extra end.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2262749239
+    m_Localized: Play again
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2262749240
+    m_Localized: Watch again
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2262749241
+    m_Localized: Menu
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2262749242
+    m_Localized: 'Short of the min line: no stone'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2262749243
+    m_Localized: 'Past the back line: no stone'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2262749244
+    m_Localized: '{n} {team} out'
+    m_Metadata:
+      m_Items:
+      - rid: 4297768082125881571
+  - m_Id: 2262749245
+    m_Localized: No cushion ticket
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2262749246
+    m_Localized: Your cushion tickets for this end are used up. The stones go back
+      and the stone just thrown is removed.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2262749247
+    m_Localized: "Drag the stone sideways to change lane \xB7 pull back to shoot"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2262749248
+    m_Localized: Press anywhere, pull back and let go
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2262749249
+    m_Localized: "Pull back \xB7 let go here to cancel"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2262749250
+    m_Localized: "{name} is thinking\u2026"
+    m_Metadata:
+      m_Items:
+      - rid: 4297768082125881571
+  - m_Id: 2262749251
+    m_Localized: "{name} \xB7 {intent}"
+    m_Metadata:
+      m_Items:
+      - rid: 4297768082125881571
+  - m_Id: 2262749252
+    m_Localized: left lane
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2262749253
+    m_Localized: right lane
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2262749254
+    m_Localized: '{intent}, {lane}'
+    m_Metadata:
+      m_Items:
+      - rid: 4297768082125881571
+  - m_Id: 2262749255
+    m_Localized: draw
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2262749256
+    m_Localized: guard
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2262749257
+    m_Localized: takeout
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2262749258
+    m_Localized: hit and stay
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2262749259
+    m_Localized: bank shot
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2262749260
+    m_Localized: bank takeout
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2262749261
+    m_Localized: blank
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2262749262
+    m_Localized: last stone draw
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2262749263
+    m_Localized: Ticket used
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2262749264
+    m_Localized: No ticket
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2262749265
+    m_Localized: Cushion {n}
+    m_Metadata:
+      m_Items:
+      - rid: 4297768082125881571
+  - m_Id: 2262749266
+    m_Localized: Dead rail
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2262749267
+    m_Localized: OUT
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2262749268
+    m_Localized: Min line
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2262749269
+    m_Localized: Back line
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2262749270
+    m_Localized: Live
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2262749271
+    m_Localized: Sand
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2262749272
+    m_Localized: Ice
+    m_Metadata:
+      m_Items: []
+  references:
+    version: 2
+    RefIds:
+    - rid: 4297768082125881571
+      type: {class: SmartFormatTag, ns: UnityEngine.Localization.Metadata, asm: Unity.Localization}
+      data:
+        m_Entries: 
+        m_SharedEntries:
+        - id: 2254360590
+        - id: 2262749184
+        - id: 2262749198
+        - id: 2262749202
+        - id: 2262749205
+        - id: 2262749207
+        - id: 2262749209
+        - id: 2262749211
+        - id: 2262749215
+        - id: 2262749217
+        - id: 2262749219
+        - id: 2262749222
+        - id: 2262749223
+        - id: 2262749226
+        - id: 2262749227
+        - id: 2262749229
+        - id: 2262749230
+        - id: 2262749231
+        - id: 2262749232
+        - id: 2262749234
+        - id: 2262749236
+        - id: 2262749244
+        - id: 2262749250
+        - id: 2262749251
+        - id: 2262749254
+        - id: 2262749265

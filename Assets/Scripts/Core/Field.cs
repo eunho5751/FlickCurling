@@ -30,7 +30,7 @@ namespace FlickCurling.Core
     /// <summary>A built playing field: walls already split into lively and dead rail stretches.</summary>
     public sealed class Field
     {
-        public string Key, Name;
+        public string Key;
         public Seg[] Walls;
         public Post[] Posts;
         public Zone[] Zones;
@@ -51,16 +51,6 @@ namespace FlickCurling.Core
         public static readonly string[] Keys = { "base", "bumper", "zones", "kink" };
         const double TopY = Sheet.L + 60;
 
-        public static string NameOf(string key)
-        {
-            switch (key)
-            {
-                case "bumper": return "범퍼";
-                case "zones": return "모래·빙판";
-                case "kink": return "꺾인 측벽";
-                default: return "기본";
-            }
-        }
 
         static Seg[] BaseWalls() => new[] { new Seg(0, 0, 0, TopY), new Seg(Sheet.W, 0, Sheet.W, TopY), new Seg(0, 0, Sheet.W, 0) };
 
@@ -93,7 +83,7 @@ namespace FlickCurling.Core
         {
             var f = new Field
             {
-                Key = key, Name = NameOf(key), Posts = new Post[0], Zones = new Zone[0],
+                Key = key, Posts = new Post[0], Zones = new Zone[0],
                 Kinks = new List<double[][]>(), LiveTop = liveTop
             };
             Seg[] walls = BaseWalls();

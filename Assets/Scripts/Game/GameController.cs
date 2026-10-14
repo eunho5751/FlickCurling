@@ -3,17 +3,16 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using FlickCurling.Core;
+using TMPro;
 using UnityEngine;
-using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.EnhancedTouch;
-using ETouch = UnityEngine.InputSystem.EnhancedTouch.Touch;
-using TouchPhase = UnityEngine.InputSystem.TouchPhase;
 
 namespace FlickCurling.Game
 {
     /// <summary>
     /// Presentation and flow (prototype G.state machine): menu, last stone draw, ends, shots, AI turns, judging
-    /// animations, camera, input and drawing. Rules and physics live in FlickCurling.Core.
+    /// animations, camera, input and drawing. Rules and physics live in FlickCurling.Core; text comes from the
+    /// "UI" string table through <see cref="Loc"/>.
     /// </summary>
     public sealed partial class GameController : MonoBehaviour
     {
@@ -21,6 +20,8 @@ namespace FlickCurling.Game
         [SerializeField] Material shapeMaterial;   // vertex-colour shape meshes
         [SerializeField] Camera mainCam;
         [SerializeField] Camera miniCam;
+        [SerializeField] TMP_FontAsset bodyFont;
+        [SerializeField] TMP_FontAsset displayFont;
 
         enum St { Menu, Coin, Aim, Ai, AiPull, Moving, Restoring, Settle, Measure, EndCard, Over, LsdShow }
         enum Mode { Pvp, Easy, Normal, Hard, Watch }
@@ -47,7 +48,7 @@ namespace FlickCurling.Game
         System.Random fx = new System.Random();
 
         sealed class Drag { public Vector2 Start, Cur; }
-        sealed class AiPull { public double Ang, Pw; public float T; public string Label; }
+        sealed class AiPull { public double Ang, Pw, Lx; public float T; public string Intent; }
         sealed class Fade { public float X, Y, A; public Team Team; }
         sealed class Float { public float X, Y, T; public string Text; }
         sealed class Measure { public float T, Dur; public ScoreResult Sc; public Team PrevHammer; }
@@ -64,6 +65,7 @@ namespace FlickCurling.Game
         Task<AiDecision> aiTask;
         int aiToken;
         float aiT0;
+        Func<CardSpec> cardFactory;   // rebuilds the visible card after a language change
 
         // ---- scheduled callbacks (prototype setTimeout), real time ----
         readonly List<(float at, Action a)> timers = new List<(float, Action)>();
@@ -83,9 +85,9 @@ namespace FlickCurling.Game
         bool Watching => mode == Mode.Watch;
         float Speed => Watching ? speed : 1;
         bool IsAI(Team t) => ai[(int)t].HasValue;
-        string NameOf(Team t) => Sheet.Name(t) + (IsAI(t) ? "(AI)" : "");
-        static string EndLabel(int n) => n <= Sheet.Ends ? $"{n}엔드" : "연장";
-        static readonly string[] LvName = { "쉬움", "보통", "어려움" };
+        string NameOf(Team t) => Loc.Team(t) + (IsAI(t) ? Loc.T("team.ai") : "");
+        static string EndLabel(int n) => n <= Sheet.Ends ? Loc.T("hud.end", ("n", n)) : Loc.T("hud.extra");
+        string Versus(int b, int w) => Loc.T("score.versus", ("b", Loc.Team(Team.B)), ("bv", b), ("wv", w), ("w", Loc.Team(Team.W)));
 
         // =====================================================================
         // boot
@@ -94,6 +96,7 @@ namespace FlickCurling.Game
         void Awake()
         {
             Application.targetFrameRate = 60;
+            Loc.Init();
             if (!mainCam) mainCam = Camera.main;
             int overlayLayer = LayerOr("Overlay", 1), miniLayer = LayerOr("Minimap", 4);
             mainCam.orthographic = true;
@@ -114,7 +117,7 @@ namespace FlickCurling.Game
             stoneB = Sprite.Create(sb, new Rect(0, 0, sb.width, sb.height), new Vector2(.5f, .5f), sb.width / (2 * SR));
             stoneW = Sprite.Create(sw, new Rect(0, 0, sw.width, sw.height), new Vector2(.5f, .5f), sw.width / (2 * SR));
             disc = Sprite.Create(dt, new Rect(0, 0, dt.width, dt.height), new Vector2(.5f, .5f), dt.width / 2f);
-            Ui.Init(disc, stoneB, stoneW);
+            Ui.Init(disc, stoneB, stoneW, bodyFont, displayFont);
 
             var bgo = new GameObject("Board");
             bgo.transform.SetParent(transform, false);
@@ -128,14 +131,33 @@ namespace FlickCurling.Game
             mini = new ShapeBatch("ShapesMinimap", shapeMaterial, 20, miniLayer);
             foreach (var b in new[] { under, aim, over, mini }) b.Go.transform.SetParent(transform, false);
 
-            hud = new Hud(transform);
-            hud.OnStart = (md, mp, b, w) => { sfx.Blip(0, 0); StartMatch((Mode)md, mp == 4 ? Maps.Keys[fx.Next(Maps.Keys.Length)] : Maps.Keys[mp], b, w); };
-            hud.OnMenu = ToMenu;
-            hud.OnSound = () => { sfx.On = !sfx.On; hud.SoundText = sfx.On ? "소리 켬" : "소리 끔"; };
-            hud.OnSpeed = () => { speed = speed == 1 ? 2 : speed == 2 ? 4 : 1; hud.SpeedText = $"{speed}배속"; };
             sfx = new Sfx(gameObject);
+            hud = new Hud(transform);
+            hud.OnStart = (md, mp, b, w) => StartMatch((Mode)md, mp == 4 ? Maps.Keys[fx.Next(Maps.Keys.Length)] : Maps.Keys[mp], b, w);
+            hud.OnMenu = ToMenu;
+            hud.OnSound = () => { sfx.On = !sfx.On; RenderSettings(); };
+            hud.OnSpeed = () => { speed = speed == 1 ? 2 : speed == 2 ? 4 : 1; RenderSettings(); };
+            hud.OnLanguage = Loc.Select;
+            Loc.Changed += OnLocaleChanged;
+            RenderSettings();
             Resize(true);
             ToMenu();
+        }
+
+        void OnDestroy() => Loc.Changed -= OnLocaleChanged;
+
+        void OnLocaleChanged()
+        {
+            hud.Relocalize();
+            RenderSettings();
+            RenderHud();
+            if (hud.CardVisible && cardFactory != null) hud.ReplaceCard(cardFactory(), null);
+        }
+
+        void RenderSettings()
+        {
+            hud.SoundText = Loc.T(sfx.On ? "settings.soundOn" : "settings.soundOff");
+            hud.SpeedText = Loc.T("settings.speed", ("n", speed));
         }
 
         static int LayerOr(string name, int fallback) { int l = LayerMask.NameToLayer(name); return l >= 0 ? l : fallback; }
@@ -176,9 +198,6 @@ namespace FlickCurling.Game
             m.StartMatch();
             fades.Clear(); floats.Clear();
             ShowField(m.Field);
-            string modeName = md == Mode.Pvp ? "2인 대전"
-                : md == Mode.Watch ? $"AI 관전 · 흑 {LvName[b]} vs 백 {LvName[w]}"
-                : "AI " + LvName[md - Mode.Easy];
             hud.MenuVisible = false;
             userMoved = false;
             state = St.Coin;
@@ -186,14 +205,22 @@ namespace FlickCurling.Game
             Resize(false);
             SetCam(AimView(1));
             camTarget = null;
-            ShowCard(new CardSpec
+            ShowCard(() => new CardSpec
             {
-                Eyebrow = $"{m.Field.Name} 맵 · {modeName}",
-                Title = "라스트 스톤 드로",
-                Head = "표적에 가까운 쪽이 해머",
-                Body = "하우스 안에 매번 다른 자리에 표적이 생깁니다. 각자 알 하나를 표적에 최대한 가깝게 굴리고, 더 가까운 쪽이 1엔드의 마지막 샷(해머)을 가집니다. 최소 라인에 못 미치거나 백 라인을 넘으면 기록이 없습니다.",
-                Buttons = { new CardButton($"{NameOf(Team.B)}부터 굴리기", LsdShot) }
+                Eyebrow = Loc.T("lsd.eyebrow", ("map", Loc.Map(mapKey)), ("mode", ModeName())),
+                Title = Loc.T("lsd.title"),
+                Head = Loc.T("lsd.head"),
+                Body = Loc.T("lsd.body"),
+                Buttons = { new CardButton(Loc.T("lsd.throwFirst", ("name", NameOf(Team.B))), LsdShot) }
             });
+        }
+
+        string ModeName()
+        {
+            if (mode == Mode.Pvp) return Loc.T("mode.pvp");
+            if (mode == Mode.Watch)
+                return Loc.T("mode.watchVs", ("b", Loc.Team(Team.B)), ("lb", Loc.Level((AiLevel)lvB)), ("w", Loc.Team(Team.W)), ("lw", Loc.Level((AiLevel)lvW)));
+            return Loc.T("mode.vsAi", ("level", Loc.Level((AiLevel)(mode - Mode.Easy))));
         }
 
         // ---- last stone draw ----
@@ -216,7 +243,7 @@ namespace FlickCurling.Game
                     if (tok != token || state != St.Ai) return;
                     var d = brain.DecideLsd(lvl, m.Lsd.TargetX, m.Lsd.TargetY, m.P);
                     state = St.AiPull;
-                    aiPull = new AiPull { Ang = d.Ang, Pw = d.Pw, T = 0, Label = d.Label };
+                    aiPull = new AiPull { Ang = d.Ang, Pw = d.Pw, Lx = d.Lx, T = 0, Intent = d.Intent };
                 });
             }
         }
@@ -225,7 +252,7 @@ namespace FlickCurling.Game
         {
             double d = m.RecordLsd(out bool shortOfHog);
             bool ok = !double.IsInfinity(d);
-            if (!ok) hud.Toast("기록 없음", shortOfHog ? "최소 라인에 못 미쳤습니다." : "판 밖으로 나갔습니다.", 1800);
+            if (!ok) hud.Toast(Loc.T("hud.noRecord"), Loc.T(shortOfHog ? "lsd.shortOfHog" : "lsd.offSheet"), 1800);
             var s = m.ShotStone;
             lsdShow = ok ? new LsdShow { X = (float)s.X, Y = (float)s.Y, D = d, T = 0 } : new LsdShow { T = 0.6f };
             state = St.LsdShow;
@@ -233,7 +260,7 @@ namespace FlickCurling.Game
             RenderHud();
         }
 
-        static string FmtDist(double? d) => d == null ? "—" : double.IsInfinity(d.Value) ? "기록 없음" : d.Value.ToString("0.0");
+        static string FmtDist(double? d) => d == null ? "—" : double.IsInfinity(d.Value) ? Loc.T("hud.noRecord") : d.Value.ToString("0.0");
 
         void LsdNext()
         {
@@ -241,15 +268,14 @@ namespace FlickCurling.Game
             if (m.NextLsd()) { LsdShot(); return; }
             double? dB = m.Lsd.Dist[0], dW = m.Lsd.Dist[1];
             var win = m.ResolveLsd(out bool coin);
-            string how = coin ? "두 기록이 같아 동전 던지기로 정했습니다." : $"표적에 더 가까운 {NameOf(win)}이 1엔드의 마지막 샷을 가집니다.";
             state = St.Coin;
             RenderHud();
-            ShowCard(new CardSpec
+            ShowCard(() => new CardSpec
             {
-                Eyebrow = "라스트 스톤 드로 결과", Title = $"{NameOf(win)} 해머",
-                Head = $"흑 {FmtDist(dB)} : {FmtDist(dW)} 백",
-                Body = $"{how} {NameOf(Sheet.Other(win))}이 먼저 쏩니다.",
-                Buttons = { new CardButton("1엔드 시작", () => { m.FinishLsd(); StartEnd(); }) }
+                Eyebrow = Loc.T("lsd.resultEyebrow"), Title = Loc.T("lsd.hasHammer", ("name", NameOf(win))),
+                Head = Loc.T("score.versus", ("b", Loc.Team(Team.B)), ("bv", FmtDist(dB)), ("wv", FmtDist(dW)), ("w", Loc.Team(Team.W))),
+                Body = (coin ? Loc.T("lsd.coin") : Loc.T("lsd.closer", ("name", NameOf(win)))) + " " + Loc.T("end.firstThrow", ("name", NameOf(Sheet.Other(win)))),
+                Buttons = { new CardButton(Loc.T("end.start", ("n", 1)), () => { m.FinishLsd(); StartEnd(); }) }
             });
         }
 
@@ -258,7 +284,7 @@ namespace FlickCurling.Game
         void StartEnd()
         {
             m.StartEnd();
-            hud.Toast("선공 보너스 가드", $"{Sheet.Name(Sheet.Other(m.Hammer))} 가드 1개 먼저 · {Sheet.Name(m.Hammer)} 마지막 샷", 2200, true);
+            hud.Toast(Loc.T("bonus.title"), Loc.T("bonus.body", ("guard", Loc.Team(Sheet.Other(m.Hammer))), ("hammer", Loc.Team(m.Hammer))), 2200, true);
             fades.Clear(); measure = null;
             PrepareShot();
         }
@@ -302,8 +328,17 @@ namespace FlickCurling.Game
                 if (tok != token || state != St.Ai) return;
                 m.LaunchX = d.Lx; laneTo = null;
                 state = St.AiPull;
-                aiPull = new AiPull { Ang = d.Ang, Pw = d.Pw, T = 0, Label = d.Label };
+                aiPull = new AiPull { Ang = d.Ang, Pw = d.Pw, Lx = d.Lx, T = 0, Intent = d.Intent };
             });
+        }
+
+        /// <summary>"left lane takeout" and the like, shown while the AI pulls.</summary>
+        static string IntentLabel(AiPull a)
+        {
+            string intent = string.IsNullOrEmpty(a.Intent) ? "" : Loc.T("intent." + a.Intent);
+            if (a.Intent == "lsd" || a.Lx == 50) return intent;
+            string lane = Loc.T(a.Lx < 50 ? "ai.laneLeft" : "ai.laneRight");
+            return intent == "" ? lane : Loc.T("ai.withLane", ("lane", lane), ("intent", intent));
         }
 
         void Release(double ang, double pw)
@@ -323,15 +358,16 @@ namespace FlickCurling.Game
                 // cushion without a ticket: every stone goes back and only the shot stone is removed
                 state = St.Restoring;
                 restore = new Restore { T = 0, From = m.Stones.ToDictionary(s => s.Id, s => new Vector2((float)s.X, (float)s.Y)) };
-                hud.Toast("쿠션권 없음", "이번 엔드의 쿠션권을 이미 썼습니다. 알을 되돌리고 방금 쏜 알을 제거합니다.", 3400);
+                hud.Toast(Loc.T("foul.title"), Loc.T("foul.body"), 3400);
                 return;
             }
             var notes = new List<string>();
             foreach (var r in res.Removed) fades.Add(new Fade { X = (float)r.Stone.X, Y = (float)r.Stone.Y, Team = r.Stone.Team, A = 1 });
-            if (res.ShotWhy == OutWhy.Hog) notes.Add("최소 라인을 넘지 못해 무효");
-            else if (res.ShotWhy == OutWhy.Back) notes.Add("백 라인을 넘어가 무효");
+            if (res.ShotWhy == OutWhy.Hog) notes.Add(Loc.T("out.hog"));
+            else if (res.ShotWhy == OutWhy.Back) notes.Add(Loc.T("out.back"));
             var knocked = new List<string>();
-            foreach (var t in new[] { Team.B, Team.W }) if (res.Knocked[(int)t] > 0) knocked.Add($"{Sheet.Name(t)} {res.Knocked[(int)t]}개 아웃");
+            foreach (var t in new[] { Team.B, Team.W })
+                if (res.Knocked[(int)t] > 0) knocked.Add(Loc.T("out.knocked", ("team", Loc.Team(t)), ("n", res.Knocked[(int)t])));
             if (knocked.Count > 0) notes.Add(string.Join(", ", knocked));
             if (notes.Count > 0) hud.Toast(notes[0], string.Join(" · ", notes.Skip(1)));
             state = St.Settle; settleT = 0.5f;
@@ -356,41 +392,47 @@ namespace FlickCurling.Game
         void ShowEndCard()
         {
             var sc = measure.Sc;
-            int tB = m.Total(Team.B), tW = m.Total(Team.W);
-            string nextLabel; Action next;
-            switch (m.NextStep())
+            Action next;
+            var step = m.NextStep();
+            switch (step)
             {
-                case AfterEnd.NextEnd: nextLabel = $"{m.End + 1}엔드 시작"; next = () => { m.End++; StartEnd(); }; break;
-                case AfterEnd.ExtraEnd: nextLabel = "연장 엔드 시작"; next = () => { m.End++; StartEnd(); }; break;
-                default: nextLabel = "최종 결과 보기"; next = GameOver; break;
+                case AfterEnd.NextEnd:
+                case AfterEnd.ExtraEnd: next = () => { m.End++; StartEnd(); }; break;
+                default: next = GameOver; break;
             }
-            string body = sc.Team.HasValue
-                ? $"다음 엔드 해머: {NameOf(m.Hammer)} (점수를 내지 못한 쪽). 합계 흑 {tB} : {tW} 백"
-                : $"블랭크 엔드라 해머가 {NameOf(m.Hammer)}에게 넘어갑니다. 합계 흑 {tB} : {tW} 백";
+            int end = m.End;
             state = St.EndCard;
-            ShowCard(new CardSpec
+            ShowCard(() =>
             {
-                Soft = true, Eyebrow = $"{EndLabel(m.End)} 결과", Title = sc.Team.HasValue ? $"{NameOf(sc.Team.Value)} 득점" : "블랭크 엔드",
-                Head = sc.Team.HasValue ? $"{sc.Points}점" : "0 : 0", Body = body,
-                Buttons = { new CardButton(nextLabel, next) }
+                string nextLabel = step == AfterEnd.NextEnd ? Loc.T("end.start", ("n", end + 1))
+                    : step == AfterEnd.ExtraEnd ? Loc.T("end.startExtra") : Loc.T("end.final");
+                string score = Versus(m.Total(Team.B), m.Total(Team.W));
+                return new CardSpec
+                {
+                    Soft = true,
+                    Eyebrow = Loc.T("end.result", ("end", EndLabel(end))),
+                    Title = sc.Team.HasValue ? Loc.T("end.scored", ("name", NameOf(sc.Team.Value))) : Loc.T("end.blank"),
+                    Head = sc.Team.HasValue ? Loc.T("end.points", ("n", sc.Points)) : "0 : 0",
+                    Body = Loc.T(sc.Team.HasValue ? "end.bodyScored" : "end.bodyBlank", ("name", NameOf(m.Hammer)), ("score", score)),
+                    Buttons = { new CardButton(nextLabel, next) }
+                };
             });
         }
 
         void GameOver()
         {
             state = St.Over; noAuto = true;
-            int tB = m.Total(Team.B), tW = m.Total(Team.W);
             var win = m.Winner;
             RenderHud();
-            ShowCard(new CardSpec
+            ShowCard(() => new CardSpec
             {
-                Eyebrow = "경기 종료", Title = win.HasValue ? $"{NameOf(win.Value)} 승리" : "무승부",
-                Head = $"흑 {tB} : {tW} 백",
-                Body = win.HasValue ? "" : "연장 엔드까지 동점으로 끝났습니다.",
+                Eyebrow = Loc.T("over.eyebrow"), Title = win.HasValue ? Loc.T("over.win", ("name", NameOf(win.Value))) : Loc.T("over.draw"),
+                Head = Versus(m.Total(Team.B), m.Total(Team.W)),
+                Body = win.HasValue ? "" : Loc.T("over.drawBody"),
                 Buttons =
                 {
-                    new CardButton(Watching ? "다시 관전" : "다시 하기", () => StartMatch(mode, mapKey, lvB, lvW)),
-                    new CardButton("메뉴로", ToMenu)
+                    new CardButton(Loc.T(Watching ? "over.watchAgain" : "over.again"), () => StartMatch(mode, mapKey, lvB, lvW)),
+                    new CardButton(Loc.T("over.menu"), ToMenu)
                 }
             });
         }
@@ -399,6 +441,7 @@ namespace FlickCurling.Game
         {
             token++;
             state = St.Menu; drag = null; aiPull = null; measure = null; restore = null; lsdShow = null; laneTo = null;
+            cardFactory = null;
             m = new Match(Maps.Build("base"));
             m.Stones = DemoStones();
             fades.Clear(); floats.Clear();
@@ -416,11 +459,14 @@ namespace FlickCurling.Game
             return pts.Select((p, i) => new Stone { Id = -10 - i, Team = p.t, X = p.x, Y = p.y }).ToList();
         }
 
-        void ShowCard(CardSpec c)
+        /// <summary>Shows a card built by <paramref name="build"/>; the builder runs again if the language changes while it is up.</summary>
+        void ShowCard(Func<CardSpec> build)
         {
+            cardFactory = build;
+            var c = build();
             bool auto = Watching && c.Buttons.Count > 0 && !noAuto;
             noAuto = false;
-            int seq = hud.ShowCard(c, () => sfx.Blip(0, 0));
+            int seq = hud.ShowCard(c, null);
             if (auto)
             {
                 int tok = token;
@@ -434,17 +480,18 @@ namespace FlickCurling.Game
         void RenderHud()
         {
             bool hammerKnown = state != St.Menu && !(m.InLsd && m.Lsd != null && m.Lsd.Idx < m.Lsd.Order.Length);
-            string Hm(Team t) => hammerKnown && m.Hammer == t ? "<color=#d9a54c><size=10> 해머</size></color>" : "";
+            string hammer = Loc.T("hud.hammer");
+            string Hm(Team t) => hammerKnown && m.Hammer == t ? $"<color=#d9a54c><size=10> {hammer}</size></color>" : "";
             string B(int v) => $"<color=#d9a54c><size=19><b>{v}</b></size></color>";
             int tB = m.Total(Team.B), tW = m.Total(Team.W);
-            hud.SetScorePill($"흑{Hm(Team.B)} {B(tB)}<color=#b39f84> : </color>{B(tW)} 백{Hm(Team.W)}" +
-                             $"<color=#b39f84><size=12>  {(state == St.Menu ? "대기" : EndLabel(m.End))} </size><size=9>▼</size></color>");
+            hud.SetScorePill($"{Loc.Team(Team.B)}{Hm(Team.B)} {B(tB)}<color=#b39f84> : </color>{B(tW)} {Loc.Team(Team.W)}{Hm(Team.W)}" +
+                             $"<color=#b39f84><size=12>  {(state == St.Menu ? Loc.T("hud.idle") : EndLabel(m.End))} </size><size=9>▼</size></color>");
 
             int ends = Math.Max(Sheet.Ends, Math.Max(m.End, m.Scores[0].Count));
             var rows = new List<string[]>();
             var head = new List<string> { "" };
-            for (int i = 1; i <= ends; i++) head.Add(i <= Sheet.Ends ? i.ToString() : "연장");
-            head.Add("합");
+            for (int i = 1; i <= ends; i++) head.Add(i <= Sheet.Ends ? i.ToString() : Loc.T("hud.extra"));
+            head.Add(Loc.T("hud.total"));
             rows.Add(head.ToArray());
             foreach (var t in new[] { Team.B, Team.W })
             {
@@ -457,14 +504,17 @@ namespace FlickCurling.Game
             RenderTurn();
         }
 
+        static string Strong(string s) => $"<size=16><color=#efe2c8><b>{s}</b></color></size>";
+
         void RenderTurn()
         {
-            if (state == St.Menu) { hud.SetTurn(null, "<size=16><color=#efe2c8><b>대기 중</b></color></size>", "", ""); return; }
+            if (state == St.Menu) { hud.SetTurn(null, Strong(Loc.T("hud.waiting")), "", ""); return; }
             var t = m.Cur;
+            string b = Loc.Team(Team.B), w = Loc.Team(Team.W);
             if (m.InLsd)
             {
-                hud.SetTurn(t, $"<size=16><color=#efe2c8><b>{NameOf(t)} 차례</b></color></size>  라스트 스톤 드로",
-                    $"흑 {FmtDist(m.Lsd.Dist[0])}    백 {FmtDist(m.Lsd.Dist[1])}", "");
+                hud.SetTurn(t, $"{Strong(Loc.T("hud.turn", ("name", NameOf(t))))}  {Loc.T("hud.lsd")}",
+                    $"{b} {FmtDist(m.Lsd.Dist[0])}    {w} {FmtDist(m.Lsd.Dist[1])}", "");
                 return;
             }
             string Pips(Team team)
@@ -472,10 +522,10 @@ namespace FlickCurling.Game
                 int left = Mathf.Clamp(Sheet.Per - m.ThrownBy(team), 0, Sheet.Per);
                 return "<size=10>" + new string('●', left) + new string('○', Sheet.Per - left) + "</size>";
             }
-            string who = m.Shot < Sheet.Shots ? $"{NameOf(t)} 차례" : "엔드 종료";
-            hud.SetTurn(t, $"<size=16><color=#efe2c8><b>{who}</b></color></size>  샷 {Math.Min(m.Shot + 1, Sheet.Shots)}/{Sheet.Shots}",
-                $"흑 {Pips(Team.B)}    백 {Pips(Team.W)}",
-                $"쿠션권 흑 {m.Tickets[0]} · 백 {m.Tickets[1]}");
+            string who = m.Shot < Sheet.Shots ? Loc.T("hud.turn", ("name", NameOf(t))) : Loc.T("hud.endOver");
+            hud.SetTurn(t, $"{Strong(who)}  {Loc.T("hud.shot", ("n", Math.Min(m.Shot + 1, Sheet.Shots)), ("total", Sheet.Shots))}",
+                $"{b} {Pips(Team.B)}    {w} {Pips(Team.W)}",
+                Loc.T("hud.tickets", ("b", b), ("bn", m.Tickets[0]), ("w", w), ("wn", m.Tickets[1])));
         }
 
         // =====================================================================
@@ -491,15 +541,15 @@ namespace FlickCurling.Game
             public void OnWallHit(Stone s, double vn, Seg seg) => g.sfx.Blip((float)vn / 90, 420, 2, 0.09f);
             public void OnTicket(Stone s, bool used)
             {
-                g.floats.Add(new Float { X = (float)s.X, Y = (float)s.Y - 6, Text = used ? "쿠션권 사용" : "쿠션권 없음" });
+                g.floats.Add(new Float { X = (float)s.X, Y = (float)s.Y - 6, Text = Loc.T(used ? "float.ticketUsed" : "float.noTicket") });
                 if (used) g.RenderTurn();
             }
             public void OnCushion(Stone s, int n)
             {
-                g.floats.Add(new Float { X = (float)s.X, Y = (float)s.Y, Text = $"쿠션 {n}" });
+                g.floats.Add(new Float { X = (float)s.X, Y = (float)s.Y, Text = Loc.T("float.cushion", ("n", n)) });
                 g.sfx.Chime(n);
             }
-            public void OnDeadRail(Stone s) => g.floats.Add(new Float { X = (float)s.X, Y = (float)s.Y, Text = "죽은 레일" });
+            public void OnDeadRail(Stone s) => g.floats.Add(new Float { X = (float)s.X, Y = (float)s.Y, Text = Loc.T("float.deadRail") });
         }
 
         // =====================================================================

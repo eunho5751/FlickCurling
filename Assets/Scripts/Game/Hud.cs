@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using FlickCurling.Core;
+using TMPro;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
@@ -21,22 +22,29 @@ namespace FlickCurling.Game
         public List<CardButton> Buttons = new List<CardButton>();
     }
 
-    /// <summary>The overlay canvas: top HUD row, score table, toast, cards, the start menu, corner buttons and world labels.</summary>
+    /// <summary>
+    /// The overlay canvas: top HUD row, score table, toast, cards, the start menu, corner buttons and world labels.
+    /// Fixed text is bound to string-table keys and refreshed by <see cref="Relocalize"/>.
+    /// </summary>
     public sealed class Hud
     {
         public readonly Canvas Canvas;
         readonly CanvasScaler scaler;
-        readonly RectTransform root, hudTop, scorePanel, scoreTable, br, more, toast, cardOv, cardRt, menu, watchLv, labelLayer, miniFrame;
-        readonly Text scorePill, turn1, turn2, turn3, toastT, toastB, cardEyebrow, cardTitle, cardHead, cardBody, soundTxt, speedTxt;
+        readonly RectTransform root, hudTop, scorePanel, scoreTable, br, more, toast, cardOv, cardRt, menu, menuCard, watchLv, labelLayer, miniFrame;
+        readonly TextMeshProUGUI scorePill, turn1, turn2, turn3, toastT, toastB, cardEyebrow, cardTitle, cardHead, cardBody, soundTxt, speedTxt;
         readonly Image turnDot, cardOvImg;
         readonly RectTransform cardActions;
         readonly Button speedBtn;
+        readonly LayoutElement pillLe;
         readonly Pills modePills, mapPills, lvB, lvW;
+        readonly List<(TextMeshProUGUI t, string key)> bound = new List<(TextMeshProUGUI, string)>();
+        readonly List<(TextMeshProUGUI t, string code)> langButtons = new List<(TextMeshProUGUI, string)>();
         float toastUntil;
         int cardSeq;
 
         public Action<int, int, int, int> OnStart;   // mode, map, black level, white level
         public Action OnMenu, OnSound, OnSpeed, OnUiClick;
+        public Action<string> OnLanguage;
 
         public Hud(Transform parent)
         {
@@ -60,14 +68,14 @@ namespace FlickCurling.Game
             hudTop = Ui.Rect(root, "HudTop");
             hudTop.anchorMin = new Vector2(0, 1); hudTop.anchorMax = new Vector2(1, 1); hudTop.pivot = new Vector2(0, 1);
             hudTop.offsetMin = new Vector2(10, 0); hudTop.offsetMax = new Vector2(-10, -10);
-            var hl = Ui.HStack(hudTop.gameObject, 0, 0, 0, 0, 6, TextAnchor.UpperLeft);
-            hl.childForceExpandHeight = true;
+            // wraps like the prototype's flex row: the turn card drops below the score pill when they do not fit side by side
+            hudTop.gameObject.AddComponent<FlowLayout>();
             Ui.Fit(hudTop.gameObject, false, true);
 
             var pill = Ui.Panel(hudTop, "ScorePill", Palette.Glass, Palette.Line, 10);
             Ui.HStack(pill.gameObject, 9, 9, 5, 5, 0, TextAnchor.MiddleLeft);
-            scorePill = Ui.Label(pill.transform, "", 13, Palette.Text);
-            scorePill.horizontalOverflow = HorizontalWrapMode.Overflow;
+            scorePill = Ui.NoWrap(Ui.Label(pill.transform, "", 13, Palette.Text));
+            pillLe = pill.gameObject.AddComponent<LayoutElement>();
             var pb = pill.gameObject.AddComponent<Button>(); pb.targetGraphic = pill; pb.transition = Selectable.Transition.None;
             pb.onClick.AddListener(() => { bool open = !scorePanel.gameObject.activeSelf; ClosePopovers(); scorePanel.gameObject.SetActive(open); OnUiClick?.Invoke(); });
 
@@ -76,9 +84,9 @@ namespace FlickCurling.Game
             var row1 = Ui.Rect(turn.transform, "Row1");
             Ui.HStack(row1.gameObject, 0, 0, 0, 0, 6, TextAnchor.MiddleLeft);
             turnDot = Ui.Dot(row1, Team.B);
-            turn1 = Ui.Label(row1, "", 12, Palette.Muted); turn1.horizontalOverflow = HorizontalWrapMode.Overflow;
-            turn2 = Ui.Label(turn.transform, "", 11, Palette.Muted); turn2.horizontalOverflow = HorizontalWrapMode.Overflow;
-            turn3 = Ui.Label(turn.transform, "", 11, Palette.Muted); turn3.horizontalOverflow = HorizontalWrapMode.Overflow;
+            turn1 = Ellipsis(Ui.Label(row1, "", 12, Palette.Muted));
+            turn2 = Ellipsis(Ui.Label(turn.transform, "", 11, Palette.Muted));
+            turn3 = Ellipsis(Ui.Label(turn.transform, "", 11, Palette.Muted));
 
             scorePanel = Ui.Panel(root, "ScorePanel", Palette.Glass, Palette.Line, 10).rectTransform;
             Ui.VStack(scorePanel.gameObject, 6, 6, 8, 8, 0);
@@ -96,27 +104,6 @@ namespace FlickCurling.Game
             toastB = Ui.Label(toast, "", 13, Palette.Text, false, TextAnchor.MiddleCenter);
             toast.gameObject.SetActive(false);
 
-            // ---- bottom right: settings, speed ----
-            br = Ui.Rect(root, "HudBR");
-            br.anchorMin = br.anchorMax = new Vector2(1, 0); br.pivot = new Vector2(1, 0); br.anchoredPosition = new Vector2(-12, 12);
-            var bv = Ui.VStack(br.gameObject, 0, 0, 0, 0, 6, TextAnchor.LowerRight);
-            bv.childForceExpandWidth = false;
-            Ui.Fit(br.gameObject, true, true);
-            more = Ui.Panel(br, "More", Palette.Glass, Palette.Line, 10).rectTransform;
-            Ui.VStack(more.gameObject, 6, 6, 6, 6, 2);
-            var mb = Ui.Button(more, "메뉴로 나가기", false, () => { ClosePopovers(); OnMenu?.Invoke(); }, 13);
-            Flat(mb);
-            var sb = Ui.Button(more, "소리 켬", false, () => OnSound?.Invoke(), 13);
-            Flat(sb);
-            soundTxt = Ui.ButtonText(sb);
-            more.gameObject.SetActive(false);
-            speedBtn = Ui.Button(br, "1배속", false, () => OnSpeed?.Invoke(), 14, "Speed");
-            Compact(speedBtn);
-            speedTxt = Ui.ButtonText(speedBtn);
-            speedBtn.gameObject.SetActive(false);
-            var moreBtn = Ui.Button(br, "설정", false, () => { bool open = !more.gameObject.activeSelf; ClosePopovers(); more.gameObject.SetActive(open); }, 14, "Settings");
-            Compact(moreBtn);
-
             // ---- card overlay ----
             cardOvImg = Ui.Rect(root, "CardOverlay").gameObject.AddComponent<Image>();
             cardOv = cardOvImg.rectTransform; Ui.Stretch(cardOv);
@@ -125,10 +112,10 @@ namespace FlickCurling.Game
             Ui.VStack(cardRt.gameObject, 20, 20, 20, 20, 12);
             Ui.Fit(cardRt.gameObject, false, true);
             cardEyebrow = Ui.Label(cardRt, "", 11, Palette.Muted);
-            cardTitle = Ui.Label(cardRt, "", 26, Palette.Text, true);
-            cardHead = Ui.Label(cardRt, "", 34, Palette.Brass, true);
+            cardTitle = FitOneLine(Ui.Label(cardRt, "", 26, Palette.Text, true), 18);
+            cardHead = FitOneLine(Ui.Label(cardRt, "", 34, Palette.Brass, true), 22);
             cardBody = Ui.Label(cardRt, "", 14, Palette.Text);
-            cardBody.lineSpacing = 1.3f;
+            cardBody.lineSpacing = 12;
             cardActions = Ui.Rect(cardRt, "Actions");
             cardActions.gameObject.AddComponent<FlowLayout>().SpacingX = 8;
             cardOv.gameObject.SetActive(false);
@@ -137,30 +124,103 @@ namespace FlickCurling.Game
             var menuImg = Ui.Rect(root, "Menu").gameObject.AddComponent<Image>();
             menu = menuImg.rectTransform; Ui.Stretch(menu);
             menuImg.color = Palette.Rgba(20, 13, 8, .62f);
-            var mc = Ui.Panel(menu, "Card", Palette.Panel, Palette.Line, 12).rectTransform;
-            mc.name = "MenuCard";
+            menuCard = Ui.Panel(menu, "MenuCard", Palette.Panel, Palette.Line, 12).rectTransform;
+            var mc = menuCard;
             Ui.VStack(mc.gameObject, 20, 20, 20, 20, 12);
             Ui.Fit(mc.gameObject, false, true);
-            Ui.Label(mc, "Unity 이식판 · 룰과 손맛 검증용", 11, Palette.Muted);
-            Ui.Label(mc, "알까기 컬링", 44, Palette.Text, true);
-            var lede = Ui.Label(mc, "바둑알을 튕겨 상대 알은 쳐내고 내 알만 중앙에 남기세요. 4엔드, 엔드당 10샷(1인당 알 5개)이며 중앙에 가장 가까운 쪽만 득점합니다.", 14, Palette.Text);
-            lede.lineSpacing = 1.3f;
-            var mut = Ui.Label(mc, "최소 라인을 넘지 못하거나 백 라인을 넘어간 알은 무효입니다. 측벽 쿠션은 허용됩니다.", 14, Palette.Muted);
-            mut.lineSpacing = 1.3f;
-            Legend(mc, "모드");
-            modePills = new Pills(mc, new[] { "2인 대전", "AI 쉬움", "AI 보통", "AI 어려움", "AI 관전" }, 0);
+            Bind(Ui.Label(mc, "", 11, Palette.Muted), "menu.eyebrow");
+            Bind(FitOneLine(Ui.Label(mc, "", 44, Palette.Text, true), 26), "menu.title");
+            var lede = Bind(Ui.Label(mc, "", 14, Palette.Text), "menu.lede");
+            lede.lineSpacing = 12;
+            var mut = Bind(Ui.Label(mc, "", 14, Palette.Muted), "menu.note");
+            mut.lineSpacing = 12;
+            Legend(mc, "menu.mode");
+            modePills = new Pills(mc, ModeLabels(), 0);
             watchLv = Ui.Rect(mc, "WatchLv");
             Ui.VStack(watchLv.gameObject, 0, 0, 0, 0, 6);
-            Legend(watchLv, "관전할 AI 난이도");
+            Legend(watchLv, "menu.watchLevels");
             lvB = LevelRow(watchLv, Team.B);
             lvW = LevelRow(watchLv, Team.W);
             watchLv.gameObject.SetActive(false);
             modePills.Changed += i => watchLv.gameObject.SetActive(i == 4);
-            Legend(mc, "맵");
-            mapPills = new Pills(mc, new[] { "기본", "범퍼", "모래·빙판", "꺾인 측벽", "랜덤" }, 0);
+            Legend(mc, "menu.map");
+            mapPills = new Pills(mc, MapLabels(), 0);
             var acts = Ui.Rect(mc, "Actions");
             acts.gameObject.AddComponent<FlowLayout>();
-            Ui.Button(acts, "경기 시작", true, () => OnStart?.Invoke(modePills.Selected, mapPills.Selected, lvB.Selected, lvW.Selected));
+            var start = Ui.Button(acts, "", true, () => OnStart?.Invoke(modePills.Selected, mapPills.Selected, lvB.Selected, lvW.Selected));
+            Bind(Ui.ButtonText(start), "menu.start");
+
+            // ---- bottom right: settings (language, sound, menu), speed. Above the overlays, as in the prototype ----
+            br = Ui.Rect(root, "HudBR");
+            br.anchorMin = br.anchorMax = new Vector2(1, 0); br.pivot = new Vector2(1, 0); br.anchoredPosition = new Vector2(-12, 12);
+            var bv = Ui.VStack(br.gameObject, 0, 0, 0, 0, 6, TextAnchor.LowerRight);
+            bv.childForceExpandWidth = false;
+            Ui.Fit(br.gameObject, true, true);
+            more = Ui.Panel(br, "More", Palette.Glass, Palette.Line, 10).rectTransform;
+            Ui.VStack(more.gameObject, 6, 6, 6, 6, 2);
+            var mb = Ui.Button(more, "", false, () => { ClosePopovers(); OnMenu?.Invoke(); }, 13);
+            Flat(mb);
+            Bind(Ui.ButtonText(mb), "settings.toMenu");
+            var sb = Ui.Button(more, "", false, () => OnSound?.Invoke(), 13);
+            Flat(sb);
+            soundTxt = Ui.ButtonText(sb);
+            var lang = Ui.Label(more, "", 11, Palette.Muted);
+            lang.margin = new Vector4(12, 6, 12, 0);
+            Bind(lang, "settings.language");
+            var langRow = Ui.Rect(more, "Languages");
+            Ui.HStack(langRow.gameObject, 4, 4, 0, 2, 0, TextAnchor.MiddleLeft);
+            for (int i = 0; i < Loc.Codes.Length; i++)
+            {
+                string code = Loc.Codes[i];
+                var lb = Ui.Button(langRow, Loc.NativeNames[i], false, () => OnLanguage?.Invoke(code), 13, "Lang_" + code);
+                Flat(lb);
+                lb.GetComponent<HorizontalLayoutGroup>().padding = new RectOffset(8, 8, 6, 6);
+                langButtons.Add((Ui.ButtonText(lb), code));
+            }
+            more.gameObject.SetActive(false);
+            speedBtn = Ui.Button(br, "", false, () => OnSpeed?.Invoke(), 14, "Speed");
+            Compact(speedBtn);
+            speedTxt = Ui.ButtonText(speedBtn);
+            speedBtn.gameObject.SetActive(false);
+            var moreBtn = Ui.Button(br, "", false, () => { bool open = !more.gameObject.activeSelf; ClosePopovers(); more.gameObject.SetActive(open); }, 14, "Settings");
+            Compact(moreBtn);
+            Bind(Ui.ButtonText(moreBtn), "settings.button");
+
+            Relocalize();
+        }
+
+        TextMeshProUGUI Bind(TextMeshProUGUI t, string key) { bound.Add((t, key)); return t; }
+
+        static TextMeshProUGUI Ellipsis(TextMeshProUGUI t)
+        {
+            Ui.NoWrap(t).overflowMode = TextOverflowModes.Ellipsis;
+            var le = t.gameObject.AddComponent<LayoutElement>(); le.minWidth = 0; le.flexibleWidth = 1;
+            return t;
+        }
+
+        // headings stay on one line and shrink for longer translations
+        static TextMeshProUGUI FitOneLine(TextMeshProUGUI t, int min)
+        {
+            Ui.NoWrap(t);
+            t.enableAutoSizing = true; t.fontSizeMax = t.fontSize; t.fontSizeMin = min;
+            t.gameObject.AddComponent<LayoutElement>().preferredHeight = t.fontSize * 1.3f;
+            return t;
+        }
+
+        static string[] ModeLabels() => new[] { Loc.T("mode.pvp"), Loc.T("mode.easy"), Loc.T("mode.normal"), Loc.T("mode.hard"), Loc.T("mode.watch") };
+        static string[] MapLabels() => new[] { Loc.T("map.base"), Loc.T("map.bumper"), Loc.T("map.zones"), Loc.T("map.kink"), Loc.T("map.random") };
+        static string[] LevelLabels() => new[] { Loc.T("level.easy"), Loc.T("level.normal"), Loc.T("level.hard") };
+
+        /// <summary>Re-reads every fixed text from the string table (after a language change).</summary>
+        public void Relocalize()
+        {
+            foreach (var (t, key) in bound) t.text = Loc.T(key);
+            modePills?.SetLabels(ModeLabels());
+            mapPills?.SetLabels(MapLabels());
+            lvB?.SetLabels(LevelLabels());
+            lvW?.SetLabels(LevelLabels());
+            foreach (var (t, code) in langButtons) t.color = code == Loc.Code ? Palette.Brass : Palette.Text;
+            lastTable = null;
         }
 
         static void Flat(Button b)
@@ -171,8 +231,7 @@ namespace FlickCurling.Game
             if (border) border.gameObject.SetActive(false);
             var h = b.GetComponent<HorizontalLayoutGroup>();
             h.padding = new RectOffset(12, 12, 8, 8); h.childAlignment = TextAnchor.MiddleLeft;
-            Ui.ButtonText(b).alignment = TextAnchor.MiddleLeft;
-            var cb = b.colors; cb.highlightedColor = Palette.Panel2; cb.normalColor = Color.white; b.colors = cb;
+            Ui.ButtonText(b).alignment = TextAlignmentOptions.Left;
             b.transition = Selectable.Transition.None;
         }
 
@@ -182,23 +241,23 @@ namespace FlickCurling.Game
             b.GetComponent<HorizontalLayoutGroup>().padding = new RectOffset(12, 12, 6, 6);
         }
 
-        static void Legend(Transform parent, string text)
+        void Legend(Transform parent, string key)
         {
-            var t = Ui.Label(parent, text, 11, Palette.Muted);
+            var t = Bind(Ui.Label(parent, "", 11, Palette.Muted), key);
             t.gameObject.AddComponent<LayoutElement>().preferredHeight = 16;
         }
 
-        static Pills LevelRow(Transform parent, Team team)
+        Pills LevelRow(Transform parent, Team team)
         {
             var row = Ui.Rect(parent, "Lv" + team);
             var h = Ui.HStack(row.gameObject, 0, 0, 0, 0, 10, TextAnchor.MiddleLeft);
             h.childForceExpandWidth = false;
             var name = Ui.Rect(row, "Name");
             Ui.HStack(name.gameObject, 0, 0, 0, 0, 4, TextAnchor.MiddleLeft);
-            name.gameObject.AddComponent<LayoutElement>().preferredWidth = 34;
+            name.gameObject.AddComponent<LayoutElement>().preferredWidth = 52;
             Ui.Dot(name, team);
-            Ui.Label(name, Sheet.Name(team), 13, Palette.Text).horizontalOverflow = HorizontalWrapMode.Overflow;
-            var p = new Pills(row, new[] { "쉬움", "보통", "어려움" }, 2);
+            Bind(Ui.NoWrap(Ui.Label(name, "", 13, Palette.Text)), team == Team.B ? "team.B" : "team.W");
+            var p = new Pills(row, LevelLabels(), 2);
             p.Root.gameObject.AddComponent<LayoutElement>().flexibleWidth = 1;
             return p;
         }
@@ -208,8 +267,10 @@ namespace FlickCurling.Game
         public void Tick(float cssPx, float cw, float ch)
         {
             scaler.scaleFactor = cssPx;
+            // the score pill never shrinks below its text; the turn card takes what is left
+            pillLe.minWidth = scorePill.GetPreferredValues(scorePill.text).x + 18;
             float cardW = Mathf.Min(420, cw - 32);
-            foreach (var rt in new[] { cardRt, (RectTransform)menu.Find("MenuCard") })
+            foreach (var rt in new[] { cardRt, menuCard })
             {
                 rt.sizeDelta = new Vector2(cardW, rt.sizeDelta.y);
                 // a card taller than the screen shrinks to fit rather than running off it
@@ -274,11 +335,10 @@ namespace FlickCurling.Game
                     }
                     Ui.HStack(cell.gameObject, 7, 7, 3, 3, 0, c == 0 ? TextAnchor.MiddleLeft : TextAnchor.MiddleCenter);
                     var le = cell.gameObject.AddComponent<LayoutElement>();
-                    le.preferredWidth = c == 0 ? 88 : 30;
+                    le.preferredWidth = c == 0 ? 96 : (last ? 40 : 32);
                     int size = r == 0 ? 11 : (last ? 17 : 13);
                     var col = r == 0 ? Palette.Muted : (last ? Palette.Brass : Palette.Text);
-                    var t = Ui.Label(cell, cells[r][c], size, col, last && r > 0, c == 0 ? TextAnchor.MiddleLeft : TextAnchor.MiddleCenter);
-                    t.horizontalOverflow = HorizontalWrapMode.Overflow;
+                    Ui.NoWrap(Ui.Label(cell, cells[r][c], size, col, last && r > 0, c == 0 ? TextAnchor.MiddleLeft : TextAnchor.MiddleCenter));
                     if (c > 0)
                     {
                         var line = Ui.Rect(cell, "Sep");
@@ -307,7 +367,7 @@ namespace FlickCurling.Game
         void PlaceToast(float cw, float ch)
         {
             float maxW = Mathf.Min(420, cw - 32);
-            float want = Mathf.Max(toastT.preferredWidth, toastB.gameObject.activeSelf ? toastB.preferredWidth : 0) + 28 + 2;
+            float want = Mathf.Max(toastT.GetPreferredValues(toastT.text).x, toastB.gameObject.activeSelf ? toastB.GetPreferredValues(toastB.text).x : 0) + 28 + 2;
             toast.anchorMin = toast.anchorMax = new Vector2(0.5f, 1); toast.pivot = new Vector2(0.5f, 1);
             toast.sizeDelta = new Vector2(Mathf.Min(maxW, want), toast.sizeDelta.y);
             toast.anchoredPosition = new Vector2(0, -ch * (toastLow ? 0.54f : 0.34f));
@@ -321,6 +381,16 @@ namespace FlickCurling.Game
         public int ShowCard(CardSpec c, Action onAnyClick)
         {
             cardSeq++;
+            FillCard(c, onAnyClick);
+            cardOv.gameObject.SetActive(true);
+            return cardSeq;
+        }
+
+        /// <summary>Re-fills the visible card in place (same sequence number, so a pending auto-advance still fires).</summary>
+        public void ReplaceCard(CardSpec c, Action onAnyClick) { if (CardVisible) FillCard(c, onAnyClick); }
+
+        void FillCard(CardSpec c, Action onAnyClick)
+        {
             cardEyebrow.text = c.Eyebrow;
             cardTitle.text = c.Title;
             cardHead.text = c.Head; cardHead.gameObject.SetActive(!string.IsNullOrEmpty(c.Head));
@@ -343,8 +413,6 @@ namespace FlickCurling.Game
                 cardRt.anchorMin = cardRt.anchorMax = new Vector2(0.5f, 0.5f); cardRt.pivot = new Vector2(0.5f, 0.5f);
                 cardRt.anchoredPosition = Vector2.zero;
             }
-            cardOv.gameObject.SetActive(true);
-            return cardSeq;
         }
 
         public void HideCard() => cardOv.gameObject.SetActive(false);
@@ -359,7 +427,7 @@ namespace FlickCurling.Game
 
         // ---------------- world labels (immediate mode) ----------------
 
-        readonly List<Text> pool = new List<Text>();
+        readonly List<TextMeshProUGUI> pool = new List<TextMeshProUGUI>();
         int used;
 
         public void BeginLabels() { used = 0; }
@@ -367,25 +435,23 @@ namespace FlickCurling.Game
         /// <summary>A text at a css-px point (top-left origin). align: -1 left, 0 centre, 1 right of the point. rot in degrees (counter-clockwise).</summary>
         public void Label(string text, float x, float y, int size, Color color, int align = 0, bool display = false, bool stroke = false, float rot = 0)
         {
-            Text t;
+            TextMeshProUGUI t;
             if (used < pool.Count) t = pool[used];
             else
             {
-                t = Ui.Label(labelLayer, "", size, color);
-                t.horizontalOverflow = HorizontalWrapMode.Overflow;
-                t.gameObject.AddComponent<Outline>().effectDistance = new Vector2(1.4f, -1.4f);
+                t = Ui.NoWrap(Ui.Label(labelLayer, "", size, color));
                 pool.Add(t);
             }
             used++;
             if (!t.gameObject.activeSelf) t.gameObject.SetActive(true);
+            var font = display ? Ui.Display : Ui.Body;
+            if (t.font != font) t.font = font;
+            var mat = stroke ? Ui.StrokeFor(font) : font.material;
+            if (t.fontSharedMaterial != mat) t.fontSharedMaterial = mat;
             if (t.text != text) t.text = text;
             t.fontSize = size;
             t.color = color;
-            t.fontStyle = display ? FontStyle.Bold : FontStyle.Normal;
-            t.alignment = align < 0 ? TextAnchor.MiddleLeft : align > 0 ? TextAnchor.MiddleRight : TextAnchor.MiddleCenter;
-            var ol = t.GetComponent<Outline>();
-            ol.enabled = stroke;
-            if (stroke) ol.effectColor = Palette.WithA(Palette.Stroke, Palette.Stroke.a * color.a);
+            t.alignment = align < 0 ? TextAlignmentOptions.Left : align > 0 ? TextAlignmentOptions.Right : TextAlignmentOptions.Center;
             var rt = t.rectTransform;
             rt.anchorMin = rt.anchorMax = new Vector2(0, 1);
             rt.pivot = new Vector2(align < 0 ? 0 : align > 0 ? 1 : 0.5f, 0.5f);
