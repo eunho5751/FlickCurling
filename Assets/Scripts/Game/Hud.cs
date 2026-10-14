@@ -354,8 +354,8 @@ namespace FlickCurling.Game
             lastTable = key;
             for (int i = scoreTable.childCount - 1; i >= 0; i--) UnityEngine.Object.Destroy(scoreTable.GetChild(i).gameObject);
             // the name column fits its widest entry (side icon, "(AI)", hammer badge)
-            float nameW = 96;
-            foreach (var row0 in cells) nameW = Mathf.Max(nameW, scorePill.GetPreferredValues(row0[0], 1000, 100).x * 13 / scorePill.fontSize + 18);
+            float nameW = 0;
+            foreach (var row0 in cells) nameW = Mathf.Max(nameW, scorePill.GetPreferredValues(row0[0], 1000, 100).x * 13 / scorePill.fontSize + 16);
             for (int r = 0; r < cells.Count; r++)
             {
                 var row = Ui.Rect(scoreTable, "Row");
@@ -368,7 +368,7 @@ namespace FlickCurling.Game
                     {
                         var bg = cell.gameObject.AddComponent<Image>(); bg.color = Palette.Panel2; bg.raycastTarget = false;
                     }
-                    Ui.HStack(cell.gameObject, 7, 7, 3, 3, 0, c == 0 ? TextAnchor.MiddleLeft : TextAnchor.MiddleCenter);
+                    Ui.HStack(cell.gameObject, 7, c == 0 ? 4 : 7, 3, 3, 0, c == 0 ? TextAnchor.MiddleLeft : TextAnchor.MiddleCenter);
                     var le = cell.gameObject.AddComponent<LayoutElement>();
                     le.preferredWidth = c == 0 ? nameW : (last ? 40 : 32);
                     int size = r == 0 ? 11 : (last ? 17 : 13);

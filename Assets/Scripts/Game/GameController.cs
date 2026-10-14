@@ -544,7 +544,7 @@ namespace FlickCurling.Game
             rows.Add(head.ToArray());
             foreach (var t in new[] { Team.B, Team.W })
             {
-                var r = new List<string> { SideOf(t, 130) + Hm(t) };
+                var r = new List<string> { Ui.Icon(t, 130) };   // just the stone: no tags between it and the scores
                 for (int i = 1; i <= ends; i++) r.Add(i - 1 < m.Scores[(int)t].Count ? m.Scores[(int)t][i - 1].ToString() : "");
                 r.Add(m.Total(t).ToString());
                 rows.Add(r.ToArray());

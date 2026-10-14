@@ -621,10 +621,6 @@ namespace FlickCurling.Game
         void DrawBoardLabels()
         {
             var f = m.Field;
-            hud.Label(Loc.T("board.out"), X(W / 2), Y((L + BACK) / 2), 12, Palette.Rgba(239, 226, 200, .55f));
-            var ink = Palette.Rgba(52, 32, 16, .9f);
-            hud.Label(Loc.T("board.minLine"), X(2.5f), Y(HOG) + 9, 10, ink, -1);
-            hud.Label(Loc.T("board.backLine"), X(2.5f), Y(BACK) + 9, 10, ink, -1);
             foreach (var w in f.Walls)
             {
                 if (w.Dead || !w.IsSide) continue;

@@ -175,7 +175,7 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 2262749205
-    m_Localized: '{name} to throw'
+    m_Localized: '{name} Turn'
     m_Metadata:
       m_Items:
       - rid: 4297768082125881571
@@ -442,18 +442,6 @@ MonoBehaviour:
       - rid: 4297768082125881571
   - m_Id: 2262749266
     m_Localized: Dead rail
-    m_Metadata:
-      m_Items: []
-  - m_Id: 2262749267
-    m_Localized: OUT
-    m_Metadata:
-      m_Items: []
-  - m_Id: 2262749268
-    m_Localized: Min line
-    m_Metadata:
-      m_Items: []
-  - m_Id: 2262749269
-    m_Localized: Back line
     m_Metadata:
       m_Items: []
   - m_Id: 2262749270

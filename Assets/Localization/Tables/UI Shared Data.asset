@@ -407,18 +407,6 @@ MonoBehaviour:
     m_Key: float.deadRail
     m_Metadata:
       m_Items: []
-  - m_Id: 2262749267
-    m_Key: board.out
-    m_Metadata:
-      m_Items: []
-  - m_Id: 2262749268
-    m_Key: board.minLine
-    m_Metadata:
-      m_Items: []
-  - m_Id: 2262749269
-    m_Key: board.backLine
-    m_Metadata:
-      m_Items: []
   - m_Id: 2262749270
     m_Key: board.lively
     m_Metadata:
