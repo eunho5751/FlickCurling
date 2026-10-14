@@ -468,7 +468,7 @@ namespace FlickCurling.Game
         public void BeginLabels() { used = 0; }
 
         /// <summary>A text at a css-px point (top-left origin). align: -1 left, 0 centre, 1 right of the point. rot in degrees (counter-clockwise).</summary>
-        public void Label(string text, float x, float y, int size, Color color, int align = 0, bool display = false, bool stroke = false, float rot = 0)
+        public void Label(string text, float x, float y, int size, Color color, int align = 0, bool display = false, bool stroke = false, float rot = 0, float scale = 1)
         {
             TextMeshProUGUI t;
             if (used < pool.Count) t = pool[used];
@@ -493,6 +493,7 @@ namespace FlickCurling.Game
             rt.sizeDelta = new Vector2(10, size * 1.4f);
             rt.anchoredPosition = new Vector2(x, -y);
             rt.localEulerAngles = new Vector3(0, 0, rot);
+            rt.localScale = Vector3.one * scale;
         }
 
         public void EndLabels()

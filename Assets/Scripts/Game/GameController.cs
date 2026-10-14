@@ -1,7 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading.Tasks;
+using System.Threading;
+using Cysharp.Threading.Tasks;
+using DG.Tweening;
 using FlickCurling.Core;
 using TMPro;
 using UnityEngine;
@@ -62,15 +64,20 @@ namespace FlickCurling.Game
         Measure measure;
         Restore restore;
         LsdShow lsdShow;
-        Task<AiDecision> aiTask;
-        int aiToken;
-        float aiT0;
         Func<CardSpec> cardFactory;   // rebuilds the visible card after a language change
-        float turnStartT = -10;       // when a human last got the aim (turn-text pulse)
+        // your-turn pulse: the launch stone and the turn line grow and shrink while a human is to aim
+        float turnPulse = 1;
+        Tween pulseTween;
 
-        // ---- scheduled callbacks (prototype setTimeout), real time ----
-        readonly List<(float at, Action a)> timers = new List<(float, Action)>();
-        void After(float seconds, Action a) => timers.Add((Time.unscaledTime + seconds, a));
+        // ---- delayed callbacks (prototype setTimeout), real time; dropped when this object is destroyed ----
+        void After(float seconds, Action a) => AfterAsync(seconds, a).Forget();
+
+        async UniTaskVoid AfterAsync(float seconds, Action a)
+        {
+            bool cancelled = await UniTask.Delay(TimeSpan.FromSeconds(seconds), DelayType.Realtime, PlayerLoopTiming.Update, destroyCancellationToken)
+                .SuppressCancellationThrow();
+            if (!cancelled) a();
+        }
 
         // ---- view ----
         Hud hud;
@@ -171,6 +178,21 @@ namespace FlickCurling.Game
 
         void OnDestroy() => Loc.Changed -= OnLocaleChanged;
 
+        // a human to aim and not yet pulling: loop the pulse; otherwise stop it at scale 1
+        void UpdateTurnPulse()
+        {
+            bool want = state == St.Aim && !IsAI(m.Cur) && drag == null;
+            if (want && pulseTween == null)
+                pulseTween = DOTween.To(() => turnPulse, v => turnPulse = v, 1.08f, 0.6f)
+                    .SetEase(Ease.InOutSine).SetLoops(-1, LoopType.Yoyo).SetUpdate(true).SetLink(gameObject);
+            else if (!want && pulseTween != null)
+            {
+                pulseTween.Kill();
+                pulseTween = null;
+                turnPulse = 1;
+            }
+        }
+
         void OnLocaleChanged()
         {
             hud.Relocalize();
@@ -256,7 +278,6 @@ namespace FlickCurling.Game
             fades.Clear();
             laneTo = null;
             state = IsAI(m.Cur) ? St.Ai : St.Aim;
-            if (state == St.Aim) turnStartT = Time.unscaledTime;
             userMoved = false;
             CamTo(AimView(zoom), 3.5f);
             RenderHud();
@@ -322,41 +343,35 @@ namespace FlickCurling.Game
             m.BeginShot();
             laneTo = null;
             state = IsAI(m.Cur) ? St.Ai : St.Aim;
-            if (state == St.Aim) turnStartT = Time.unscaledTime;
             userMoved = false;
             CamTo(AimView(zoom), 3.5f);
             RenderHud();
             if (state == St.Ai) RunAI();
         }
 
-        void RunAI()
+        void RunAI() => RunAIAsync().Forget();
+
+        // the search runs on a worker thread; its result comes back on the main thread, then the AI "thinks" a moment
+        async UniTaskVoid RunAIAsync()
         {
             var team = m.Cur;
             var input = AiInput.From(m, team, ai[(int)team].Value);
             var b = brain;
-            aiToken = token;
-            aiT0 = Time.unscaledTime;
-            aiTask = Task.Run(() => b.Decide(input));
-        }
-
-        void PollAI()
-        {
-            if (aiTask == null || !aiTask.IsCompleted) return;
-            var t = aiTask; aiTask = null;
-            if (aiToken != token || state != St.Ai) return;
-            if (t.IsFaulted) { Debug.LogException(t.Exception); return; }
-            var d = t.Result;
-            var team = m.Cur;
             int tok = token;
+            float t0 = Time.unscaledTime;
+            var ct = destroyCancellationToken;
+            AiDecision d;
+            try { d = await UniTask.RunOnThreadPool(() => b.Decide(input), cancellationToken: ct); }
+            catch (OperationCanceledException) { return; }
+            catch (Exception e) { Debug.LogException(e); return; }
+            if (tok != token || state != St.Ai) return;
             m.SetLane(team, d.Lx); laneTo = d.Lx;   // slide the stone over while the AI "thinks"
-            float wait = Mathf.Max(0, (1000 + (float)fx.NextDouble() * 700) / 1000f / Speed - (Time.unscaledTime - aiT0));
-            After(wait, () =>
-            {
-                if (tok != token || state != St.Ai) return;
-                m.LaunchX = d.Lx; laneTo = null;
-                state = St.AiPull;
-                aiPull = new AiPull { Ang = d.Ang, Pw = d.Pw, Lx = d.Lx, T = 0, Intent = d.Intent };
-            });
+            float wait = Mathf.Max(0, (1000 + (float)fx.NextDouble() * 700) / 1000f / Speed - (Time.unscaledTime - t0));
+            if (await UniTask.Delay(TimeSpan.FromSeconds(wait), DelayType.Realtime, PlayerLoopTiming.Update, ct).SuppressCancellationThrow()) return;
+            if (tok != token || state != St.Ai) return;
+            m.LaunchX = d.Lx; laneTo = null;
+            state = St.AiPull;
+            aiPull = new AiPull { Ang = d.Ang, Pw = d.Pw, Lx = d.Lx, T = 0, Intent = d.Intent };
         }
 
         /// <summary>"left lane takeout" and the like, shown while the AI pulls.</summary>
@@ -593,9 +608,7 @@ namespace FlickCurling.Game
             float rdt = Mathf.Min(0.05f, Time.unscaledDeltaTime);
             float dt = rdt * Speed;   // game clock (physics, animations); the camera keeps real time
 
-            for (int i = 0; i < timers.Count; i++)
-                if (Time.unscaledTime >= timers[i].at) { var a = timers[i].a; timers.RemoveAt(i--); a(); }
-            PollAI();
+            UpdateTurnPulse();
             HandleInput();
 
             if (state == St.Moving)

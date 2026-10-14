@@ -508,7 +508,7 @@ namespace FlickCurling.Game
                 {
                     DrawAim(aiPull.Ang, (float)aiPull.Pw * Mathf.Min(1, aiPull.T));
                 }
-                DrawStone(lp.x, lp.y, m.Cur);
+                DrawStone(lp.x, lp.y, m.Cur, 1, turnPulse);
                 string note = state == St.Aim && hint && drag == null ? Loc.T(!m.InLsd ? "hint.lanes" : "hint.pull")
                     : state == St.Ai ? Loc.T("ai.thinking", ("name", NameOf(m.Cur)))
                     : state == St.AiPull && IntentLabel(aiPull) != "" ? Loc.T("ai.pulling", ("name", NameOf(m.Cur)), ("intent", IntentLabel(aiPull))) : "";
@@ -604,16 +604,15 @@ namespace FlickCurling.Game
             var ink = Palette.Rgba(52, 32, 16, a);
             // who-throws-first phase: a title line above the turn line, larger than the rest
             float up = 0;
-            if (info.Value.title != null) { hud.Label(info.Value.title, X(W / 2), Y(56), Mathf.RoundToInt(5.8f * s), ink, 0, true); up = -5.5f; }
-            // a human to aim (every turn in 2-player play, the player's turns against the AI): red, larger, and a
-            // short pulse when the turn starts; AI turns keep the printed-ink look
+            if (info.Value.title != null) { hud.Label(info.Value.title, X(W / 2), Y(56), Mathf.RoundToInt(5.8f * s), ink, 0, true); up = -8f; }
+            // a human to aim (every turn in 2-player play, the player's turns against the AI): red, larger, and
+            // pulsing with the launch stone (UpdateTurnPulse); AI turns keep the printed-ink look
             if (state == St.Aim && !IsAI(m.Cur))
             {
-                float k = Mathf.Clamp01((Time.unscaledTime - turnStartT) / 0.45f);
-                float pulse = 1 + 0.25f * (1 - k) * (1 - k);
+
                 // the house red: brass blends into the light wood, red stands out on it
                 var hot = Palette.WithA(Palette.Hex("#a3341f"), drag != null ? 0.45f : 1);
-                hud.Label(info.Value.head, X(W / 2), Y(52.5f + up), Mathf.RoundToInt(5f * s * pulse), hot, 0, true);
+                hud.Label(info.Value.head, X(W / 2), Y(52.5f + up), Mathf.RoundToInt(5f * s), hot, 0, true, false, 0, turnPulse);
             }
             else hud.Label(info.Value.head, X(W / 2), Y(52 + up), Mathf.RoundToInt(4.2f * s), ink, 0, true);
             hud.Label(info.Value.sub, X(W / 2), Y(45 + up), Mathf.RoundToInt(3.4f * s), ink);
