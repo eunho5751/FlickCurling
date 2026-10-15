@@ -264,9 +264,11 @@ namespace FlickCurling.Core
         {
             Listener?.OnWallHit(s, vn, g);
             if (s.Id != ShotId || g.IsBottom) return;
+            // the dead rail beside the out area soaks the stone up: never a cushion, never a ticket
+            if (g.Dead) { if (vn > 6) Listener?.OnDeadRail(s); return; }
             // only a direct cushion counts: the shot stone reaching a side wall before it has touched any stone.
-            // The first one uses a ticket, or fouls without one.
-            if (!ShotHitStone && !WallTouched && !Foul)
+            // The first one uses a ticket, or fouls without one; the turn order shot never spends tickets.
+            if (!InLsd && !ShotHitStone && !WallTouched && !Foul)
             {
                 WallTouched = true;
                 if (Tickets[(int)s.Team] > 0) { Tickets[(int)s.Team]--; Listener?.OnTicket(s, true); }
@@ -274,7 +276,6 @@ namespace FlickCurling.Core
             }
             if (vn > 6)
             {
-                if (g.Dead) { Listener?.OnDeadRail(s); return; }
                 Cushions++;
                 Listener?.OnCushion(s, Cushions);
             }

@@ -79,7 +79,7 @@ namespace FlickCurling.Core
             return o;
         }
 
-        public static Field Build(string key, double liveTop = double.PositiveInfinity)
+        public static Field Build(string key, double liveTop = Sheet.Back)
         {
             var f = new Field
             {

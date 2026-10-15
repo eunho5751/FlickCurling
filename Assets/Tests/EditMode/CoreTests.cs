@@ -75,15 +75,48 @@ namespace FlickCurling.Tests
         }
 
         [Test]
-        public void AllSideRailsAreLively()
+        public void SideRailsAreLivelyUpToTheOutLine()
         {
+            // lively all the way from the launch end to the back (out) line, dead beside the out area
             foreach (var key in Maps.Keys)
-                Assert.IsTrue(Maps.Build(key).Walls.All(w => !w.Dead), key);
-            Assert.AreEqual(3, Maps.Build("base").Walls.Length, "side rails are no longer split");
+                foreach (var w in Maps.Build(key).Walls.Where(w => w.IsSide))
+                {
+                    double mid = (w.Y1 + w.Y2) / 2;
+                    if (mid > 0) Assert.AreEqual(mid > Sheet.Back, w.Dead, key + " rail at " + mid);
+                }
             // the prototype's dead upper rail is still available as an option
             var old = Maps.Build("base", 80);
             Assert.IsTrue(old.Walls.Any(w => w.IsSide && w.Dead && w.Y1 == 80));
         }
+
+        [Test]
+        public void DeadRailAndTurnOrderShotSpendNoTicket()
+        {
+            // a shot along the right rail into the out area: soaked up by the dead rail, no ticket, no foul
+            var m = new Match(Maps.Build("base"), null, 1) { Hammer = Team.W };
+            m.StartEnd();
+            m.Stones.Clear();
+            m.BeginShot();
+            var s = m.Release(0, 1);
+            s.X = Sheet.W - Sheet.SR - 0.5; s.Y = Sheet.Back + 6; s.Vx = 60; s.Vy = 20;
+            m.RunToRest();
+            Assert.AreEqual(Match_TicketCount(m), m.Tickets[(int)m.Cur]);
+            Assert.IsFalse(m.Foul);
+            Assert.AreEqual(0, m.Cushions);
+
+            // the turn order shot banks off a lively rail without spending a ticket
+            var d = new Match(Maps.Build("base"), null, 3);
+            d.StartMatch();
+            d.BeginLsdShot();
+            int before = d.Tickets[(int)d.Cur];
+            d.Release(0.9, 0.8);
+            d.RunToRest();
+            Assert.Greater(d.Cushions, 0);
+            Assert.AreEqual(before, d.Tickets[(int)d.Cur]);
+            Assert.IsFalse(d.Foul);
+        }
+
+        static int Match_TicketCount(Match m) => m.TicketCount;
 
         [Test]
         public void EveryShotStartsFromTheCentre()

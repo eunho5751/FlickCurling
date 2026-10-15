@@ -245,7 +245,7 @@ namespace FlickCurling.Game
             cv.Rect(-1.5f / FIT, 0, 0, L, Palette.Rgba(255, 220, 170, .18f));
             cv.Rect(W, 0, W + 1.5f / FIT, L, Palette.Rgba(255, 220, 170, .18f));
 
-            // rail windows: brass = lively, dark felt = dead
+            // rail windows: brass = lively, muted grey-brown = dead (beside the out area)
             foreach (var w in f.Walls)
             {
                 if (w.IsBottom) continue;
@@ -257,7 +257,7 @@ namespace FlickCurling.Game
                     if (top - bot <= 0) continue;
                     bool left = w.X1 == 0;
                     float rx = left ? -4 : W;
-                    cv.Rect(rx, bot, rx + 4, top, lively ? Palette.Brass : Palette.Hex("#2a1910"));
+                    cv.Rect(rx, bot, rx + 4, top, lively ? Palette.Brass : Palette.Hex("#6e5a4a"));
                     if (lively)
                     {
                         float hx = left ? 0 : W - 2 / FIT;
