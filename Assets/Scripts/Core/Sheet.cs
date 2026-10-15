@@ -9,7 +9,8 @@ namespace FlickCurling.Core
     {
         public const double W = 100, L = 222, Hog = 64, Back = 200, R = 28, SR = 4, DT = 1.0 / 180;
         public const double TeeX = 50, TeeY = 172, LaunchY = 14;
-        public static readonly double[] Lanes = { 35, 50, 65 };
+        // every shot is thrown from the centre of the start line (the side lanes are gone)
+        public static readonly double[] Lanes = { 50 };
         public const int Shots = 10, Per = Shots / 2, Ends = 4;
         // bonus guard: in the guard zone, just short of the house (y = 130)
         public const double PlaceGuardX = TeeX, PlaceGuardY = TeeY - R - SR - 10;

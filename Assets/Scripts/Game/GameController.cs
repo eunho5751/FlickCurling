@@ -373,13 +373,11 @@ namespace FlickCurling.Game
             aiPull = new AiPull { Ang = d.Ang, Pw = d.Pw, Lx = d.Lx, T = 0, Intent = d.Intent };
         }
 
-        /// <summary>"left lane takeout" and the like, shown while the AI pulls.</summary>
+        /// <summary>"takeout" and the like, shown while the AI pulls.</summary>
         static string IntentLabel(AiPull a)
         {
             string intent = string.IsNullOrEmpty(a.Intent) ? "" : Loc.T("intent." + a.Intent);
-            if (a.Intent == "lsd" || a.Lx == 50) return intent;
-            string lane = Loc.T(a.Lx < 50 ? "ai.laneLeft" : "ai.laneRight");
-            return intent == "" ? lane : Loc.T("ai.withLane", ("lane", lane), ("intent", intent));
+            return intent;
         }
 
         void Release(double ang, double pw)

@@ -210,9 +210,8 @@ namespace FlickCurling.Game
             cv.Rect(0, HOG - 1.5f / FIT, W, HOG + 1.5f / FIT, Palette.Hex("#3b2414"));
             cv.Rect(0, BACK - 1f / FIT, W, BACK + 1f / FIT, Palette.Hex("#3b2414"));
 
-            // launch marks: one per lane
+            // launch mark
             foreach (var lx in Sheet.Lanes) cv.Ring((float)lx, (float)Sheet.LaunchY, SR + 1.6f, 1.5f / FIT, Palette.Rgba(52, 32, 16, .5f));
-            cv.Rect((float)Sheet.Lanes[0], (float)Sheet.LaunchY - 1 / FIT, (float)Sheet.Lanes[2], (float)Sheet.LaunchY + 1 / FIT, Palette.Rgba(52, 32, 16, .35f));
 
             // posts
             foreach (var p in f.Posts)

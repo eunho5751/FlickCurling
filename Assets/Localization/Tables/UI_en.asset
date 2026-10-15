@@ -374,19 +374,6 @@ MonoBehaviour:
     m_Metadata:
       m_Items:
       - rid: 4297768082125881571
-  - m_Id: 2262749252
-    m_Localized: left lane
-    m_Metadata:
-      m_Items: []
-  - m_Id: 2262749253
-    m_Localized: right lane
-    m_Metadata:
-      m_Items: []
-  - m_Id: 2262749254
-    m_Localized: '{intent}, {lane}'
-    m_Metadata:
-      m_Items:
-      - rid: 4297768082125881571
   - m_Id: 2262749255
     m_Localized: draw
     m_Metadata:
@@ -436,10 +423,6 @@ MonoBehaviour:
     m_Localized: Dead rail
     m_Metadata:
       m_Items: []
-  - m_Id: 2262749270
-    m_Localized: Live
-    m_Metadata:
-      m_Items: []
   - m_Id: 2262749271
     m_Localized: Sand
     m_Metadata:
@@ -479,5 +462,4 @@ MonoBehaviour:
         - id: 2262749244
         - id: 2262749250
         - id: 2262749251
-        - id: 2262749254
         - id: 2262749265

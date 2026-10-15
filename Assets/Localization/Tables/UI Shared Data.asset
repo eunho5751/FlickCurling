@@ -339,18 +339,6 @@ MonoBehaviour:
     m_Key: ai.pulling
     m_Metadata:
       m_Items: []
-  - m_Id: 2262749252
-    m_Key: ai.laneLeft
-    m_Metadata:
-      m_Items: []
-  - m_Id: 2262749253
-    m_Key: ai.laneRight
-    m_Metadata:
-      m_Items: []
-  - m_Id: 2262749254
-    m_Key: ai.withLane
-    m_Metadata:
-      m_Items: []
   - m_Id: 2262749255
     m_Key: intent.draw
     m_Metadata:
@@ -397,10 +385,6 @@ MonoBehaviour:
       m_Items: []
   - m_Id: 2262749266
     m_Key: float.deadRail
-    m_Metadata:
-      m_Items: []
-  - m_Id: 2262749270
-    m_Key: board.lively
     m_Metadata:
       m_Items: []
   - m_Id: 2262749271

@@ -35,7 +35,7 @@ namespace FlickCurling.Core
         public Post[] Posts;
         public Zone[] Zones;
         public List<double[][]> Kinks;   // kinked rail outlines, for drawing
-        public double LiveTop;           // side rails are lively from y = 0 up to here
+        public double LiveTop;           // side rails are lively from y = 0 up to here (the whole rail by default)
 
         public double ZoneMult(double x, double y)
         {
@@ -79,7 +79,7 @@ namespace FlickCurling.Core
             return o;
         }
 
-        public static Field Build(string key, double liveTop = 80)
+        public static Field Build(string key, double liveTop = double.PositiveInfinity)
         {
             var f = new Field
             {
@@ -116,7 +116,7 @@ namespace FlickCurling.Core
             return f;
         }
 
-        // Rail windows: only the side rails from the launch end up to liveTop are lively; the rest is dead rail.
+        // Rail windows: the side rails from the launch end up to liveTop are lively, anything above is dead rail.
         static void SplitRails(Seg g, double liveTop, List<Seg> output)
         {
             if (g.IsBottom || g.Y1 == g.Y2) { output.Add(g); return; }

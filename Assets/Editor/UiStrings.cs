@@ -121,9 +121,6 @@ namespace FlickCurling.EditorTools
             new[] { "hint.cancel", "뒤로 당기세요 · 여기서 놓으면 취소", "Pull back · let go here to cancel", "後ろに引いてください・ここで離すとキャンセル" },
             new[] { "ai.thinking", "{name} 생각 중…", "{name} is thinking…", "{name} 考え中…" },
             new[] { "ai.pulling", "{name} · {intent}", "{name} · {intent}", "{name}・{intent}" },
-            new[] { "ai.laneLeft", "왼쪽 라인", "left lane", "左ライン" },
-            new[] { "ai.laneRight", "오른쪽 라인", "right lane", "右ライン" },
-            new[] { "ai.withLane", "{lane} {intent}", "{intent}, {lane}", "{lane} {intent}" },
             new[] { "intent.draw", "드로우", "draw", "ドロー" },
             new[] { "intent.guard", "가드", "guard", "ガード" },
             new[] { "intent.takeout", "테이크아웃", "takeout", "テイクアウト" },
@@ -136,7 +133,6 @@ namespace FlickCurling.EditorTools
             new[] { "float.noTicket", "쿠션권 없음", "No ticket", "クッション券なし" },
             new[] { "float.cushion", "쿠션 {n}", "Cushion {n}", "クッション {n}" },
             new[] { "float.deadRail", "죽은 레일", "Dead rail", "デッドレール" },
-            new[] { "board.lively", "탄력", "Live", "弾力" },
             new[] { "board.sand", "모래", "Sand", "砂" },
             new[] { "board.ice", "빙판", "Ice", "氷" },
         };

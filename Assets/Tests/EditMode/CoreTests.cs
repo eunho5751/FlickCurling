@@ -60,27 +60,38 @@ namespace FlickCurling.Tests
         }
 
         [Test]
-        public void LivelyRailBouncesHarderThanDeadRail()
+        public void UpperRailBouncesLikeLowerRail()
         {
             var field = Maps.Build("base");
-            // straight into the left wall low (lively) and high (dead), same incoming speed
+            // straight into the left wall low and high: the whole rail is lively, so both come back at e = 0.75
             var low = new Stone { Id = 1, X = 20, Y = 40, Vx = -60, Vy = 0 };
             var high = new Stone { Id = 2, X = 20, Y = 150, Vx = -60, Vy = 0 };
             var a = new List<Stone> { low }; var b = new List<Stone> { high };
             for (int i = 0; i < 180 && low.Vx <= 0; i++) Sim.Step(a, field, PhysicsParams.Default);
             for (int i = 0; i < 180 && high.Vx <= 0; i++) Sim.Step(b, field, PhysicsParams.Default);
             Assert.Greater(low.Vx, 0); Assert.Greater(high.Vx, 0);
-            Assert.AreEqual(0.75 / 0.15, low.Vx / high.Vx, 0.05);
+            Assert.AreEqual(low.Vx, high.Vx, 1e-9);
+            Assert.Greater(high.Vx, 20, "a lively bounce (a dead rail would send it back at about 6)");
         }
 
         [Test]
-        public void RailWindowsSplitAtLiveTop()
+        public void AllSideRailsAreLively()
         {
-            var f = Maps.Build("base");
-            Assert.AreEqual(5, f.Walls.Length);
-            Assert.IsTrue(f.Walls.Any(w => w.IsSide && w.X1 == 0 && !w.Dead && w.Y1 == 0 && w.Y2 == 80));
-            Assert.IsTrue(f.Walls.Any(w => w.IsSide && w.X1 == 100 && w.Dead && w.Y1 == 80));
-            Assert.IsTrue(Maps.Build("kink").Walls.Where(w => !w.IsSide && !w.IsBottom).All(w => w.Dead));
+            foreach (var key in Maps.Keys)
+                Assert.IsTrue(Maps.Build(key).Walls.All(w => !w.Dead), key);
+            Assert.AreEqual(3, Maps.Build("base").Walls.Length, "side rails are no longer split");
+            // the prototype's dead upper rail is still available as an option
+            var old = Maps.Build("base", 80);
+            Assert.IsTrue(old.Walls.Any(w => w.IsSide && w.Dead && w.Y1 == 80));
+        }
+
+        [Test]
+        public void EveryShotStartsFromTheCentre()
+        {
+            CollectionAssert.AreEqual(new[] { 50.0 }, Sheet.Lanes);
+            var m = new Match(Maps.Build("base"), null, 1) { Hammer = Team.W };
+            m.StartEnd(); m.BeginShot();
+            Assert.AreEqual(50, m.LaunchX);
         }
     }
 

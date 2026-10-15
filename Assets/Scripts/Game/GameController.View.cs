@@ -179,18 +179,17 @@ namespace FlickCurling.Game
         }
 
         // =====================================================================
-        // input: pull anywhere on the sheet to shoot, drag the stone sideways for a lane, drag elsewhere to scroll,
+        // input: pull anywhere on the sheet to shoot, drag elsewhere to scroll,
         // pinch / ctrl+wheel to zoom
         // =====================================================================
 
-        enum GK { None, Pinch, Mini, LaneQ, Lane, Shoot, Pan }
+        enum GK { None, Pinch, Mini, Shoot, Pan }
 
         readonly Dictionary<int, Vector2> pointers = new Dictionary<int, Vector2>();
         GK gk;
         bool mouseWasDown;
         Vector2 gStart, gLast, gMid;
         float gD0, gZ0;
-        double gLane;
 
         Vector2 Css(Vector2 screen) => new Vector2(screen.x / px, (Screen.height - screen.y) / px);
 
@@ -239,22 +238,6 @@ namespace FlickCurling.Game
             Manual();
         }
 
-        // which lane mark (if any) is under a point; the hit area never overlaps the neighbouring lane
-        double? LaneHit(Vector2 p)
-        {
-            if (Mathf.Abs(p.y - Y(LY)) > Mathf.Max(22, (SR + 4) * s)) return null;
-            float r = Mathf.Min(Mathf.Max(22, (SR + 4) * s), (float)(Sheet.Lanes[1] - Sheet.Lanes[0]) * s / 2);
-            foreach (var lx in Sheet.Lanes) if (Mathf.Abs(p.x - X((float)lx)) <= r) return lx;
-            return null;
-        }
-
-        void SetLane(double lx)
-        {
-            if (m.Lane[(int)m.Cur] == lx && (laneTo ?? m.LaunchX) == lx) return;
-            m.SetLane(m.Cur, lx); laneTo = lx;
-            sfx.Blip(0.15f, 900, 2, 0.03f);
-        }
-
         // touches on the sheet (rails included) aim on your turn; touches on the table around it always scroll
         bool OnSheet(Vector2 p)
         {
@@ -286,11 +269,7 @@ namespace FlickCurling.Game
             if (pointers.Count > 2) return;
             var mh = MiniHit(p);
             if (mh.HasValue) { MiniJump(mh.Value, p); gk = GK.Mini; return; }
-            if (state == St.Aim && !m.InLsd)
-            {
-                var li = LaneHit(p);
-                if (li.HasValue) { gk = GK.LaneQ; gStart = p; gLane = li.Value; return; }
-            }
+
             if (state == St.Aim && OnSheet(p)) { gk = GK.Shoot; drag = new Drag { Start = p, Cur = p }; return; }
             gk = GK.Pan; gLast = p;
         }
@@ -301,18 +280,6 @@ namespace FlickCurling.Game
             pointers[id] = p;
             switch (gk)
             {
-                case GK.LaneQ:
-                {
-                    float dx = p.x - gStart.x, dy = p.y - gStart.y;
-                    if (Mathf.Sqrt(dx * dx + dy * dy) < 8) return;
-                    // sideways = move the stone to another lane; anything else = a normal pull from this point
-                    if (Mathf.Abs(dx) > Mathf.Abs(dy)) gk = GK.Lane;
-                    else { gk = GK.Shoot; drag = new Drag { Start = gStart, Cur = p }; return; }
-                    goto case GK.Lane;
-                }
-                case GK.Lane:
-                    if (state == St.Aim) SetLane(Sheet.NearestLane(cx + (p.x - cw / 2) / s));
-                    return;
                 case GK.Shoot:
                     if (drag != null) drag.Cur = p;
                     return;
@@ -343,11 +310,6 @@ namespace FlickCurling.Game
         void Up(int id, Vector2 p, bool isUp)
         {
             if (!pointers.Remove(id)) return;
-            if (gk == GK.LaneQ || gk == GK.Lane)
-            {
-                if (gk == GK.LaneQ && state == St.Aim) SetLane(gLane);   // a tap on another lane mark
-                gk = GK.None; return;
-            }
             if (gk == GK.Shoot)
             {
                 var d = drag;
@@ -620,14 +582,7 @@ namespace FlickCurling.Game
         void DrawBoardLabels()
         {
             var f = m.Field;
-            foreach (var w in f.Walls)
-            {
-                if (w.Dead || !w.IsSide) continue;
-                float bot = Mathf.Max(0, (float)Math.Min(w.Y1, w.Y2)), top = Mathf.Min(L, (float)Math.Max(w.Y1, w.Y2));
-                if (top <= bot) continue;
-                bool left = w.X1 == 0;
-                hud.Label(Loc.T("board.lively"), X(left ? -2 : W + 2), Y((bot + top) / 2), 10, Palette.BrassInk, 0, false, false, left ? 90 : -90);
-            }
+
             foreach (var z in f.Zones)
             {
                 float zx = (float)(z.X1 + z.X2) / 2, zy = (float)(z.Y1 + z.Y2) / 2;
