@@ -424,9 +424,12 @@ namespace FlickCurling.Game
             toasts.Clear();
         }
 
+        const float ToastBgAlpha = 0.72f;
+
         ToastItem MakeToast(string title, string body, bool turn, int titleSize)
         {
-            var img = Ui.Panel(toastLayer, turn ? "TurnToast" : "Toast", Palette.Panel, Palette.Line, turn ? 10 : 8);
+            // see-through backing so the sheet shows behind; the text and icons stay solid (the fades scale both together)
+            var img = Ui.Panel(toastLayer, turn ? "TurnToast" : "Toast", Palette.WithA(Palette.Panel, ToastBgAlpha), Palette.Line, turn ? 10 : 8);
             img.raycastTarget = false;
             var rt = img.rectTransform;
             rt.anchorMin = rt.anchorMax = new Vector2(0.5f, 1); rt.pivot = new Vector2(0.5f, 0);
