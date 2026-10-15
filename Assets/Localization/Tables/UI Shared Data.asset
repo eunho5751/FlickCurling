@@ -327,14 +327,6 @@ MonoBehaviour:
     m_Key: foul.body
     m_Metadata:
       m_Items: []
-  - m_Id: 2262749247
-    m_Key: hint.lanes
-    m_Metadata:
-      m_Items: []
-  - m_Id: 2262749248
-    m_Key: hint.pull
-    m_Metadata:
-      m_Items: []
   - m_Id: 2262749249
     m_Key: hint.cancel
     m_Metadata:

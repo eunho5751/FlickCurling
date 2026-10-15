@@ -118,8 +118,6 @@ namespace FlickCurling.EditorTools
                 "このエンドのクッション券はもう使い切っています。石を元に戻し、今投げた石を取り除きます。" },
 
             // ---- on the sheet ----
-            new[] { "hint.lanes", "알을 옆으로 끌면 라인 변경 · 당겨서 발사", "Drag the stone sideways to change lane · pull back to shoot", "石を横にドラッグでライン変更・引いて発射" },
-            new[] { "hint.pull", "화면 아무 곳이나 누르고 뒤로 당겼다 놓으세요", "Press anywhere, pull back and let go", "画面のどこかを押し、後ろに引いて離してください" },
             new[] { "hint.cancel", "뒤로 당기세요 · 여기서 놓으면 취소", "Pull back · let go here to cancel", "後ろに引いてください・ここで離すとキャンセル" },
             new[] { "ai.thinking", "{name} 생각 중…", "{name} is thinking…", "{name} 考え中…" },
             new[] { "ai.pulling", "{name} · {intent}", "{name} · {intent}", "{name}・{intent}" },

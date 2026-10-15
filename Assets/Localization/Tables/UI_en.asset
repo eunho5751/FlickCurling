@@ -360,14 +360,6 @@ MonoBehaviour:
       and the stone just thrown is removed.
     m_Metadata:
       m_Items: []
-  - m_Id: 2262749247
-    m_Localized: "Drag the stone sideways to change lane \xB7 pull back to shoot"
-    m_Metadata:
-      m_Items: []
-  - m_Id: 2262749248
-    m_Localized: Press anywhere, pull back and let go
-    m_Metadata:
-      m_Items: []
   - m_Id: 2262749249
     m_Localized: "Pull back \xB7 let go here to cancel"
     m_Metadata:

@@ -42,7 +42,6 @@ namespace FlickCurling.Game
         Ai brain;
         int token;
         int speed = 1;
-        bool hint = true;
         bool noAuto;
         double? laneTo;
         float acc;
@@ -387,7 +386,7 @@ namespace FlickCurling.Game
         {
             if (laneTo.HasValue) { m.LaunchX = laneTo.Value; laneTo = null; }
             m.Release(ang, pw);
-            state = St.Moving; hint = false; drag = null; aiPull = null;
+            state = St.Moving; drag = null; aiPull = null;
             sfx.Blip(0.4f + (float)pw * 0.4f, 1800, 3, 0.05f);
         }
 

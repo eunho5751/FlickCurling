@@ -251,7 +251,7 @@ namespace FlickCurling.Game
         void SetLane(double lx)
         {
             if (m.Lane[(int)m.Cur] == lx && (laneTo ?? m.LaunchX) == lx) return;
-            m.SetLane(m.Cur, lx); laneTo = lx; hint = false;
+            m.SetLane(m.Cur, lx); laneTo = lx;
             sfx.Blip(0.15f, 900, 2, 0.03f);
         }
 
@@ -509,8 +509,7 @@ namespace FlickCurling.Game
                     DrawAim(aiPull.Ang, (float)aiPull.Pw * Mathf.Min(1, aiPull.T));
                 }
                 DrawStone(lp.x, lp.y, m.Cur, 1, turnPulse);
-                string note = state == St.Aim && hint && drag == null ? Loc.T(!m.InLsd ? "hint.lanes" : "hint.pull")
-                    : state == St.Ai ? Loc.T("ai.thinking", ("name", NameOf(m.Cur)))
+                string note = state == St.Ai ? Loc.T("ai.thinking", ("name", NameOf(m.Cur)))
                     : state == St.AiPull && IntentLabel(aiPull) != "" ? Loc.T("ai.pulling", ("name", NameOf(m.Cur)), ("intent", IntentLabel(aiPull))) : "";
                 if (note != "") hud.Label(note, lx, ly - SR * s - 16, 13, Palette.Text, 0, false, true);
             }
