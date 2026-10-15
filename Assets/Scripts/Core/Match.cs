@@ -212,6 +212,16 @@ namespace FlickCurling.Core
 
         public void AdvanceShot() => Shot++;
 
+        /// <summary>
+        /// The shot clock ran out: nothing is thrown. In the last stone draw that is no record; in an end the stone is
+        /// lost (the caller still advances the shot, so it counts as thrown).
+        /// </summary>
+        public void Forfeit()
+        {
+            ShotId = -1;
+            if (InLsd) Lsd.Dist[(int)Cur] = double.PositiveInfinity;
+        }
+
         public EndOutcome FinishEnd()
         {
             var sc = Rules.Scoring(Stones);

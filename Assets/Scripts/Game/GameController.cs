@@ -64,6 +64,10 @@ namespace FlickCurling.Game
         Func<CardSpec> cardFactory;   // rebuilds the visible card after a language change
         // your-turn pulse: the launch stone and the turn line grow and shrink while a human is to aim
         float turnPulse = 1;
+        // the shot clock: a human has this long to throw once the turn toast has gone, or the stone is lost
+        const float ShotTime = 15, ClockWait = 1.45f;
+        float clock = -1, clockWait;
+        FuseFx fuse;
         Tween pulseTween;
 
         // ---- delayed callbacks (prototype setTimeout), real time; dropped when this object is destroyed ----
@@ -159,6 +163,7 @@ namespace FlickCurling.Game
             over = new ShapeBatch("ShapesOver", shapeMaterial, 20, overlayLayer);
             mini = new ShapeBatch("ShapesMinimap", shapeMaterial, 20, miniLayer);
             foreach (var b in new[] { under, aim, over, mini }) b.Go.transform.SetParent(transform, false);
+            fuse = new FuseFx(transform, unlitMaterial, overlayLayer);
 
             sfx = new Sfx(gameObject);
             hud = new Hud(transform);
@@ -285,6 +290,7 @@ namespace FlickCurling.Game
             CamTo(AimView(zoom), 3.5f);
             RenderHud();
             hud.TurnToast(Loc.T("hud.turn", ("name", SideOf(m.Cur, 130))));
+            StartClock();
             if (state == St.Ai)
             {
                 int tok = token;
@@ -352,6 +358,7 @@ namespace FlickCurling.Game
             CamTo(AimView(zoom), 3.5f);
             RenderHud();
             hud.TurnToast(Loc.T("hud.turn", ("name", SideOf(m.Cur, 130))));
+            StartClock();
             if (state == St.Ai) RunAI();
         }
 
@@ -391,7 +398,7 @@ namespace FlickCurling.Game
         {
             if (laneTo.HasValue) { m.LaunchX = laneTo.Value; laneTo = null; }
             m.Release(ang, pw);
-            state = St.Moving; ResetShotInput(); aiPull = null;
+            state = St.Moving; ResetShotInput(); aiPull = null; clock = -1;
             sfx.Blip(0.4f + (float)pw * 0.4f, 1800, 3, 0.05f);
         }
 
@@ -417,6 +424,42 @@ namespace FlickCurling.Game
             if (knocked.Count > 0) notes.Add(string.Join(", ", knocked));
             if (notes.Count > 0) hud.Toast(notes[0], string.Join(" · ", notes.Skip(1)));
             state = St.Settle; settleT = 0.5f;
+        }
+
+        // ---- shot clock ----
+
+        void StartClock()
+        {
+            clock = state == St.Aim ? ShotTime : -1;
+            clockWait = ClockWait;
+        }
+
+        // real time, held while the turn toast is up or a card covers the sheet
+        void TickClock(float rdt)
+        {
+            if (clock < 0 || !HumanAim || hud.CardVisible) return;
+            if (clockWait > 0) { clockWait -= rdt; return; }
+            clock -= rdt;
+            if (clock <= 0) TimeOut();
+        }
+
+        // time is up: a pull under way is dropped and the stone is lost (in the draw: no record)
+        void TimeOut()
+        {
+            clock = -1;
+            ResetShotInput();
+            m.Forfeit();
+            sfx.Blip(0.5f, 260, 2, 0.14f);
+            if (m.InLsd)
+            {
+                hud.Toast(Loc.T("timeout.title"), Loc.T("timeout.lsd"), 1800);
+                lsdShow = new LsdShow { T = 0.6f };
+                state = St.LsdShow;
+                RenderHud();
+                return;
+            }
+            hud.Toast(Loc.T("timeout.title"), Loc.T("timeout.body", ("name", NameOf(m.Cur))), 1800);
+            state = St.Settle; settleT = 0.6f;
         }
 
         void FinishRestore()
@@ -488,7 +531,7 @@ namespace FlickCurling.Game
             token++;
             state = St.Menu; ResetShotInput(); aiPull = null; measure = null; restore = null; lsdShow = null; laneTo = null;
             cardFactory = null;
-            hud.HideTurnToast();
+            hud.HideTurnToast(); clock = -1;
             m = new Match(Maps.Build("base"));
             m.Stones = DemoStones();
             fades.Clear(); floats.Clear();
@@ -618,6 +661,7 @@ namespace FlickCurling.Game
 
             UpdateTurnPulse();
             HandleInput();
+            TickClock(rdt);
 
             if (state == St.Moving)
             {

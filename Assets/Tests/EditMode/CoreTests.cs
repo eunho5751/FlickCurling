@@ -270,6 +270,35 @@ namespace FlickCurling.Tests
             m.ResolveLsd(out coin);
             Assert.IsTrue(coin);
         }
+
+        [Test]
+        public void TimedOutShotIsLost()
+        {
+            // in an end: no stone goes down, but the shot still counts as thrown
+            var m = new Match(Maps.Build("base"), null, 1) { Hammer = Team.W };
+            m.StartEnd();
+            m.BeginShot();
+            var shooter = m.Cur;
+            int stones = m.Stones.Count;
+            m.Forfeit();
+            Assert.IsNull(m.ShotStone);
+            m.AdvanceShot();
+            Assert.AreEqual(stones, m.Stones.Count);
+            Assert.AreEqual(1, m.ThrownBy(shooter));
+            Assert.AreEqual(Sheet.Other(shooter), m.Shooter);
+
+            // in the last stone draw: no record, so the other drawer takes the hammer with any record
+            var d = new Match(Maps.Build("base"), null, 3);
+            d.StartMatch();
+            d.BeginLsdShot();
+            d.Forfeit();
+            Assert.IsTrue(double.IsPositiveInfinity(d.Lsd.Dist[0].Value));
+            Assert.IsTrue(d.NextLsd());
+            d.BeginLsdShot();
+            d.Lsd.Dist[1] = 40;
+            Assert.AreEqual(Team.W, d.ResolveLsd(out bool coin));
+            Assert.IsFalse(coin);
+        }
     }
 
     public class AiTests

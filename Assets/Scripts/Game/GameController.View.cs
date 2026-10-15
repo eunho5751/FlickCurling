@@ -607,6 +607,7 @@ namespace FlickCurling.Game
                 float fxp = Mathf.Clamp(X(f.X), X(10), X(90)), fyp = Y(f.Y + 8 + f.T * 10);
                 hud.Label(f.Text, fxp, fyp, 16, Palette.WithA(Palette.Gold, 1 - f.T), 0, true, true);
             }
+            DrawFuse(time);
             DrawMinimap();
             under.Commit(); aim.Commit(); over.Commit(); mini.Commit();
             EndStones(); hud.EndLabels();
@@ -643,6 +644,31 @@ namespace FlickCurling.Game
             else if (hit.kind != HitKind.None) aim.Ring(hit.p, SR, U(1.2f), Palette.Rgba(40, 24, 12, .55f));
             float tl = r0 + len + 18;
             if (pw > 0) hud.Label($"{Mathf.RoundToInt(pw * 100)}%", lx + dir.x * tl, ly - dir.y * tl, 15, Palette.Hex("#ffe2a6"), 0, true, true);
+        }
+
+        // the shot clock as a fuse laid over the min line, burning from the left end toward the right; the burnt part
+        // leaves the line showing again
+        void DrawFuse(float time)
+        {
+            if (!HumanAim || clock < 0) { fuse.Burn(Vector3.zero, false, 0); return; }
+            const float x0 = 0.5f, x1 = W - 0.5f, y = HOG;
+            float left = Mathf.Clamp01(clock / ShotTime);
+            var tip = new Vector2(Mathf.Lerp(x1, x0, left), y);
+            var end = new Vector2(x1, y);
+            // still to burn: a twisted cord
+            under.Line(tip, end, 2.0f, Palette.Rgba(122, 88, 48, 1));
+            for (float x = Mathf.Ceil(tip.x / 2f) * 2f; x < x1 - 0.9f; x += 2f)
+                under.Line(new Vector2(x, y - .9f), new Vector2(x + .9f, y + .9f), .5f, Palette.Rgba(78, 52, 24, .9f));
+            under.Line(tip + new Vector2(0, .5f), end + new Vector2(0, .5f), .35f, Palette.Rgba(196, 160, 104, .7f));
+            // lit once the turn toast has gone; the glow flickers
+            bool burning = clockWait <= 0 && !hud.CardVisible;
+            if (burning)
+            {
+                float fl = 0.8f + 0.2f * Mathf.Sin(time / 45f) * Mathf.Sin(time / 17f);
+                aim.Disc(tip, 2.6f * fl, Palette.Rgba(255, 130, 30, .45f));
+                aim.Disc(tip, 1.1f, Palette.Rgba(255, 232, 160, 1));
+            }
+            fuse.Burn(new Vector3(tip.x, tip.y, -1), burning, 1 - left);
         }
 
         static Vector2 Rot(Vector2 v, float a) => new Vector2(v.x * Mathf.Cos(a) - v.y * Mathf.Sin(a), v.x * Mathf.Sin(a) + v.y * Mathf.Cos(a));

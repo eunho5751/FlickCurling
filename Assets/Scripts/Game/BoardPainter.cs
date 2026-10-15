@@ -207,7 +207,7 @@ namespace FlickCurling.Game
             float dash = 4 / FIT;
             for (float y = HOG; y < BACK; y += 2 * dash) cv.Line(50, y, 50, Mathf.Min(BACK, y + dash), 1 / FIT, Palette.Rgba(52, 32, 16, .45f));
             cv.Rect(0, ty - 0.5f / FIT, W, ty + 0.5f / FIT, Palette.Rgba(52, 32, 16, .55f));
-            cv.Rect(0, HOG - 1.5f / FIT, W, HOG + 1.5f / FIT, Palette.Hex("#3b2414"));
+            cv.Rect(0, HOG - 1.5f / FIT, W, HOG + 1.5f / FIT, Palette.Rgba(59, 36, 20, .5f));   // light: the shot-clock fuse lies on it
             cv.Rect(0, BACK - 1f / FIT, W, BACK + 1f / FIT, Palette.Hex("#3b2414"));
 
             // launch mark
