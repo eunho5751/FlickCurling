@@ -367,18 +367,6 @@ MonoBehaviour:
     m_Key: board.ice
     m_Metadata:
       m_Items: []
-  - m_Id: 225056321884160
-    m_Key: settings.controls
-    m_Metadata:
-      m_Items: []
-  - m_Id: 225056342855680
-    m_Key: controls.twoHand
-    m_Metadata:
-      m_Items: []
-  - m_Id: 225056342855681
-    m_Key: controls.oneHand
-    m_Metadata:
-      m_Items: []
   - m_Id: 227904224940032
     m_Key: settings.aimSens
     m_Metadata:

@@ -172,9 +172,8 @@ namespace FlickCurling.Game
             hud.OnSound = () => { sfx.On = !sfx.On; RenderSettings(); };
             hud.OnSpeed = () => { speed = speed == 1 ? 2 : speed == 2 ? 4 : 1; RenderSettings(); };
             hud.OnLanguage = Loc.Select;
-            hud.OnControls = CycleScheme;
             hud.OnSens = StepSens;
-            LoadScheme();
+            LoadSettings();
             Loc.Changed += OnLocaleChanged;
             RenderSettings();
             Resize(true);
@@ -210,7 +209,6 @@ namespace FlickCurling.Game
         {
             hud.SoundText = Loc.T(sfx.On ? "settings.soundOn" : "settings.soundOff");
             hud.SpeedText = Loc.T("settings.speed", ("n", speed));
-            hud.ControlsText = Loc.T(scheme == ControlScheme.OneHand ? "controls.oneHand" : "controls.twoHand");
             hud.SensText = (sensLevel + 1).ToString();
         }
 

@@ -32,7 +32,7 @@ namespace FlickCurling.Game
         public readonly Canvas Canvas;
         readonly CanvasScaler scaler;
         readonly RectTransform root, scorePanel, scoreTable, br, more, toastLayer, cardOv, cardRt, menu, menuCard, watchLv, labelLayer, miniFrame;
-        readonly TextMeshProUGUI controlsTxt, sensTxt, scorePill, cardEyebrow, cardTitle, cardHead, cardBody, soundTxt, speedTxt;
+        readonly TextMeshProUGUI sensTxt, scorePill, cardEyebrow, cardTitle, cardHead, cardBody, soundTxt, speedTxt;
         readonly Image cardOvImg;
         readonly RectTransform cardActions;
         readonly Button speedBtn;
@@ -57,8 +57,7 @@ namespace FlickCurling.Game
         public Action<int, int, int, int> OnStart;   // mode, map, black level, white level
         public Action OnMenu, OnSound, OnSpeed, OnUiClick;
         public Action<string> OnLanguage;
-        public Action<int> OnControls;   // -1 / +1 from the arrow buttons
-        public Action<int> OnSens;
+        public Action<int> OnSens;   // -1 / +1 from the arrow buttons
 
         public Hud(Transform parent)
         {
@@ -167,17 +166,6 @@ namespace FlickCurling.Game
             var sb = Ui.Button(more, "", false, () => OnSound?.Invoke(), 13);
             Flat(sb);
             soundTxt = Ui.ButtonText(sb);
-            var ctl = Ui.Label(more, "", 11, Palette.Muted);
-            ctl.margin = new Vector4(12, 6, 12, 0);
-            Bind(ctl, "settings.controls");
-            var ctlRow = Ui.Rect(more, "Controls");
-            Ui.HStack(ctlRow.gameObject, 4, 4, 0, 2, 0, TextAnchor.MiddleLeft);
-            var prev = Ui.Button(ctlRow, "◀", false, () => OnControls?.Invoke(-1), 13, "ControlsPrev");
-            Flat(prev); prev.GetComponent<HorizontalLayoutGroup>().padding = new RectOffset(8, 8, 6, 6);
-            controlsTxt = Ui.NoWrap(Ui.Label(ctlRow, "", 13, Palette.Text, false, TextAnchor.MiddleCenter));
-            controlsTxt.gameObject.AddComponent<LayoutElement>().minWidth = 84;
-            var next = Ui.Button(ctlRow, "▶", false, () => OnControls?.Invoke(1), 13, "ControlsNext");
-            Flat(next); next.GetComponent<HorizontalLayoutGroup>().padding = new RectOffset(8, 8, 6, 6);
             var sens = Ui.Label(more, "", 11, Palette.Muted);
             sens.margin = new Vector4(12, 6, 12, 0);
             Bind(sens, "settings.aimSens");
@@ -316,7 +304,6 @@ namespace FlickCurling.Game
         public bool SpeedVisible { set => speedBtn.gameObject.SetActive(value); }
         public string SpeedText { set => speedTxt.text = value; }
         public string SoundText { set => soundTxt.text = value; }
-        public string ControlsText { set => controlsTxt.text = value; }
         public string SensText { set => sensTxt.text = value; }
 
         /// <summary>Bottom edge of the top HUD row plus a margin, in css px (the camera keeps the far end clear of it).</summary>

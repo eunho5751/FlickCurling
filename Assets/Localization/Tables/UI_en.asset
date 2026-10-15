@@ -400,18 +400,6 @@ MonoBehaviour:
     m_Localized: Ice
     m_Metadata:
       m_Items: []
-  - m_Id: 225056321884160
-    m_Localized: Controls
-    m_Metadata:
-      m_Items: []
-  - m_Id: 225056342855680
-    m_Localized: Two-Hand
-    m_Metadata:
-      m_Items: []
-  - m_Id: 225056342855681
-    m_Localized: One-Hand
-    m_Metadata:
-      m_Items: []
   - m_Id: 227904224940032
     m_Localized: Aim Sensitivity
     m_Metadata:
