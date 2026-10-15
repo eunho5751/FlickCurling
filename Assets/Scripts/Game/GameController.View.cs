@@ -179,11 +179,64 @@ namespace FlickCurling.Game
         }
 
         // =====================================================================
-        // input: pull anywhere on the sheet to shoot, drag elsewhere to scroll,
-        // pinch / ctrl+wheel to zoom
+        // input on your turn, below the min line, split at the launch stone: left of it, drag sideways to aim;
+        // right of it, drag up or down from the touch point for power and let go to shoot (leaving that area cancels). The two work at the same
+        // time with two fingers. Above the min line: drag to scroll, pinch / ctrl+wheel to zoom.
         // =====================================================================
 
-        enum GK { None, Pinch, Mini, Shoot, Pan }
+        enum GK { None, Pinch, Mini, Pan }
+
+        // shot controls run per finger, outside the scroll / pinch gesture
+        enum Role { Aim, Power, Single }
+
+        // two-hand: aim on the left of the stone, power on the right. one-hand: one finger anywhere below the min
+        // line; the drag from the touch point gives the direction (the stone goes the way the finger moves
+        // sideways, whether it moves down or up) and its length the power.
+        public enum ControlScheme { TwoHand, OneHand }
+        const string SchemePref = "flickcurling-controls";
+        ControlScheme scheme;
+        void LoadScheme()
+        {
+            scheme = (ControlScheme)Mathf.Clamp(PlayerPrefs.GetInt(SchemePref, 0), 0, 1);
+            sensLevel = Mathf.Clamp(PlayerPrefs.GetInt(SensPref, 2), 0, SensMul.Length - 1);
+        }
+
+        // aim sensitivity, levels 1..5 in settings; level 3 is the original speed
+        static readonly float[] SensMul = { 0.5f, 0.75f, 1f, 1.5f, 2f };
+        const string SensPref = "flickcurling-aimsens";
+        int sensLevel = 2;
+        float Sens => SensMul[sensLevel];
+        void StepSens(int dir)
+        {
+            sensLevel = Mathf.Clamp(sensLevel + dir, 0, SensMul.Length - 1);
+            PlayerPrefs.SetInt(SensPref, sensLevel);
+            PlayerPrefs.Save();
+            RenderSettings();
+        }
+        void CycleScheme(int dir)
+        {
+            scheme = (ControlScheme)(((int)scheme + dir + 2) % 2);
+            PlayerPrefs.SetInt(SchemePref, (int)scheme);
+            PlayerPrefs.Save();
+            ResetShotInput();
+            RenderSettings();
+        }
+        sealed class Finger { public Role Role; public Vector2 Start, Last; public bool Out, Moved; }
+        readonly Dictionary<int, Finger> fingers = new Dictionary<int, Finger>();
+        double aimAng;      // radians from straight up the sheet
+        float power = -1;   // 0..1 while a power finger is down and inside its area, else -1
+        int powerId = int.MinValue;
+        Vector2 powerStart;
+        const float AimPerPx = 0.0035f, AimMax = 1.35f;
+        bool Charging => power >= 0;
+        bool HumanAim => state == St.Aim && !IsAI(m.Cur);
+
+        void ResetShotInput() { fingers.Clear(); power = -1; powerId = int.MinValue; }
+
+        // the control area: below the min line, on screen
+        bool InControls(Vector2 p) => p.y >= Y(HOG) && OnScreen(p);
+        bool OnScreen(Vector2 p) => p.y >= 0 && p.y <= ch && p.x >= 0 && p.x <= cw;
+        bool RightOfStone(Vector2 p) => p.x >= X((float)m.LaunchX);
 
         readonly Dictionary<int, Vector2> pointers = new Dictionary<int, Vector2>();
         GK gk;
@@ -245,21 +298,32 @@ namespace FlickCurling.Game
             return w.x >= -4 && w.x <= W + 4 && w.y >= 0 && w.y <= L;
         }
 
-        // pull is measured in css px from where the finger went down, so power precision does not depend on zoom
-        (double ang, float pw, float len, float ux, float uy) DragShot(Drag d)
-        {
-            float ux = d.Cur.x - d.Start.x, uy = d.Cur.y - d.Start.y, len = Mathf.Sqrt(ux * ux + uy * uy);
-            return (Math.Atan2(-ux, uy), Mathf.Min(len, maxPx) / maxPx, len, ux, uy);
-        }
-
         void Down(int id, Vector2 p, Vector2 screen)
         {
             if (Hud.IsOverUi(screen)) return;
-            pointers[id] = p;
             hud.ClosePopovers();
+            // a second touch calls off a pull in progress (and goes no further): any touch in one-hand play,
+            // a touch on the power side in two-hand play
+            var pull = fingers.Values.FirstOrDefault(f => f.Role != Role.Aim && !f.Out);
+            if (pull != null && HumanAim && (scheme == ControlScheme.OneHand || InControls(p) && RightOfStone(p)))
+            {
+                pull.Out = true; power = -1;
+                return;
+            }
+            // shot controls: one aim finger and one power finger at most
+            if (HumanAim && InControls(p))
+            {
+                var role = scheme == ControlScheme.OneHand ? Role.Single : RightOfStone(p) ? Role.Power : Role.Aim;
+                if (fingers.Values.All(f => f.Role != role))
+                {
+                    fingers[id] = new Finger { Role = role, Start = p, Last = p };
+                    if (role != Role.Aim) { powerId = id; powerStart = p; power = 0; }
+                    return;
+                }
+            }
+            pointers[id] = p;
             if (pointers.Count == 2)
             {
-                drag = null;
                 var ab = pointers.Values.ToArray();
                 gk = GK.Pinch;
                 gD0 = Vector2.Distance(ab[0], ab[1]); if (gD0 == 0) gD0 = 1;
@@ -269,20 +333,44 @@ namespace FlickCurling.Game
             if (pointers.Count > 2) return;
             var mh = MiniHit(p);
             if (mh.HasValue) { MiniJump(mh.Value, p); gk = GK.Mini; return; }
-
-            if (state == St.Aim && OnSheet(p)) { gk = GK.Shoot; drag = new Drag { Start = p, Cur = p }; return; }
             gk = GK.Pan; gLast = p;
         }
 
         void Move(int id, Vector2 p)
         {
+            if (fingers.TryGetValue(id, out var fg))
+            {
+                if (!HumanAim) return;
+                if (fg.Role == Role.Aim)
+                {
+                    aimAng = Mathf.Clamp((float)aimAng + (p.x - fg.Last.x) * AimPerPx * Sens, -AimMax, AimMax);
+                }
+                else if (fg.Role == Role.Single && !fg.Out)
+                {
+                    // one-hand: past the min line still pulls; only off the screen calls the shot off
+                    if (!OnScreen(p)) { fg.Out = true; power = -1; }
+                    else
+                    {
+                        float dx = p.x - fg.Start.x, dy = p.y - fg.Start.y;
+                        // sideways from the touch point steers, the same rate as the two-hand aim, however far it is pulled
+                        aimAng = Mathf.Clamp(dx * AimPerPx * Sens, -AimMax, AimMax);
+                        power = Mathf.Min(Mathf.Abs(dy), maxPx) / maxPx;   // up or down from the touch point
+                    }
+                }
+                else if (!fg.Out)
+                {
+                    // past the min line still pulls; across to the aim side or off the screen calls the shot off
+                    if (!OnScreen(p) || !RightOfStone(p)) { fg.Out = true; power = -1; }
+                    else power = Mathf.Min(Mathf.Abs(p.y - fg.Start.y), maxPx) / maxPx;   // up or down from the touch point
+                }
+                if ((p - fg.Start).sqrMagnitude >= 9) fg.Moved = true;   // more than a tap
+                fg.Last = p;
+                return;
+            }
             if (!pointers.ContainsKey(id)) return;
             pointers[id] = p;
             switch (gk)
             {
-                case GK.Shoot:
-                    if (drag != null) drag.Cur = p;
-                    return;
                 case GK.Mini:
                 {
                     var mm = MiniRect();
@@ -309,18 +397,19 @@ namespace FlickCurling.Game
 
         void Up(int id, Vector2 p, bool isUp)
         {
-            if (!pointers.Remove(id)) return;
-            if (gk == GK.Shoot)
+            if (fingers.TryGetValue(id, out var fg))
             {
-                var d = drag;
-                drag = null; gk = GK.None;
-                if (d == null) return;
-                d.Cur = p;
-                var sh = DragShot(d);
-                // a tiny pull, or dragging back to where you started, cancels
-                if (isUp && state == St.Aim && sh.pw >= Sheet.CancelPw) Release(sh.ang, sh.pw);
+                fingers.Remove(id);
+                if (fg.Role != Role.Aim)
+                {
+                    float pw = power;
+                    power = -1; powerId = int.MinValue;
+                    // releasing always shoots at the current power; only a finger that left the area, or a pure tap, does not
+                    if (isUp && HumanAim && !fg.Out && fg.Moved && pw > 0) Release(aimAng, pw);
+                }
                 return;
             }
+            if (!pointers.Remove(id)) return;
             if (pointers.Count == 0) gk = GK.None;
             else if (gk == GK.Pinch) { gk = GK.Pan; gLast = pointers.Values.First(); }
         }
@@ -451,20 +540,23 @@ namespace FlickCurling.Game
             {
                 var lp = new Vector2((float)m.LaunchX, LY);
                 float lx = X(lp.x), ly = Y(lp.y);
-                if (state == St.Aim && drag == null)
+                if (state == St.Aim && !Charging)
                 {
                     float pulse = (Mathf.Sin(time / 300) + 1) / 2;
                     over.Ring(lp, SR + 2.5f + pulse * 1.5f, U(2), Palette.Rgba(217, 165, 76, 0.35f + pulse * 0.45f));
                 }
-                if (drag != null)
+                if (HumanAim)
                 {
-                    var sh = DragShot(drag);
-                    // where the finger went down, and a faint line to the finger
-                    var faint = Palette.Rgba(239, 226, 200, .45f);
-                    aim.Ring(World(drag.Start), U(10), U(1.5f), faint);
-                    aim.Dashed(World(drag.Start), World(drag.Cur), U(1.5f), U(4), U(4), faint);
-                    if (sh.pw < Sheet.CancelPw) hud.Label(Loc.T("hint.cancel"), drag.Start.x, drag.Start.y - 24, 13, Palette.Text, 0, false, true);
-                    else DrawAim(sh.ang, sh.pw);
+                    // the aim line is always up on your turn; the gauge fills while power is pulled
+                    DrawAim(aimAng, Charging ? power : 0);
+                    // the split between the aim side and the power side, faintly, below the min line
+                    var faint = Palette.Rgba(52, 32, 16, Charging ? .15f : .3f);
+                    if (scheme == ControlScheme.TwoHand)
+                    aim.Dashed(new Vector2(lp.x, HOG), new Vector2(lp.x, lp.y + SR + 3), U(1.5f), U(4), U(6), faint);
+                    if (Charging)
+                    {
+                        aim.Ring(World(powerStart), U(10), U(1.5f), Palette.Rgba(239, 226, 200, .45f));
+                    }
                 }
                 else if (state == St.AiPull)
                 {
@@ -550,7 +642,7 @@ namespace FlickCurling.Game
             }
             else if (hit.kind != HitKind.None) aim.Ring(hit.p, SR, U(1.2f), Palette.Rgba(40, 24, 12, .55f));
             float tl = r0 + len + 18;
-            hud.Label($"{Mathf.RoundToInt(pw * 100)}%", lx + dir.x * tl, ly - dir.y * tl, 15, Palette.Hex("#ffe2a6"), 0, true, true);
+            if (pw > 0) hud.Label($"{Mathf.RoundToInt(pw * 100)}%", lx + dir.x * tl, ly - dir.y * tl, 15, Palette.Hex("#ffe2a6"), 0, true, true);
         }
 
         static Vector2 Rot(Vector2 v, float a) => new Vector2(v.x * Mathf.Cos(a) - v.y * Mathf.Sin(a), v.x * Mathf.Sin(a) + v.y * Mathf.Cos(a));
@@ -561,7 +653,7 @@ namespace FlickCurling.Game
         {
             var info = TurnInfo();
             if (!info.HasValue) return;
-            float a = drag != null || state == St.AiPull ? 0.3f : 0.82f;
+            float a = Charging || state == St.AiPull ? 0.3f : 0.82f;
             var ink = Palette.Rgba(52, 32, 16, a);
             // who-throws-first phase: a title line above the turn line, larger than the rest
             float up = 0;
@@ -572,7 +664,7 @@ namespace FlickCurling.Game
             {
 
                 // the house red: brass blends into the light wood, red stands out on it
-                var hot = Palette.WithA(Palette.Hex("#a3341f"), drag != null ? 0.45f : 1);
+                var hot = Palette.WithA(Palette.Hex("#a3341f"), Charging ? 0.45f : 1);
                 hud.Label(info.Value.head, X(W / 2), Y(52.5f + up), Mathf.RoundToInt(5f * s), hot, 0, true, false, 0, turnPulse);
             }
             else hud.Label(info.Value.head, X(W / 2), Y(52 + up), Mathf.RoundToInt(4.2f * s), ink, 0, true);
@@ -610,9 +702,9 @@ namespace FlickCurling.Game
                 miniCam.rect = new Rect(r.X * px / Screen.width, 1 - (r.Y + r.H) * px / Screen.height, r.W * px / Screen.width, r.H * px / Screen.height);
             }
             float one = 1 / r.Ms;   // one css px at minimap scale
-            if (drag != null || state == St.AiPull)
+            if (HumanAim || state == St.AiPull)
             {
-                double ang = drag != null ? DragShot(drag).ang : aiPull.Ang;
+                double ang = HumanAim ? aimAng : aiPull.Ang;
                 var hit = AimRay(ang);
                 mini.Dashed(new Vector2((float)m.LaunchX, LY), hit.p, one, 2 * one, 2 * one, Palette.Rgba(40, 24, 12, .8f));
             }

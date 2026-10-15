@@ -48,7 +48,6 @@ namespace FlickCurling.Game
         float settleT;
         System.Random fx = new System.Random();
 
-        sealed class Drag { public Vector2 Start, Cur; }
         sealed class AiPull { public double Ang, Pw, Lx; public float T; public string Intent; }
         sealed class Fade { public float X, Y, A; public Team Team; }
         sealed class Float { public float X, Y, T; public string Text; }
@@ -56,7 +55,6 @@ namespace FlickCurling.Game
         sealed class Restore { public float T; public Dictionary<int, Vector2> From; }
         sealed class LsdShow { public float X, Y, T; public double? D; }
 
-        Drag drag;
         AiPull aiPull;
         readonly List<Fade> fades = new List<Fade>();
         readonly List<Float> floats = new List<Float>();
@@ -169,6 +167,9 @@ namespace FlickCurling.Game
             hud.OnSound = () => { sfx.On = !sfx.On; RenderSettings(); };
             hud.OnSpeed = () => { speed = speed == 1 ? 2 : speed == 2 ? 4 : 1; RenderSettings(); };
             hud.OnLanguage = Loc.Select;
+            hud.OnControls = CycleScheme;
+            hud.OnSens = StepSens;
+            LoadScheme();
             Loc.Changed += OnLocaleChanged;
             RenderSettings();
             Resize(true);
@@ -180,7 +181,7 @@ namespace FlickCurling.Game
         // a human to aim and not yet pulling: loop the pulse; otherwise stop it at scale 1
         void UpdateTurnPulse()
         {
-            bool want = state == St.Aim && !IsAI(m.Cur) && drag == null;
+            bool want = HumanAim && !Charging;
             if (want && pulseTween == null)
                 pulseTween = DOTween.To(() => turnPulse, v => turnPulse = v, 1.08f, 0.6f)
                     .SetEase(Ease.InOutSine).SetLoops(-1, LoopType.Yoyo).SetUpdate(true).SetLink(gameObject);
@@ -204,6 +205,8 @@ namespace FlickCurling.Game
         {
             hud.SoundText = Loc.T(sfx.On ? "settings.soundOn" : "settings.soundOff");
             hud.SpeedText = Loc.T("settings.speed", ("n", speed));
+            hud.ControlsText = Loc.T(scheme == ControlScheme.OneHand ? "controls.oneHand" : "controls.twoHand");
+            hud.SensText = (sensLevel + 1).ToString();
         }
 
         static int LayerOr(string name, int fallback) { int l = LayerMask.NameToLayer(name); return l >= 0 ? l : fallback; }
@@ -277,6 +280,7 @@ namespace FlickCurling.Game
             fades.Clear();
             laneTo = null;
             state = IsAI(m.Cur) ? St.Ai : St.Aim;
+            aimAng = 0; ResetShotInput();   // every throw starts aimed straight up the sheet
             userMoved = false;
             CamTo(AimView(zoom), 3.5f);
             RenderHud();
@@ -342,6 +346,7 @@ namespace FlickCurling.Game
             m.BeginShot();
             laneTo = null;
             state = IsAI(m.Cur) ? St.Ai : St.Aim;
+            aimAng = 0; ResetShotInput();   // every throw starts aimed straight up the sheet
             userMoved = false;
             CamTo(AimView(zoom), 3.5f);
             RenderHud();
@@ -384,7 +389,7 @@ namespace FlickCurling.Game
         {
             if (laneTo.HasValue) { m.LaunchX = laneTo.Value; laneTo = null; }
             m.Release(ang, pw);
-            state = St.Moving; drag = null; aiPull = null;
+            state = St.Moving; ResetShotInput(); aiPull = null;
             sfx.Blip(0.4f + (float)pw * 0.4f, 1800, 3, 0.05f);
         }
 
@@ -479,7 +484,7 @@ namespace FlickCurling.Game
         void ToMenu()
         {
             token++;
-            state = St.Menu; drag = null; aiPull = null; measure = null; restore = null; lsdShow = null; laneTo = null;
+            state = St.Menu; ResetShotInput(); aiPull = null; measure = null; restore = null; lsdShow = null; laneTo = null;
             cardFactory = null;
             m = new Match(Maps.Build("base"));
             m.Stones = DemoStones();

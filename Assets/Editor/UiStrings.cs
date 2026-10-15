@@ -52,6 +52,10 @@ namespace FlickCurling.EditorTools
             new[] { "settings.toMenu", "메뉴로 나가기", "Back to menu", "メニューに戻る" },
             new[] { "settings.soundOn", "소리 켬", "Sound on", "サウンド オン" },
             new[] { "settings.soundOff", "소리 끔", "Sound off", "サウンド オフ" },
+            new[] { "settings.controls", "조작 방식", "Controls", "操作方法" },
+            new[] { "controls.twoHand", "양손 조작", "Two-Hand", "両手操作" },
+            new[] { "controls.oneHand", "한 손 조작", "One-Hand", "片手操作" },
+            new[] { "settings.aimSens", "방향 감도", "Aim Sensitivity", "照準感度" },
             new[] { "settings.language", "언어", "Language", "言語" },
             new[] { "settings.speed", "{n}배속", "{n}× speed", "{n}倍速" },
 
@@ -118,7 +122,6 @@ namespace FlickCurling.EditorTools
                 "このエンドのクッション券はもう使い切っています。石を元に戻し、今投げた石を取り除きます。" },
 
             // ---- on the sheet ----
-            new[] { "hint.cancel", "뒤로 당기세요 · 여기서 놓으면 취소", "Pull back · let go here to cancel", "後ろに引いてください・ここで離すとキャンセル" },
             new[] { "ai.thinking", "{name} 생각 중…", "{name} is thinking…", "{name} 考え中…" },
             new[] { "ai.pulling", "{name} · {intent}", "{name} · {intent}", "{name}・{intent}" },
             new[] { "intent.draw", "드로우", "draw", "ドロー" },
