@@ -341,7 +341,7 @@ namespace FlickCurling.Game
         void StartEnd()
         {
             m.StartEnd();
-            hud.Toast(Loc.T("bonus.title"), Loc.T("bonus.body", ("guard", Loc.Team(Sheet.Other(m.Hammer))), ("hammer", Loc.Team(m.Hammer))), 2200, true);
+            hud.Toast(Loc.T("bonus.title"), Loc.T("bonus.body", ("guard", Ui.Icon(Sheet.Other(m.Hammer))), ("hammer", Ui.Icon(m.Hammer))), 2200);
             fades.Clear(); measure = null;
             PrepareShot();
         }
@@ -411,19 +411,18 @@ namespace FlickCurling.Game
                 // cushion without a ticket: every stone goes back and only the shot stone is removed
                 state = St.Restoring;
                 restore = new Restore { T = 0, From = m.Stones.ToDictionary(s => s.Id, s => new Vector2((float)s.X, (float)s.Y)) };
-                hud.Toast(Loc.T("foul.title"), Loc.T("foul.body"), 3400);
+                hud.Toast(Loc.T("foul.lost", ("team", Ui.Icon(m.Cur))), null, 3400, 14);
                 return;
             }
-            var notes = new List<string>();
             foreach (var r in res.Removed) fades.Add(new Fade { X = (float)r.Stone.X, Y = (float)r.Stone.Y, Team = r.Stone.Team, A = 1 });
-            if (res.ShotWhy == OutWhy.Hog) notes.Add(Loc.T("out.hog"));
-            else if (res.ShotWhy == OutWhy.Back) notes.Add(Loc.T("out.back"));
+            // the shot stone's own fate as the title, then one line per colour knocked out
+            string head = res.ShotWhy == OutWhy.Hog ? Loc.T("out.hog") : res.ShotWhy == OutWhy.Back ? Loc.T("out.back") : null;
             var knocked = new List<string>();
             foreach (var t in new[] { Team.B, Team.W })
-                if (res.Knocked[(int)t] > 0) knocked.Add(Loc.T("out.knocked", ("team", Loc.Team(t)), ("n", res.Knocked[(int)t])));
-            if (knocked.Count > 0) notes.Add(string.Join(", ", knocked));
-            if (notes.Count > 0) hud.Toast(notes[0], string.Join(" · ", notes.Skip(1)));
-            state = St.Settle; settleT = 0.5f;
+                if (res.Knocked[(int)t] > 0) knocked.Add(Loc.T("out.knocked", ("team", Ui.Icon(t)), ("n", res.Knocked[(int)t])));
+            if (head != null) hud.Toast(head, string.Join("\n", knocked));
+            else if (knocked.Count > 0) hud.Toast(string.Join("\n", knocked));
+            state = St.Settle; settleT = 0.9f;
         }
 
         // ---- shot clock ----
@@ -458,14 +457,14 @@ namespace FlickCurling.Game
                 RenderHud();
                 return;
             }
-            hud.Toast(Loc.T("timeout.title"), Loc.T("timeout.body", ("name", NameOf(m.Cur))), 1800);
-            state = St.Settle; settleT = 0.6f;
+            hud.Toast(Loc.T("timeout.title"), Loc.T("timeout.body", ("name", SideOf(m.Cur))), 1800);
+            state = St.Settle; settleT = 1.0f;
         }
 
         void FinishRestore()
         {
             m.ApplyRestore();
-            restore = null; state = St.Settle; settleT = 0.3f;
+            restore = null; state = St.Settle; settleT = 0.7f;
         }
 
         void FinishEnd()
@@ -531,7 +530,7 @@ namespace FlickCurling.Game
             token++;
             state = St.Menu; ResetShotInput(); aiPull = null; measure = null; restore = null; lsdShow = null; laneTo = null;
             cardFactory = null;
-            hud.HideTurnToast(); clock = -1;
+            hud.ClearToasts(); clock = -1;
             m = new Match(Maps.Build("base"));
             m.Stones = DemoStones();
             fades.Clear(); floats.Clear();
@@ -671,7 +670,8 @@ namespace FlickCurling.Game
             }
             else acc = 0;
             if (state == St.Restoring) { restore.T += dt / 0.9f; if (restore.T >= 1) FinishRestore(); }
-            if (state == St.Settle) { settleT -= dt; if (settleT <= 0) { m.AdvanceShot(); PrepareShot(); } }
+            // the next turn waits until the last one's toasts have fully gone
+            if (state == St.Settle) { settleT -= dt; if (settleT <= 0 && !hud.ToastsUp) { m.AdvanceShot(); PrepareShot(); } }
             if (laneTo.HasValue)
             {
                 double d = laneTo.Value - m.LaunchX, stp = 110 * dt;
@@ -679,7 +679,7 @@ namespace FlickCurling.Game
             }
             if (state == St.AiPull) { aiPull.T += dt / 0.6f; if (aiPull.T >= 1.15f) Release(aiPull.Ang, aiPull.Pw); }
             if (state == St.Measure) { measure.T += dt; if (measure.T >= measure.Dur) ShowEndCard(); }
-            if (state == St.LsdShow) { lsdShow.T += dt; if (lsdShow.T >= 1.8f) LsdNext(); }
+            if (state == St.LsdShow) { lsdShow.T += dt; if (lsdShow.T >= 1.8f && !hud.ToastsUp) LsdNext(); }
             foreach (var f in fades) f.A -= dt / 0.5f;
             fades.RemoveAll(f => f.A <= 0);
             foreach (var f in floats) f.T += dt / 1.2f;

@@ -608,6 +608,7 @@ namespace FlickCurling.Game
                 hud.Label(f.Text, fxp, fyp, 16, Palette.WithA(Palette.Gold, 1 - f.T), 0, true, true);
             }
             DrawFuse(time);
+            hud.SetToastAnchor(Y(HOG) - 1.2f * s - 6);   // toasts stack up from just above the fuse
             DrawMinimap();
             under.Commit(); aim.Commit(); over.Commit(); mini.Commit();
             EndStones(); hud.EndLabels();

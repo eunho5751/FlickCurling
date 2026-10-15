@@ -31,8 +31,8 @@ namespace FlickCurling.Game
     {
         public readonly Canvas Canvas;
         readonly CanvasScaler scaler;
-        readonly RectTransform root, scorePanel, scoreTable, br, more, toast, cardOv, cardRt, menu, menuCard, watchLv, labelLayer, miniFrame;
-        readonly TextMeshProUGUI controlsTxt, sensTxt, scorePill, toastT, toastB, cardEyebrow, cardTitle, cardHead, cardBody, soundTxt, speedTxt;
+        readonly RectTransform root, scorePanel, scoreTable, br, more, toastLayer, cardOv, cardRt, menu, menuCard, watchLv, labelLayer, miniFrame;
+        readonly TextMeshProUGUI controlsTxt, sensTxt, scorePill, cardEyebrow, cardTitle, cardHead, cardBody, soundTxt, speedTxt;
         readonly Image cardOvImg;
         readonly RectTransform cardActions;
         readonly Button speedBtn;
@@ -44,12 +44,14 @@ namespace FlickCurling.Game
         readonly Pills modePills, mapPills, lvB, lvW;
         readonly List<(TextMeshProUGUI t, string key)> bound = new List<(TextMeshProUGUI, string)>();
         readonly List<(TextMeshProUGUI t, string code)> langButtons = new List<(TextMeshProUGUI, string)>();
-        float toastUntil;
-        // whose turn: a short pop in the middle of the screen at the start of each throw
-        readonly RectTransform turnToast;
-        readonly CanvasGroup turnToastCg;
-        readonly TextMeshProUGUI turnToastT;
-        Sequence turnSeq;
+        // toasts: a stack sitting just above the fuse on the min line, the newest at the bottom
+        sealed class ToastItem
+        {
+            public RectTransform Rt; public CanvasGroup Cg; public Tween Show, Slide;
+            public float Until, Off, Target = float.NaN; public bool Turn, Leaving;
+        }
+        readonly List<ToastItem> toasts = new List<ToastItem>();
+        float toastY = -1, viewW, viewH;
         int cardSeq;
 
         public Action<int, int, int, int> OnStart;   // mode, map, black level, white level
@@ -99,27 +101,8 @@ namespace FlickCurling.Game
             Ui.VStack(scoreTable.gameObject, 0, 0, 0, 0, 0);
             scorePanel.gameObject.SetActive(false);
 
-            // ---- toast ----
-            var tImg = Ui.Panel(safeRoot, "Toast", Palette.Panel, Palette.Line, 8);
-            toast = tImg.rectTransform; tImg.raycastTarget = false;
-            Ui.VStack(toast.gameObject, 14, 14, 9, 9, 2, TextAnchor.UpperCenter);
-            Ui.Fit(toast.gameObject, false, true);
-            toastT = Ui.Label(toast, "", 17, Palette.Brass, true, TextAnchor.MiddleCenter);
-            toastB = Ui.Label(toast, "", 13, Palette.Text, false, TextAnchor.MiddleCenter);
-            toast.gameObject.SetActive(false);
-
-            // ---- turn toast ----
-            var ttImg = Ui.Panel(safeRoot, "TurnToast", Palette.Panel, Palette.Line, 10);
-            turnToast = ttImg.rectTransform; ttImg.raycastTarget = false;
-            turnToast.anchorMin = turnToast.anchorMax = turnToast.pivot = new Vector2(0.5f, 0.5f);
-            turnToast.anchoredPosition = new Vector2(0, 14);   // a hair above centre, clear of the lower toast (bonus guard)
-            Ui.VStack(turnToast.gameObject, 22, 22, 10, 10, 0, TextAnchor.MiddleCenter);
-            Ui.Fit(turnToast.gameObject, true, true);
-            turnToastT = Ui.Label(turnToast, "", 24, Palette.Text, true, TextAnchor.MiddleCenter);
-            turnToastT.raycastTarget = false;
-            turnToastCg = turnToast.gameObject.AddComponent<CanvasGroup>();
-            turnToastCg.blocksRaycasts = false; turnToastCg.interactable = false;
-            turnToast.gameObject.SetActive(false);
+            // ---- toasts ----
+            toastLayer = Ui.Rect(root, "Toasts"); Ui.Stretch(toastLayer);
 
             // ---- card overlay ----
             cardOvImg = Ui.Rect(root, "CardOverlay").gameObject.AddComponent<Image>();
@@ -320,8 +303,8 @@ namespace FlickCurling.Game
                 float h = rt.rect.height, room = sh - 32;
                 rt.localScale = Vector3.one * (h > room && h > 0 ? room / h : 1);
             }
-            if (toast.gameObject.activeSelf && Time.unscaledTime > toastUntil) toast.gameObject.SetActive(false);
-            if (toast.gameObject.activeSelf) PlaceToast(sw, sh);
+            viewW = cw; viewH = ch;
+            TickToasts();
             var sp = scorePanel;
             sp.anchorMin = sp.anchorMax = new Vector2(0, 1); sp.pivot = new Vector2(0, 1);
             float under = leftCol.rect.height;
@@ -433,47 +416,107 @@ namespace FlickCurling.Game
 
         // ---------------- toast ----------------
 
-        bool toastLow;
+        /// <summary>Where the stack sits: the css y (from the top) just above the min line, set by the game every frame.</summary>
+        public void SetToastAnchor(float cssY) => toastY = cssY;
 
-        public void Toast(string title, string body, float ms = 2400, bool low = false)
-        {
-            toastT.text = title; toastB.text = body ?? "";
-            toastB.gameObject.SetActive(!string.IsNullOrEmpty(body));
-            toastLow = low;
-            toast.gameObject.SetActive(true);
-            toastUntil = Time.unscaledTime + ms / 1000f;
-        }
+        public void Toast(string title, string body = null, float ms = 2400, int titleSize = 17) => Push(MakeToast(title, body, false, titleSize), ms);
 
-        /// <summary>Pops the turn line in the middle of the screen, holds it, then fades it out; a new turn replaces it.</summary>
+        /// <summary>True until every toast has finished fading out.</summary>
+        public bool ToastsUp => toasts.Count > 0;
+
+        /// <summary>Whose turn, larger; a new turn replaces the last one.</summary>
         public void TurnToast(string text)
         {
-            turnSeq?.Kill();
-            turnToastT.text = text;
-            turnToast.gameObject.SetActive(true);
-            turnToast.SetAsLastSibling();
-            turnToastCg.alpha = 0;
-            turnToast.localScale = Vector3.one * 0.8f;
-            turnSeq = DOTween.Sequence().SetUpdate(true).SetLink(turnToast.gameObject)
-                .Append(DOTween.To(() => turnToastCg.alpha, v => turnToastCg.alpha = v, 1, 0.18f))
-                .Join(turnToast.DOScale(1, 0.25f).SetEase(Ease.OutBack))
-                .AppendInterval(0.8f)
-                .Append(DOTween.To(() => turnToastCg.alpha, v => turnToastCg.alpha = v, 0, 0.4f))
-                .OnComplete(() => { turnToast.gameObject.SetActive(false); turnSeq = null; });
+            foreach (var t in toasts) if (t.Turn) Leave(t);
+            Push(MakeToast(text, null, true, 24), 1050);
         }
 
-        public void HideTurnToast()
+        public void ClearToasts()
         {
-            turnSeq?.Kill(); turnSeq = null;
-            turnToast.gameObject.SetActive(false);
+            foreach (var t in toasts) { t.Show?.Kill(); t.Slide?.Kill(); UnityEngine.Object.Destroy(t.Rt.gameObject); }
+            toasts.Clear();
         }
 
-        void PlaceToast(float cw, float ch)
+        ToastItem MakeToast(string title, string body, bool turn, int titleSize)
         {
-            float maxW = Mathf.Min(420, cw - 32);
-            float want = Mathf.Max(toastT.GetPreferredValues(toastT.text).x, toastB.gameObject.activeSelf ? toastB.GetPreferredValues(toastB.text).x : 0) + 28 + 2;
-            toast.anchorMin = toast.anchorMax = new Vector2(0.5f, 1); toast.pivot = new Vector2(0.5f, 1);
-            toast.sizeDelta = new Vector2(Mathf.Min(maxW, want), toast.sizeDelta.y);
-            toast.anchoredPosition = new Vector2(0, -ch * (toastLow ? 0.54f : 0.34f));
+            var img = Ui.Panel(toastLayer, turn ? "TurnToast" : "Toast", Palette.Panel, Palette.Line, turn ? 10 : 8);
+            img.raycastTarget = false;
+            var rt = img.rectTransform;
+            rt.anchorMin = rt.anchorMax = new Vector2(0.5f, 1); rt.pivot = new Vector2(0.5f, 0);
+            if (turn) Ui.VStack(rt.gameObject, 22, 22, 10, 10, 0, TextAnchor.MiddleCenter);
+            else Ui.VStack(rt.gameObject, 14, 14, 9, 9, 2, TextAnchor.UpperCenter);
+            Ui.Fit(rt.gameObject, false, true);
+            var tt = Ui.Label(rt, title, titleSize, turn ? Palette.Text : Palette.Brass, true, TextAnchor.MiddleCenter);
+            tt.raycastTarget = false;
+            float want = tt.GetPreferredValues(title).x;
+            if (!string.IsNullOrEmpty(body))
+            {
+                var tb = Ui.Label(rt, body, 13, Palette.Text, false, TextAnchor.MiddleCenter);
+                tb.raycastTarget = false;
+                want = Mathf.Max(want, tb.GetPreferredValues(body).x);
+            }
+            float pad = turn ? 44 : 28;
+            rt.sizeDelta = new Vector2(Mathf.Min(Mathf.Min(420, viewW - 32), want + pad + 2), rt.sizeDelta.y);
+            var cg = rt.gameObject.AddComponent<CanvasGroup>();
+            cg.blocksRaycasts = false; cg.interactable = false; cg.alpha = 0;
+            LayoutRebuilder.ForceRebuildLayoutImmediate(rt);
+            return new ToastItem { Rt = rt, Cg = cg, Turn = turn };
+        }
+
+        void Push(ToastItem it, float ms)
+        {
+            it.Until = Time.unscaledTime + ms / 1000f;
+            toasts.Add(it);
+            // no more than four up at once: the oldest goes first
+            var live = toasts.FindAll(t => !t.Leaving);
+            for (int i = 0; i < live.Count - 4; i++) Leave(live[i]);
+            it.Rt.localScale = Vector3.one * 0.85f;
+            it.Show = DOTween.Sequence().SetUpdate(true).SetLink(it.Rt.gameObject)
+                .Append(DOTween.To(() => it.Cg.alpha, v => it.Cg.alpha = v, 1, 0.18f))
+                .Join(it.Rt.DOScale(1, 0.25f).SetEase(Ease.OutBack));
+            Restack();
+        }
+
+        // fades out where it is; the ones above it close the gap
+        void Leave(ToastItem it)
+        {
+            if (it.Leaving) return;
+            it.Leaving = true;
+            it.Show?.Kill();
+            it.Show = DOTween.To(() => it.Cg.alpha, v => it.Cg.alpha = v, 0, 0.3f).SetUpdate(true).SetLink(it.Rt.gameObject)
+                .OnComplete(() => { it.Slide?.Kill(); toasts.Remove(it); UnityEngine.Object.Destroy(it.Rt.gameObject); });
+            Restack();
+        }
+
+        // the newest at the bottom, each older one above the ones after it; they slide there when the stack changes
+        void Restack()
+        {
+            float off = 0;
+            for (int i = toasts.Count - 1; i >= 0; i--)
+            {
+                var t = toasts[i];
+                if (t.Leaving) continue;
+                if (t.Target != off)
+                {
+                    bool fresh = float.IsNaN(t.Target);
+                    t.Target = off;
+                    t.Slide?.Kill();
+                    if (fresh) t.Off = off;
+                    else t.Slide = DOTween.To(() => t.Off, v => t.Off = v, off, 0.28f).SetEase(Ease.OutCubic).SetUpdate(true).SetLink(t.Rt.gameObject);
+                }
+                off += t.Rt.rect.height + 8;
+            }
+        }
+
+        void TickToasts()
+        {
+            if (toasts.Count == 0) return;
+            float now = Time.unscaledTime;
+            foreach (var t in toasts.ToArray()) if (!t.Leaving && now > t.Until) Leave(t);
+            // just above the fuse; kept on screen when the camera has taken the min line off it
+            float y = Mathf.Clamp(toastY < 0 ? viewH * 0.6f : toastY, insT + 140, viewH - insB - 12);
+            float x = (insL - insR) / 2;
+            foreach (var t in toasts) t.Rt.anchoredPosition = new Vector2(x, -y + t.Off);
         }
 
         // ---------------- card ----------------

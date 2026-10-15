@@ -319,14 +319,6 @@ MonoBehaviour:
     m_Key: out.knocked
     m_Metadata:
       m_Items: []
-  - m_Id: 2262749245
-    m_Key: foul.title
-    m_Metadata:
-      m_Items: []
-  - m_Id: 2262749246
-    m_Key: foul.body
-    m_Metadata:
-      m_Items: []
   - m_Id: 2262749250
     m_Key: ai.thinking
     m_Metadata:
@@ -417,6 +409,10 @@ MonoBehaviour:
       m_Items: []
   - m_Id: 249221087154176
     m_Key: timeout.lsd
+    m_Metadata:
+      m_Items: []
+  - m_Id: 263283141431296
+    m_Key: foul.lost
     m_Metadata:
       m_Items: []
   m_Metadata:

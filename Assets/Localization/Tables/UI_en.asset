@@ -343,23 +343,14 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 2262749243
-    m_Localized: 'Past the back line: no stone'
+    m_Localized: 'Past the out line: no stone'
     m_Metadata:
       m_Items: []
   - m_Id: 2262749244
-    m_Localized: '{n} {team} out'
+    m_Localized: '{team} {n} out'
     m_Metadata:
       m_Items:
       - rid: 4297768082125881571
-  - m_Id: 2262749245
-    m_Localized: No cushion ticket
-    m_Metadata:
-      m_Items: []
-  - m_Id: 2262749246
-    m_Localized: Your cushion tickets for this end are used up. The stones go back
-      and the stone just thrown is removed.
-    m_Metadata:
-      m_Items: []
   - m_Id: 2262749250
     m_Localized: "{name} is thinking\u2026"
     m_Metadata:
@@ -456,6 +447,13 @@ MonoBehaviour:
     m_Localized: No record for this draw
     m_Metadata:
       m_Items: []
+  - m_Id: 263283141431296
+    m_Localized: 'No more cushions this end.
+
+      {team} loses this stone.'
+    m_Metadata:
+      m_Items:
+      - rid: 4297768082125881571
   references:
     version: 2
     RefIds:
@@ -489,3 +487,4 @@ MonoBehaviour:
         - id: 2262749251
         - id: 2262749265
         - id: 249221082959872
+        - id: 263283141431296
