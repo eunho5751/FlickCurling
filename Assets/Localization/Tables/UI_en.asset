@@ -394,6 +394,30 @@ MonoBehaviour:
     m_Metadata:
       m_Items:
       - rid: 4297768082125881571
+  - m_Id: 405297950543872
+    m_Localized: AI Match
+    m_Metadata:
+      m_Items: []
+  - m_Id: 405298000875520
+    m_Localized: Local Match
+    m_Metadata:
+      m_Items: []
+  - m_Id: 405298000875521
+    m_Localized: Online Match
+    m_Metadata:
+      m_Items: []
+  - m_Id: 405298000875522
+    m_Localized: Leaderboard
+    m_Metadata:
+      m_Items: []
+  - m_Id: 405298000875523
+    m_Localized: How to Play
+    m_Metadata:
+      m_Items: []
+  - m_Id: 405298000875524
+    m_Localized: Settings
+    m_Metadata:
+      m_Items: []
   references:
     version: 2
     RefIds:

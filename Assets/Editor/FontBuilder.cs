@@ -11,6 +11,8 @@ namespace FlickCurling.EditorTools
     /// Builds dynamic TMP font assets from the Noto Sans files in Assets/Fonts (SIL OFL, notofonts/noto-cjk):
     /// body = Noto Sans KR Regular, display = Noto Sans KR Bold (Korean + Latin), each falling back to the matching
     /// Noto Sans JP weight for kana and kanji. Also makes the body font the TMP default.
+    /// The main menu buttons use a rounder casual pair (both SIL OFL, google/fonts): Jua for Korean and Latin, falling
+    /// back to Mochiy Pop One for Japanese, then to the Noto display fonts for anything either lacks.
     /// </summary>
     public static class FontBuilder
     {
@@ -19,6 +21,8 @@ namespace FlickCurling.EditorTools
         public const string DisplayPath = Dir + "/NotoSansKR-Bold SDF.asset";
         public const string JpPath = Dir + "/NotoSansJP-Regular SDF.asset";
         public const string JpBoldPath = Dir + "/NotoSansJP-Bold SDF.asset";
+        public const string ButtonPath = Dir + "/Jua-Regular SDF.asset";
+        public const string ButtonJpPath = Dir + "/MochiyPopOne-Regular SDF.asset";
 
         [MenuItem("FlickCurling/Build Font Assets")]
         public static void Build()
@@ -27,6 +31,8 @@ namespace FlickCurling.EditorTools
             var jpBold = Make(Dir + "/NotoSansJP-Bold.otf", JpBoldPath, null);
             var body = Make(Dir + "/NotoSansKR-Regular.otf", BodyPath, jp);
             var display = Make(Dir + "/NotoSansKR-Bold.otf", DisplayPath, jpBold);
+            var buttonJp = Make(Dir + "/MochiyPopOne-Regular.ttf", ButtonJpPath, jpBold);
+            Make(Dir + "/Jua-Regular.ttf", ButtonPath, buttonJp, display);
 
             // TMP Settings: default font + global fallback, so any TMP text in the project can show ko / en / ja
             var settings = Resources.Load<TMP_Settings>("TMP Settings");
@@ -44,10 +50,10 @@ namespace FlickCurling.EditorTools
                 so.ApplyModifiedPropertiesWithoutUndo();
             }
             AssetDatabase.SaveAssets();
-            Debug.Log("FlickCurling: built TMP font assets (body, display, Japanese fallback)");
+            Debug.Log("FlickCurling: built TMP font assets (body, display, Japanese fallback, menu buttons)");
         }
 
-        static TMP_FontAsset Make(string fontPath, string assetPath, TMP_FontAsset fallback)
+        static TMP_FontAsset Make(string fontPath, string assetPath, params TMP_FontAsset[] fallbacks)
         {
             var font = AssetDatabase.LoadAssetAtPath<Font>(fontPath);
             if (font == null) throw new FileNotFoundException("FlickCurling: font file missing", fontPath);
@@ -65,7 +71,7 @@ namespace FlickCurling.EditorTools
             }
             fa.isMultiAtlasTexturesEnabled = true;
             fa.ClearFontAssetData(true);   // keep the committed atlas empty; it fills at run time
-            fa.fallbackFontAssetTable = fallback != null ? new List<TMP_FontAsset> { fallback } : new List<TMP_FontAsset>();
+            fa.fallbackFontAssetTable = new List<TMP_FontAsset>(System.Array.FindAll(fallbacks ?? new TMP_FontAsset[0], f => f != null));
             EditorUtility.SetDirty(fa);
             return fa;
         }

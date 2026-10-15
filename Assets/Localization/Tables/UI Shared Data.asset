@@ -363,6 +363,30 @@ MonoBehaviour:
     m_Key: end.nextHammer
     m_Metadata:
       m_Items: []
+  - m_Id: 405297950543872
+    m_Key: mainmenu.ai
+    m_Metadata:
+      m_Items: []
+  - m_Id: 405298000875520
+    m_Key: mainmenu.local
+    m_Metadata:
+      m_Items: []
+  - m_Id: 405298000875521
+    m_Key: mainmenu.online
+    m_Metadata:
+      m_Items: []
+  - m_Id: 405298000875522
+    m_Key: mainmenu.leaderboard
+    m_Metadata:
+      m_Items: []
+  - m_Id: 405298000875523
+    m_Key: mainmenu.rules
+    m_Metadata:
+      m_Items: []
+  - m_Id: 405298000875524
+    m_Key: mainmenu.settings
+    m_Metadata:
+      m_Items: []
   m_Metadata:
     m_Items: []
   m_KeyGenerator:
