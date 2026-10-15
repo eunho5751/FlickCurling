@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using DG.Tweening;
 using FlickCurling.Core;
 using TMPro;
 using UnityEngine;
@@ -44,6 +45,11 @@ namespace FlickCurling.Game
         readonly List<(TextMeshProUGUI t, string key)> bound = new List<(TextMeshProUGUI, string)>();
         readonly List<(TextMeshProUGUI t, string code)> langButtons = new List<(TextMeshProUGUI, string)>();
         float toastUntil;
+        // whose turn: a short pop in the middle of the screen at the start of each throw
+        readonly RectTransform turnToast;
+        readonly CanvasGroup turnToastCg;
+        readonly TextMeshProUGUI turnToastT;
+        Sequence turnSeq;
         int cardSeq;
 
         public Action<int, int, int, int> OnStart;   // mode, map, black level, white level
@@ -101,6 +107,19 @@ namespace FlickCurling.Game
             toastT = Ui.Label(toast, "", 17, Palette.Brass, true, TextAnchor.MiddleCenter);
             toastB = Ui.Label(toast, "", 13, Palette.Text, false, TextAnchor.MiddleCenter);
             toast.gameObject.SetActive(false);
+
+            // ---- turn toast ----
+            var ttImg = Ui.Panel(safeRoot, "TurnToast", Palette.Panel, Palette.Line, 10);
+            turnToast = ttImg.rectTransform; ttImg.raycastTarget = false;
+            turnToast.anchorMin = turnToast.anchorMax = turnToast.pivot = new Vector2(0.5f, 0.5f);
+            turnToast.anchoredPosition = new Vector2(0, 14);   // a hair above centre, clear of the lower toast (bonus guard)
+            Ui.VStack(turnToast.gameObject, 22, 22, 10, 10, 0, TextAnchor.MiddleCenter);
+            Ui.Fit(turnToast.gameObject, true, true);
+            turnToastT = Ui.Label(turnToast, "", 24, Palette.Text, true, TextAnchor.MiddleCenter);
+            turnToastT.raycastTarget = false;
+            turnToastCg = turnToast.gameObject.AddComponent<CanvasGroup>();
+            turnToastCg.blocksRaycasts = false; turnToastCg.interactable = false;
+            turnToast.gameObject.SetActive(false);
 
             // ---- card overlay ----
             cardOvImg = Ui.Rect(root, "CardOverlay").gameObject.AddComponent<Image>();
@@ -423,6 +442,29 @@ namespace FlickCurling.Game
             toastLow = low;
             toast.gameObject.SetActive(true);
             toastUntil = Time.unscaledTime + ms / 1000f;
+        }
+
+        /// <summary>Pops the turn line in the middle of the screen, holds it, then fades it out; a new turn replaces it.</summary>
+        public void TurnToast(string text)
+        {
+            turnSeq?.Kill();
+            turnToastT.text = text;
+            turnToast.gameObject.SetActive(true);
+            turnToast.SetAsLastSibling();
+            turnToastCg.alpha = 0;
+            turnToast.localScale = Vector3.one * 0.8f;
+            turnSeq = DOTween.Sequence().SetUpdate(true).SetLink(turnToast.gameObject)
+                .Append(DOTween.To(() => turnToastCg.alpha, v => turnToastCg.alpha = v, 1, 0.18f))
+                .Join(turnToast.DOScale(1, 0.25f).SetEase(Ease.OutBack))
+                .AppendInterval(0.8f)
+                .Append(DOTween.To(() => turnToastCg.alpha, v => turnToastCg.alpha = v, 0, 0.4f))
+                .OnComplete(() => { turnToast.gameObject.SetActive(false); turnSeq = null; });
+        }
+
+        public void HideTurnToast()
+        {
+            turnSeq?.Kill(); turnSeq = null;
+            turnToast.gameObject.SetActive(false);
         }
 
         void PlaceToast(float cw, float ch)

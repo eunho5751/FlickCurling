@@ -284,6 +284,7 @@ namespace FlickCurling.Game
             userMoved = false;
             CamTo(AimView(zoom), 3.5f);
             RenderHud();
+            hud.TurnToast(Loc.T("hud.turn", ("name", SideOf(m.Cur, 130))));
             if (state == St.Ai)
             {
                 int tok = token;
@@ -350,6 +351,7 @@ namespace FlickCurling.Game
             userMoved = false;
             CamTo(AimView(zoom), 3.5f);
             RenderHud();
+            hud.TurnToast(Loc.T("hud.turn", ("name", SideOf(m.Cur, 130))));
             if (state == St.Ai) RunAI();
         }
 
@@ -486,6 +488,7 @@ namespace FlickCurling.Game
             token++;
             state = St.Menu; ResetShotInput(); aiPull = null; measure = null; restore = null; lsdShow = null; laneTo = null;
             cardFactory = null;
+            hud.HideTurnToast();
             m = new Match(Maps.Build("base"));
             m.Stones = DemoStones();
             fades.Clear(); floats.Clear();
@@ -555,26 +558,29 @@ namespace FlickCurling.Game
         }
 
         /// <summary>
-        /// The turn info printed on the sheet between the launch line and the min line: whose turn and the shot number,
-        /// then each side's stones left (during the last stone draw: the draw and both distances). Null in the menu.
+        /// The turn info printed on the sheet between the launch line and the min line: the shot number
+        /// and each side's stones left (during the last stone draw: the title and both distances; whose turn pops up as a
+        /// toast instead). Null in the menu.
         /// </summary>
         (string title, string head, string sub)? TurnInfo()
         {
             if (state == St.Menu) return null;
-            var t = m.Cur;
             string b = Ui.Icon(Team.B, 130), w = Ui.Icon(Team.W, 130);
             if (m.InLsd)
-                return (Loc.T("hud.lsd"), Loc.T("hud.turn", ("name", SideOf(t))),
+                return (Loc.T("hud.lsd"), null,
                         $"{b} {FmtDist(m.Lsd.Dist[0])}      {w} {FmtDist(m.Lsd.Dist[1])}");
             string Pips(Team team)
             {
                 int left = Mathf.Clamp(Sheet.Per - m.ThrownBy(team), 0, Sheet.Per);
+                // the row empties from the right: the stone being thrown now is the rightmost one still to go, in the
+                // house red, which stands out on the wood
+                bool throwing = team == m.Cur && left > 0 && (state == St.Aim || state == St.Ai || state == St.AiPull);
+                string now = throwing ? $"<color=#a3341f{(Charging || state == St.AiPull ? "4d" : "")}>●</color>" : "";
+                int rest = throwing ? left - 1 : left;
                 // a little smaller than the side icon, so the pips do not read as more side markers
-                return "<size=80%>" + new string('●', left) + new string('○', Sheet.Per - left) + "</size>";
+                return "<size=80%>" + new string('●', rest) + now + new string('○', Sheet.Per - left) + "</size>";
             }
-            string head = m.Shot < Sheet.Shots
-                ? $"{Loc.T("hud.turn", ("name", SideOf(t)))} ({m.Shot + 1} / {Sheet.Shots})"
-                : Loc.T("hud.endOver");
+            string head = m.Shot < Sheet.Shots ? $"{m.Shot + 1} / {Sheet.Shots}" : Loc.T("hud.endOver");
             return (null, head, $"{b} {Pips(Team.B)}      {w} {Pips(Team.W)}");
         }
 

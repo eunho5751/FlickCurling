@@ -655,20 +655,10 @@ namespace FlickCurling.Game
             if (!info.HasValue) return;
             float a = Charging || state == St.AiPull ? 0.3f : 0.82f;
             var ink = Palette.Rgba(52, 32, 16, a);
-            // who-throws-first phase: a title line above the turn line, larger than the rest
-            float up = 0;
-            if (info.Value.title != null) { hud.Label(info.Value.title, X(W / 2), Y(56), Mathf.RoundToInt(5.8f * s), ink, 0, true); up = -8f; }
-            // a human to aim (every turn in 2-player play, the player's turns against the AI): red, larger, and
-            // pulsing with the launch stone (UpdateTurnPulse); AI turns keep the printed-ink look
-            if (state == St.Aim && !IsAI(m.Cur))
-            {
-
-                // the house red: brass blends into the light wood, red stands out on it
-                var hot = Palette.WithA(Palette.Hex("#a3341f"), Charging ? 0.45f : 1);
-                hud.Label(info.Value.head, X(W / 2), Y(52.5f + up), Mathf.RoundToInt(5f * s), hot, 0, true, false, 0, turnPulse);
-            }
-            else hud.Label(info.Value.head, X(W / 2), Y(52 + up), Mathf.RoundToInt(4.2f * s), ink, 0, true);
-            hud.Label(info.Value.sub, X(W / 2), Y(45 + up), Mathf.RoundToInt(3.4f * s), ink);
+            // whose turn is a toast; the sheet keeps the title (turn order shot) or the shot count
+            // the title (or the shot count) at one size, with room before the row under it
+            hud.Label(info.Value.title ?? info.Value.head, X(W / 2), Y(54.5f), Mathf.RoundToInt(5.4f * s), ink, 0, true);
+            hud.Label(info.Value.sub, X(W / 2), Y(44), Mathf.RoundToInt(3.4f * s), ink);
         }
 
         void DrawBoardLabels()
