@@ -206,36 +206,16 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 2262749213
-    m_Localized: Closest to the target throws last
+    m_Localized: The one closer to the target throws last in end 1!
     m_Metadata:
       m_Items: []
-  - m_Id: 2262749214
-    m_Localized: A target appears somewhere new in the house each game. Each side
-      draws one stone as close to it as possible; the closer one throws last in end
-      1. Stopping short of the min line or going past the back line leaves no record.
-    m_Metadata:
-      m_Items: []
-  - m_Id: 2262749215
-    m_Localized: '{name} throws first'
-    m_Metadata:
-      m_Items:
-      - rid: 4297768082125881571
   - m_Id: 2262749216
     m_Localized: Turn order shot result
     m_Metadata:
       m_Items: []
   - m_Id: 2262749217
-    m_Localized: '{name} throws last'
-    m_Metadata:
-      m_Items:
-      - rid: 4297768082125881571
-  - m_Id: 2262749218
-    m_Localized: The two records were equal, so a coin toss decided it.
-    m_Metadata:
-      m_Items: []
-  - m_Id: 2262749219
-    m_Localized: '{name} was closer to the target and throws the last shot of end
-      1.'
+    m_Localized: "{first}<voffset=0.12em> <color=#d9a54c>First</color>\u2502</voffset>{name}<voffset=0.12em>
+      <color=#d9a54c>Last</color></voffset>"
     m_Metadata:
       m_Items:
       - rid: 4297768082125881571
@@ -247,11 +227,6 @@ MonoBehaviour:
     m_Localized: It went off the sheet.
     m_Metadata:
       m_Items: []
-  - m_Id: 2262749222
-    m_Localized: '{name} throws first.'
-    m_Metadata:
-      m_Items:
-      - rid: 4297768082125881571
   - m_Id: 2262749223
     m_Localized: Start end {n}
     m_Metadata:
@@ -271,27 +246,12 @@ MonoBehaviour:
       m_Items:
       - rid: 4297768082125881571
   - m_Id: 2262749227
-    m_Localized: '{name} scores'
+    m_Localized: '{name} <color=#d9a54c>scores {n}!</color> ({score})'
     m_Metadata:
       m_Items:
       - rid: 4297768082125881571
   - m_Id: 2262749228
-    m_Localized: Blank end
-    m_Metadata:
-      m_Items: []
-  - m_Id: 2262749229
-    m_Localized: '{n:plural:{} point|{} points}'
-    m_Metadata:
-      m_Items:
-      - rid: 4297768082125881571
-  - m_Id: 2262749230
-    m_Localized: Next end, {name} throws last (the side that didn't score). Total
-      {score}
-    m_Metadata:
-      m_Items:
-      - rid: 4297768082125881571
-  - m_Id: 2262749231
-    m_Localized: Blank end, so {name} now throws last. Total {score}
+    m_Localized: <color=#d9a54c>Blank end</color> ({score})
     m_Metadata:
       m_Items:
       - rid: 4297768082125881571
@@ -309,18 +269,15 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 2262749236
-    m_Localized: '{name} wins'
+    m_Localized: '{name} <color=#d9a54c>wins!</color> ({score})'
     m_Metadata:
       m_Items:
       - rid: 4297768082125881571
   - m_Id: 2262749237
-    m_Localized: Draw
+    m_Localized: <color=#d9a54c>Draw</color> ({score})
     m_Metadata:
-      m_Items: []
-  - m_Id: 2262749238
-    m_Localized: Still level after the extra end.
-    m_Metadata:
-      m_Items: []
+      m_Items:
+      - rid: 4297768082125881571
   - m_Id: 2262749239
     m_Localized: Play again
     m_Metadata:
@@ -330,7 +287,7 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 2262749241
-    m_Localized: Menu
+    m_Localized: Main Menu
     m_Metadata:
       m_Items: []
   - m_Id: 2262749242
@@ -428,6 +385,15 @@ MonoBehaviour:
     m_Localized: Cushion ticket -1
     m_Metadata:
       m_Items: []
+  - m_Id: 363280323235840
+    m_Localized: Start
+    m_Metadata:
+      m_Items: []
+  - m_Id: 363280344207360
+    m_Localized: 'Last shot next end: {name}'
+    m_Metadata:
+      m_Items:
+      - rid: 4297768082125881571
   references:
     version: 2
     RefIds:
@@ -443,16 +409,10 @@ MonoBehaviour:
         - id: 2262749205
         - id: 2262749209
         - id: 2262749211
-        - id: 2262749215
         - id: 2262749217
-        - id: 2262749219
-        - id: 2262749222
         - id: 2262749223
         - id: 2262749226
         - id: 2262749227
-        - id: 2262749229
-        - id: 2262749230
-        - id: 2262749231
         - id: 2262749232
         - id: 2262749236
         - id: 2262749244
@@ -460,3 +420,6 @@ MonoBehaviour:
         - id: 2262749251
         - id: 249221082959872
         - id: 263283141431296
+        - id: 363280344207360
+        - id: 2262749228
+        - id: 2262749237

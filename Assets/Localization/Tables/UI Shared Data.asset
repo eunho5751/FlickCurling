@@ -195,14 +195,6 @@ MonoBehaviour:
     m_Key: lsd.head
     m_Metadata:
       m_Items: []
-  - m_Id: 2262749214
-    m_Key: lsd.body
-    m_Metadata:
-      m_Items: []
-  - m_Id: 2262749215
-    m_Key: lsd.throwFirst
-    m_Metadata:
-      m_Items: []
   - m_Id: 2262749216
     m_Key: lsd.resultEyebrow
     m_Metadata:
@@ -211,24 +203,12 @@ MonoBehaviour:
     m_Key: lsd.hasHammer
     m_Metadata:
       m_Items: []
-  - m_Id: 2262749218
-    m_Key: lsd.coin
-    m_Metadata:
-      m_Items: []
-  - m_Id: 2262749219
-    m_Key: lsd.closer
-    m_Metadata:
-      m_Items: []
   - m_Id: 2262749220
     m_Key: lsd.shortOfHog
     m_Metadata:
       m_Items: []
   - m_Id: 2262749221
     m_Key: lsd.offSheet
-    m_Metadata:
-      m_Items: []
-  - m_Id: 2262749222
-    m_Key: end.firstThrow
     m_Metadata:
       m_Items: []
   - m_Id: 2262749223
@@ -255,18 +235,6 @@ MonoBehaviour:
     m_Key: end.blank
     m_Metadata:
       m_Items: []
-  - m_Id: 2262749229
-    m_Key: end.points
-    m_Metadata:
-      m_Items: []
-  - m_Id: 2262749230
-    m_Key: end.bodyScored
-    m_Metadata:
-      m_Items: []
-  - m_Id: 2262749231
-    m_Key: end.bodyBlank
-    m_Metadata:
-      m_Items: []
   - m_Id: 2262749232
     m_Key: score.versus
     m_Metadata:
@@ -285,10 +253,6 @@ MonoBehaviour:
       m_Items: []
   - m_Id: 2262749237
     m_Key: over.draw
-    m_Metadata:
-      m_Items: []
-  - m_Id: 2262749238
-    m_Key: over.drawBody
     m_Metadata:
       m_Items: []
   - m_Id: 2262749239
@@ -389,6 +353,14 @@ MonoBehaviour:
       m_Items: []
   - m_Id: 268641222184960
     m_Key: float.ticketMinus
+    m_Metadata:
+      m_Items: []
+  - m_Id: 363280323235840
+    m_Key: lsd.start
+    m_Metadata:
+      m_Items: []
+  - m_Id: 363280344207360
+    m_Key: end.nextHammer
     m_Metadata:
       m_Items: []
   m_Metadata:

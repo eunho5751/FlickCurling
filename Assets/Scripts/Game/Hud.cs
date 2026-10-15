@@ -19,7 +19,8 @@ namespace FlickCurling.Game
     public sealed class CardSpec
     {
         public string Eyebrow = "", Title = "", Head = "", Body = "";
-        public bool Soft;
+        public bool Soft;        // a lighter dimming, so the sheet behind still reads
+        public float Countdown;  // seconds until the first button presses itself (its fill drains to empty); 0 = waits
         public List<CardButton> Buttons = new List<CardButton>();
     }
 
@@ -53,6 +54,10 @@ namespace FlickCurling.Game
         readonly List<ToastItem> toasts = new List<ToastItem>();
         float toastY = -1, viewW, viewH;
         int cardSeq;
+        // the card countdown: the first button's fill drains right to left, then the button presses itself
+        float cardDeadline, cardSpan;
+        Image cardFill;
+        Button cardFirst;
 
         public Action<int, int, int, int> OnStart;   // mode, map, black level, white level
         public Action OnMenu, OnSound, OnSpeed, OnUiClick;
@@ -110,7 +115,7 @@ namespace FlickCurling.Game
             cardRt = Ui.Panel(cardOv, "Card", Palette.Panel, Palette.Line, 12).rectTransform;
             Ui.VStack(cardRt.gameObject, 20, 20, 20, 20, 12);
             Ui.Fit(cardRt.gameObject, false, true);
-            cardEyebrow = Ui.Label(cardRt, "", 11, Palette.Muted);
+            cardEyebrow = Ui.Label(cardRt, "", 14, Palette.Muted);
             cardTitle = FitOneLine(Ui.Label(cardRt, "", 26, Palette.Text, true), 18);
             cardHead = FitOneLine(Ui.Label(cardRt, "", 34, Palette.Brass, true), 22);
             cardBody = Ui.Label(cardRt, "", 14, Palette.Text);
@@ -283,7 +288,7 @@ namespace FlickCurling.Game
                 float pillW = Mathf.Min(scorePill.GetPreferredValues(scorePill.text).x + 18 + 2, rowW);
                 leftCol.sizeDelta = new Vector2(pillW, leftCol.sizeDelta.y);
             }
-            float cardW = Mathf.Min(420, sw - 32);
+            float cardW = CardWidth(sw);
             foreach (var rt in new[] { cardRt, menuCard })
             {
                 rt.sizeDelta = new Vector2(cardW, rt.sizeDelta.y);
@@ -293,6 +298,7 @@ namespace FlickCurling.Game
             }
             viewW = cw; viewH = ch;
             TickToasts();
+            TickCard();
             var sp = scorePanel;
             sp.anchorMin = sp.anchorMax = new Vector2(0, 1); sp.pivot = new Vector2(0, 1);
             float under = leftCol.rect.height;
@@ -518,41 +524,78 @@ namespace FlickCurling.Game
         public int ShowCard(CardSpec c, Action onAnyClick)
         {
             cardSeq++;
+            cardSpan = c.Countdown;
+            cardDeadline = c.Countdown > 0 ? Time.unscaledTime + c.Countdown : 0;
             FillCard(c, onAnyClick);
             cardOv.gameObject.SetActive(true);
             return cardSeq;
         }
 
-        /// <summary>Re-fills the visible card in place (same sequence number, so a pending auto-advance still fires).</summary>
+        /// <summary>Re-fills the visible card in place; its countdown carries on where it was.</summary>
         public void ReplaceCard(CardSpec c, Action onAnyClick) { if (CardVisible) FillCard(c, onAnyClick); }
+
+        const float CardButtonH = 46;
+
+        // cards and the menu: at most 420 wide, with a side margin of 6% of the (safe) width but never under 24
+        static float CardWidth(float safeW) => Mathf.Min(420, safeW - 2 * Mathf.Max(24, safeW * 0.06f));
 
         void FillCard(CardSpec c, Action onAnyClick)
         {
             cardEyebrow.text = c.Eyebrow;
             cardTitle.text = c.Title;
             cardHead.text = c.Head; cardHead.gameObject.SetActive(!string.IsNullOrEmpty(c.Head));
+            // the big line: a short value (a score) large; a sentence smaller than the title, shrinking to stay on one line
+            cardHead.enableAutoSizing = false; cardHead.fontSize = 34;   // measure at full size
+            bool longHead = cardHead.GetPreferredValues(c.Head, float.PositiveInfinity, 100).x * 22f / 34f > CardWidth(viewW - insL - insR) - 40;
+            int headMax = longHead ? 18 : 34;
+            cardHead.fontSize = cardHead.fontSizeMax = headMax; cardHead.fontSizeMin = longHead ? 12 : 22;
+            cardHead.enableAutoSizing = true;
+            cardHead.GetComponent<LayoutElement>().preferredHeight = headMax * 1.3f;
             cardBody.text = c.Body; cardBody.gameObject.SetActive(!string.IsNullOrEmpty(c.Body));
             for (int i = cardActions.childCount - 1; i >= 0; i--) UnityEngine.Object.Destroy(cardActions.GetChild(i).gameObject);
+            cardFill = null; cardFirst = null;
             for (int i = 0; i < c.Buttons.Count; i++)
             {
                 var b = c.Buttons[i];
-                Ui.Button(cardActions, b.Label, i == 0, () => { HideCard(); onAnyClick?.Invoke(); b.OnClick(); }, 14, "CardBtn" + i);
+                var btn = Ui.Button(cardActions, b.Label, i == 0, () => { cardDeadline = 0; HideCard(); onAnyClick?.Invoke(); b.OnClick(); }, 14, "CardBtn" + i);
+                if (i == 0) { cardFirst = btn; if (cardDeadline > 0) cardFill = CountdownFill(btn); }
+                // side by side buttons share one height (the primary's larger text would make it taller)
+                var le = btn.gameObject.AddComponent<LayoutElement>();
+                le.minHeight = le.preferredHeight = CardButtonH;
             }
-            if (c.Soft)
-            {
-                cardOvImg.sprite = Ui.FadeUp; cardOvImg.color = Color.white;
-                cardRt.anchorMin = cardRt.anchorMax = new Vector2(0.5f, 0); cardRt.pivot = new Vector2(0.5f, 0);
-                cardRt.anchoredPosition = new Vector2(0, 16 + insB);
-            }
-            else
-            {
-                cardOvImg.sprite = null; cardOvImg.color = Palette.Rgba(20, 13, 8, .62f);
-                cardRt.anchorMin = cardRt.anchorMax = new Vector2(0.5f, 0.5f); cardRt.pivot = new Vector2(0.5f, 0.5f);
-                cardRt.anchoredPosition = Vector2.zero;
-            }
+            // every card sits in the middle of the screen
+            cardOvImg.sprite = null; cardOvImg.color = Palette.Rgba(20, 13, 8, c.Soft ? .35f : .62f);
+            cardRt.anchorMin = cardRt.anchorMax = new Vector2(0.5f, 0.5f); cardRt.pivot = new Vector2(0.5f, 0.5f);
+            cardRt.anchoredPosition = new Vector2((insL - insR) / 2, (insB - insT) / 2);
         }
 
-        public void HideCard() => cardOv.gameObject.SetActive(false);
+        public void HideCard() { cardDeadline = 0; cardOv.gameObject.SetActive(false); }
+
+        // a lighter band inside the button, clipped to its rounded shape, that drains from the right toward the left
+        static Image CountdownFill(Button btn)
+        {
+            btn.gameObject.AddComponent<Mask>().showMaskGraphic = true;
+            var rt = Ui.Rect(btn.transform, "Countdown");
+            Ui.Stretch(rt);
+            rt.SetAsFirstSibling();   // under the label
+            rt.gameObject.AddComponent<LayoutElement>().ignoreLayout = true;
+            var img = rt.gameObject.AddComponent<Image>();
+            img.sprite = Ui.White; img.raycastTarget = false;
+            img.color = Palette.Rgba(255, 240, 205, .5f);
+            img.type = Image.Type.Filled;
+            img.fillMethod = Image.FillMethod.Horizontal;
+            img.fillOrigin = (int)Image.OriginHorizontal.Left;
+            img.fillAmount = 1;
+            return img;
+        }
+
+        void TickCard()
+        {
+            if (cardDeadline <= 0 || !CardVisible) return;
+            float left = cardDeadline - Time.unscaledTime;
+            if (cardFill) cardFill.fillAmount = Mathf.Clamp01(left / cardSpan);
+            if (left <= 0 && cardFirst) cardFirst.onClick.Invoke();
+        }
 
         // ---------------- minimap frame ----------------
 

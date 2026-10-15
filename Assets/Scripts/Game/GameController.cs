@@ -42,7 +42,6 @@ namespace FlickCurling.Game
         Ai brain;
         int token;
         int speed = 1;
-        bool noAuto;
         double? laneTo;
         float acc;
         float settleT;
@@ -98,7 +97,9 @@ namespace FlickCurling.Game
         // the HUD shows the side as a stone icon rather than its name
         string SideOf(Team t, int scalePct = 115) => Ui.Icon(t, scalePct) + (IsAI(t) ? Loc.T("team.ai") : "");
         static string EndLabel(int n) => n <= Sheet.Ends ? Loc.T("hud.end", ("n", n)) : Loc.T("hud.extra");
-        string Versus(int b, int w) => Loc.T("score.versus", ("b", Loc.Team(Team.B)), ("bv", b), ("wv", w), ("w", Loc.Team(Team.W)));
+        // the two sides as stone icons either side of a pair of values (scores, distances)
+        static string Versus(object b, object w, int iconPct = 130) => Loc.T("score.versus", ("b", Ui.Icon(Team.B, iconPct)), ("bv", b), ("wv", w), ("w", Ui.Icon(Team.W, iconPct)));
+        const float CardCountdown = 3;
 
         // =====================================================================
         // boot
@@ -262,8 +263,8 @@ namespace FlickCurling.Game
                 Eyebrow = Loc.T("lsd.eyebrow", ("map", Loc.Map(mapKey)), ("mode", ModeName())),
                 Title = Loc.T("lsd.title"),
                 Head = Loc.T("lsd.head"),
-                Body = Loc.T("lsd.body"),
-                Buttons = { new CardButton(Loc.T("lsd.throwFirst", ("name", NameOf(Team.B))), LsdShot) }
+                Countdown = CardCountdown,
+                Buttons = { new CardButton(Loc.T("lsd.start"), LsdShot) }
             });
         }
 
@@ -271,7 +272,7 @@ namespace FlickCurling.Game
         {
             if (mode == Mode.Pvp) return Loc.T("mode.pvp");
             if (mode == Mode.Watch)
-                return Loc.T("mode.watchVs", ("b", Loc.Team(Team.B)), ("lb", Loc.Level((AiLevel)lvB)), ("w", Loc.Team(Team.W)), ("lw", Loc.Level((AiLevel)lvW)));
+                return Loc.T("mode.watchVs", ("b", Ui.Icon(Team.B)), ("lb", Loc.Level((AiLevel)lvB)), ("w", Ui.Icon(Team.W)), ("lw", Loc.Level((AiLevel)lvW)));
             return Loc.T("mode.vsAi", ("level", Loc.Level((AiLevel)(mode - Mode.Easy))));
         }
 
@@ -315,7 +316,7 @@ namespace FlickCurling.Game
             RenderHud();
         }
 
-        static string FmtDist(double? d) => d == null ? "—" : double.IsInfinity(d.Value) ? Loc.T("hud.noRecord") : d.Value.ToString("0.0");
+        static string FmtDist(double? d) => d == null ? "—" : double.IsInfinity(d.Value) ? "X" : d.Value.ToString("0.0");   // X = no record
 
         void LsdNext()
         {
@@ -327,9 +328,9 @@ namespace FlickCurling.Game
             RenderHud();
             ShowCard(() => new CardSpec
             {
-                Eyebrow = Loc.T("lsd.resultEyebrow"), Title = Loc.T("lsd.hasHammer", ("name", NameOf(win))),
-                Head = Loc.T("score.versus", ("b", Loc.Team(Team.B)), ("bv", FmtDist(dB)), ("wv", FmtDist(dW)), ("w", Loc.Team(Team.W))),
-                Body = (coin ? Loc.T("lsd.coin") : Loc.T("lsd.closer", ("name", NameOf(win)))) + " " + Loc.T("end.firstThrow", ("name", NameOf(Sheet.Other(win)))),
+                Eyebrow = Loc.T("lsd.resultEyebrow"),
+                Title = Loc.T("lsd.hasHammer", ("first", SideOf(Sheet.Other(win), 110)), ("name", SideOf(win, 110))),
+                Countdown = CardCountdown,
                 Buttons = { new CardButton(Loc.T("end.start", ("n", 1)), () => { m.FinishLsd(); StartEnd(); }) }
             });
         }
@@ -492,14 +493,17 @@ namespace FlickCurling.Game
             {
                 string nextLabel = step == AfterEnd.NextEnd ? Loc.T("end.start", ("n", end + 1))
                     : step == AfterEnd.ExtraEnd ? Loc.T("end.startExtra") : Loc.T("end.final");
-                string score = Versus(m.Total(Team.B), m.Total(Team.W));
                 return new CardSpec
                 {
                     Soft = true,
                     Eyebrow = Loc.T("end.result", ("end", EndLabel(end))),
-                    Title = sc.Team.HasValue ? Loc.T("end.scored", ("name", NameOf(sc.Team.Value))) : Loc.T("end.blank"),
-                    Head = sc.Team.HasValue ? Loc.T("end.points", ("n", sc.Points)) : "0 : 0",
-                    Body = Loc.T(sc.Team.HasValue ? "end.bodyScored" : "end.bodyBlank", ("name", NameOf(m.Hammer)), ("score", score)),
+                    // one line: who scored (or blank) and the running score
+                    Title = sc.Team.HasValue
+                        ? Loc.T("end.scored", ("name", SideOf(sc.Team.Value, 110)), ("n", sc.Points), ("score", Versus(m.Total(Team.B), m.Total(Team.W), 110)))
+                        : Loc.T("end.blank", ("score", Versus(m.Total(Team.B), m.Total(Team.W), 110))),
+                    // NextStep has already handed the hammer on; nothing to say after the last end
+                    Body = step == AfterEnd.GameOver ? "" : Loc.T("end.nextHammer", ("name", SideOf(m.Hammer))),
+                    Countdown = CardCountdown,
                     Buttons = { new CardButton(nextLabel, next) }
                 };
             });
@@ -507,14 +511,15 @@ namespace FlickCurling.Game
 
         void GameOver()
         {
-            state = St.Over; noAuto = true;
+            state = St.Over;
             var win = m.Winner;
             RenderHud();
             ShowCard(() => new CardSpec
             {
-                Eyebrow = Loc.T("over.eyebrow"), Title = win.HasValue ? Loc.T("over.win", ("name", NameOf(win.Value))) : Loc.T("over.draw"),
-                Head = Versus(m.Total(Team.B), m.Total(Team.W)),
-                Body = win.HasValue ? "" : Loc.T("over.drawBody"),
+                Eyebrow = Loc.T("over.eyebrow"),
+                Title = win.HasValue
+                    ? Loc.T("over.win", ("name", SideOf(win.Value, 110)), ("score", Versus(m.Total(Team.B), m.Total(Team.W), 110)))
+                    : Loc.T("over.draw", ("score", Versus(m.Total(Team.B), m.Total(Team.W), 110))),
                 Buttons =
                 {
                     new CardButton(Loc.T(Watching ? "over.watchAgain" : "over.again"), () => StartMatch(mode, mapKey, lvB, lvW)),
@@ -551,15 +556,9 @@ namespace FlickCurling.Game
         {
             cardFactory = build;
             var c = build();
-            bool auto = Watching && c.Buttons.Count > 0 && !noAuto;
-            noAuto = false;
-            int seq = hud.ShowCard(c, null);
-            if (auto)
-            {
-                int tok = token;
-                var first = c.Buttons[0];
-                After(2.6f / Speed, () => { if (tok == token && seq == hud.CardSeq && hud.CardVisible) { hud.HideCard(); first.OnClick(); } });
-            }
+            // a countdown card presses its button by itself; when watching the AIs it goes at the watch pace
+            if (Watching && c.Countdown > 0) c.Countdown = 2.6f / Speed;
+            hud.ShowCard(c, null);
         }
 
         // ---- HUD text ----
@@ -607,8 +606,11 @@ namespace FlickCurling.Game
             if (state == St.Menu) return null;
             string b = Ui.Icon(Team.B, 130), w = Ui.Icon(Team.W, 130);
             if (m.InLsd)
-                return (Loc.T("hud.lsd"), null,
-                        $"{b} {FmtDist(m.Lsd.Dist[0])}      {w} {FmtDist(m.Lsd.Dist[1])}");
+            {
+                // the distances sit level with the middle of the (larger) stone icons
+                string D(int i) => $"<voffset=0.28em>{FmtDist(m.Lsd.Dist[i])}</voffset>";
+                return (Loc.T("hud.lsd"), null, $"{b} {D(0)}      {w} {D(1)}");
+            }
             string Pips(Team team)
             {
                 int left = Mathf.Clamp(Sheet.Per - m.ThrownBy(team), 0, Sheet.Per);
