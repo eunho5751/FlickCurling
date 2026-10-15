@@ -359,20 +359,8 @@ MonoBehaviour:
     m_Key: intent.lsd
     m_Metadata:
       m_Items: []
-  - m_Id: 2262749263
-    m_Key: float.ticketUsed
-    m_Metadata:
-      m_Items: []
   - m_Id: 2262749264
     m_Key: float.noTicket
-    m_Metadata:
-      m_Items: []
-  - m_Id: 2262749265
-    m_Key: float.cushion
-    m_Metadata:
-      m_Items: []
-  - m_Id: 2262749266
-    m_Key: float.deadRail
     m_Metadata:
       m_Items: []
   - m_Id: 2262749271
@@ -413,6 +401,10 @@ MonoBehaviour:
       m_Items: []
   - m_Id: 263283141431296
     m_Key: foul.lost
+    m_Metadata:
+      m_Items: []
+  - m_Id: 268641222184960
+    m_Key: float.ticketMinus
     m_Metadata:
       m_Items: []
   m_Metadata:

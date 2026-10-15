@@ -134,10 +134,8 @@ namespace FlickCurling.EditorTools
             new[] { "intent.bank-takeout", "쿠션 테이크아웃", "bank takeout", "クッションテイクアウト" },
             new[] { "intent.blank", "블랭크", "blank", "ブランク" },
             new[] { "intent.lsd", "표적 맞히기", "target throw", "ターゲットショット" },
-            new[] { "float.ticketUsed", "쿠션권 사용", "Ticket used", "クッション券使用" },
+            new[] { "float.ticketMinus", "쿠션권 -1", "Cushion ticket -1", "クッション券 -1" },
             new[] { "float.noTicket", "쿠션권 없음", "No ticket", "クッション券なし" },
-            new[] { "float.cushion", "쿠션 {n}", "Cushion {n}", "クッション {n}" },
-            new[] { "float.deadRail", "죽은 레일", "Dead rail", "デッドレール" },
             new[] { "board.sand", "모래", "Sand", "砂" },
             new[] { "board.ice", "빙판", "Ice", "氷" },
         };

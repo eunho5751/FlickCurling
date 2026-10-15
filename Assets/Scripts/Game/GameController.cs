@@ -637,16 +637,14 @@ namespace FlickCurling.Game
             public void OnStoneHit(Stone a, Stone b, double j) => g.sfx.Blip((float)j / 70, 2600, 4, 0.05f);
             public void OnPostHit(Stone s, double vn) => g.sfx.Blip((float)vn / 70, 1500, 5, 0.07f);
             public void OnWallHit(Stone s, double vn, Seg seg) => g.sfx.Blip((float)vn / 90, 420, 2, 0.09f);
+            // the one wall text: a ticket spent, on the shot's first cushion (Core spends at most one per shot);
+            // without a ticket the foul toast says it instead
             public void OnTicket(Stone s, bool used)
             {
-                g.floats.Add(new Float { X = (float)s.X, Y = (float)s.Y - 6, Text = Loc.T(used ? "float.ticketUsed" : "float.noTicket") });
+                if (used) g.floats.Add(new Float { X = (float)s.X, Y = (float)s.Y - 6, Text = Loc.T("float.ticketMinus") });
             }
-            public void OnCushion(Stone s, int n)
-            {
-                g.floats.Add(new Float { X = (float)s.X, Y = (float)s.Y, Text = Loc.T("float.cushion", ("n", n)) });
-                g.sfx.Chime(n);
-            }
-            public void OnDeadRail(Stone s) => g.floats.Add(new Float { X = (float)s.X, Y = (float)s.Y, Text = Loc.T("float.deadRail") });
+            public void OnCushion(Stone s, int n) => g.sfx.Chime(n);
+            public void OnDeadRail(Stone s) { }
         }
 
         // =====================================================================
