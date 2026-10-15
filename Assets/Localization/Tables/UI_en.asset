@@ -304,11 +304,6 @@ MonoBehaviour:
     m_Localized: First-thrower bonus guard
     m_Metadata:
       m_Items: []
-  - m_Id: 2262749234
-    m_Localized: "{guard} starts with a guard \xB7 {hammer} has the last shot"
-    m_Metadata:
-      m_Items:
-      - rid: 4297768082125881571
   - m_Id: 2262749235
     m_Localized: Game over
     m_Metadata:
@@ -471,7 +466,6 @@ MonoBehaviour:
         - id: 2262749230
         - id: 2262749231
         - id: 2262749232
-        - id: 2262749234
         - id: 2262749236
         - id: 2262749244
         - id: 2262749250

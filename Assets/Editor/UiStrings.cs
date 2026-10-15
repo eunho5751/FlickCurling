@@ -100,7 +100,6 @@ namespace FlickCurling.EditorTools
             new[] { "end.bodyBlank", "블랭크 엔드라 후공이 {name}에게 넘어갑니다. 합계 {score}", "Blank end, so {name} now throws last. Total {score}", "ブランクエンドなので、後攻は{name}に移ります。合計 {score}" },
             new[] { "score.versus", "{b} {bv} : {wv} {w}", "{b} {bv} : {wv} {w}", "{b} {bv} : {wv} {w}" },
             new[] { "bonus.title", "선공 보너스 가드", "First-thrower bonus guard", "先攻ボーナスガード" },
-            new[] { "bonus.body", "{guard} 가드 1개 먼저 · {hammer} 마지막 샷", "{guard} starts with a guard · {hammer} has the last shot", "{guard}がガード1個から・{hammer}が最後の1投" },
 
             // ---- game over ----
             new[] { "over.eyebrow", "경기 종료", "Game over", "試合終了" },

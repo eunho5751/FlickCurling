@@ -275,10 +275,6 @@ MonoBehaviour:
     m_Key: bonus.title
     m_Metadata:
       m_Items: []
-  - m_Id: 2262749234
-    m_Key: bonus.body
-    m_Metadata:
-      m_Items: []
   - m_Id: 2262749235
     m_Key: over.eyebrow
     m_Metadata:

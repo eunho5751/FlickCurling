@@ -425,10 +425,10 @@ namespace FlickCurling.Game
         public bool ToastsUp => toasts.Count > 0;
 
         /// <summary>Whose turn, larger; a new turn replaces the last one.</summary>
-        public void TurnToast(string text)
+        public void TurnToast(string text, string note = null)
         {
             foreach (var t in toasts) if (t.Turn) Leave(t);
-            Push(MakeToast(text, null, true, 24), 1050);
+            Push(MakeToast(text, note, true, 24), note != null ? 1500 : 1050);
         }
 
         public void ClearToasts()
@@ -451,7 +451,8 @@ namespace FlickCurling.Game
             float want = tt.GetPreferredValues(title).x;
             if (!string.IsNullOrEmpty(body))
             {
-                var tb = Ui.Label(rt, body, 13, Palette.Text, false, TextAnchor.MiddleCenter);
+                // under the turn line: smaller, in the brass of a toast title
+                var tb = Ui.Label(rt, body, turn ? 15 : 13, turn ? Palette.Brass : Palette.Text, turn, TextAnchor.MiddleCenter);
                 tb.raycastTarget = false;
                 want = Mathf.Max(want, tb.GetPreferredValues(body).x);
             }

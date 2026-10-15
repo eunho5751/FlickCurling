@@ -341,7 +341,6 @@ namespace FlickCurling.Game
         void StartEnd()
         {
             m.StartEnd();
-            hud.Toast(Loc.T("bonus.title"), Loc.T("bonus.body", ("guard", Ui.Icon(Sheet.Other(m.Hammer))), ("hammer", Ui.Icon(m.Hammer))), 2200);
             fades.Clear(); measure = null;
             PrepareShot();
         }
@@ -357,7 +356,8 @@ namespace FlickCurling.Game
             userMoved = false;
             CamTo(AimView(zoom), 3.5f);
             RenderHud();
-            hud.TurnToast(Loc.T("hud.turn", ("name", SideOf(m.Cur, 130))));
+            // the first thrower's opening turn of each end also notes the bonus guard it starts with
+            hud.TurnToast(Loc.T("hud.turn", ("name", SideOf(m.Cur, 130))), m.Shot == 0 ? Loc.T("bonus.title") : null);
             StartClock();
             if (state == St.Ai) RunAI();
         }
@@ -430,7 +430,7 @@ namespace FlickCurling.Game
         void StartClock()
         {
             clock = state == St.Aim ? ShotTime : -1;
-            clockWait = ClockWait;
+            clockWait = ClockWait + (!m.InLsd && m.Shot == 0 ? 0.45f : 0);   // the end's first turn toast stays up longer
         }
 
         // real time, held while the turn toast is up or a card covers the sheet
