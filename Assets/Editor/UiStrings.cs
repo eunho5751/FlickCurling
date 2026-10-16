@@ -34,11 +34,10 @@ namespace FlickCurling.EditorTools
             new[] { "mainmenu.settings", "설정", "Settings", "設定" },
 
             // ---- main menu: match setup popup ----
-            new[] { "matchsetup.opponent", "상대", "Opponent", "対戦相手" },
+            new[] { "matchsetup.mode", "모드", "Mode", "モード" },
             new[] { "matchsetup.vsAi", "AI", "AI", "AI" },
             new[] { "matchsetup.vsLocal", "로컬 2인", "Local 2P", "ローカル2人" },
-            new[] { "matchsetup.mode", "모드", "Mode", "モード" },
-            new[] { "matchsetup.modeBasic", "기본", "Classic", "ベーシック" },
+            new[] { "matchsetup.map", "맵", "Map", "マップ" },
             new[] { "matchsetup.level", "난이도", "Difficulty", "難易度" },
             new[] { "matchsetup.ok", "확인", "OK", "OK" },
 

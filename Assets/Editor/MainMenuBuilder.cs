@@ -183,8 +183,8 @@ namespace FlickCurling.EditorTools
             Debug.Log("FlickCurling: built " + ScenePath);
         }
 
-        // ---- the match setup popup (offline match): the opponent (AI / local two players, each with its icon), the mode
-        // and, against the AI, its level as group toggles, and OK, all from the shared prefabs (Popup, ToggleGroup,
+        // ---- the match setup popup (offline match): the mode (against the AI / local two players, each with its icon),
+        // against the AI its level, and the map as group toggles, and OK, all from the shared prefabs (Popup, ToggleGroup,
         // Button_Primary) ----
 
         const float SetupLegendH = 52, SetupToggleH = 96, SetupGap = 22, SetupOkW = 380, SetupOkH = 112;
@@ -209,17 +209,17 @@ namespace FlickCurling.EditorTools
             v.childControlWidth = v.childControlHeight = true;
             v.childForceExpandWidth = true; v.childForceExpandHeight = false;
 
-            var opponentRow = Row(content, "OpponentRow");
-            Legend(opponentRow, legendFont, "matchsetup.opponent");
-            var opponent = Toggle(opponentRow, new[] { "matchsetup.vsAi", "matchsetup.vsLocal" }, 0,
+            var modeRow = Row(content, "ModeRow");
+            Legend(modeRow, legendFont, "matchsetup.mode");
+            var mode = Toggle(modeRow, new[] { "matchsetup.vsAi", "matchsetup.vsLocal" }, 0,
                 new[] { AssetDatabase.LoadAssetAtPath<Sprite>(IconAi), AssetDatabase.LoadAssetAtPath<Sprite>(IconLocal) });
-            // the level right under the opponent it belongs to, then the mode
+            // the level right under the mode it belongs to, then the map
             var levelRow = Row(content, "LevelRow");
             Legend(levelRow, legendFont, "matchsetup.level");
             var level = Toggle(levelRow, new[] { "level.easy", "level.normal", "level.hard" }, 1);
-            var modeRow = Row(content, "ModeRow");
-            Legend(modeRow, legendFont, "matchsetup.mode");
-            var mode = Toggle(modeRow, new[] { "matchsetup.modeBasic" }, 0);
+            var mapRow = Row(content, "MapRow");
+            Legend(mapRow, legendFont, "matchsetup.map");
+            var map = Toggle(mapRow, new[] { "map.base" }, 0);
 
             // OK, centred under the toggles; the space above it soaks up the rest of the window
             var spacer = Child<RectTransform>(content, "Spacer");
@@ -233,8 +233,8 @@ namespace FlickCurling.EditorTools
             var setup = go.AddComponent<MatchSetup>();
             var so = new SerializedObject(setup);
             so.FindProperty("popup").objectReferenceValue = go.GetComponent<Popup>();
-            so.FindProperty("opponent").objectReferenceValue = opponent;
             so.FindProperty("mode").objectReferenceValue = mode;
+            so.FindProperty("map").objectReferenceValue = map;
             so.FindProperty("levelRow").objectReferenceValue = levelRow.gameObject;
             so.FindProperty("level").objectReferenceValue = level;
             so.FindProperty("ok").objectReferenceValue = ok;
@@ -344,7 +344,7 @@ namespace FlickCurling.EditorTools
             return UiPrefabBuilder.SetOptions(go, keys, selected, icons);
         }
 
-        // the opponents' icons (the old vs AI and local menu buttons' art)
+        // the modes' icons (the old vs AI and local menu buttons' art)
         const string IconAi = "Assets/Art/Menu/icon_ai.png", IconLocal = "Assets/Art/Menu/icon_local.png";
 
         static string IconPath(string key) => "Assets/Art/Menu/icon_" + key.Substring("mainmenu.".Length) + ".png";

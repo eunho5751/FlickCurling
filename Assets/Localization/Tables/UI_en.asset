@@ -363,10 +363,6 @@ MonoBehaviour:
     m_Localized: Mode
     m_Metadata:
       m_Items: []
-  - m_Id: 807220369346562
-    m_Localized: Classic
-    m_Metadata:
-      m_Items: []
   - m_Id: 807220369346563
     m_Localized: Difficulty
     m_Metadata:
@@ -387,16 +383,16 @@ MonoBehaviour:
     m_Localized: Offline Match
     m_Metadata:
       m_Items: []
-  - m_Id: 845650461642753
-    m_Localized: Opponent
-    m_Metadata:
-      m_Items: []
   - m_Id: 845650461642754
     m_Localized: AI
     m_Metadata:
       m_Items: []
   - m_Id: 845650461642755
     m_Localized: Local 2P
+    m_Metadata:
+      m_Items: []
+  - m_Id: 852077917949952
+    m_Localized: Map
     m_Metadata:
       m_Items: []
   references:

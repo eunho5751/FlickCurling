@@ -335,10 +335,6 @@ MonoBehaviour:
     m_Key: matchsetup.mode
     m_Metadata:
       m_Items: []
-  - m_Id: 807220369346562
-    m_Key: matchsetup.modeBasic
-    m_Metadata:
-      m_Items: []
   - m_Id: 807220369346563
     m_Key: matchsetup.level
     m_Metadata:
@@ -359,16 +355,16 @@ MonoBehaviour:
     m_Key: mainmenu.offline
     m_Metadata:
       m_Items: []
-  - m_Id: 845650461642753
-    m_Key: matchsetup.opponent
-    m_Metadata:
-      m_Items: []
   - m_Id: 845650461642754
     m_Key: matchsetup.vsAi
     m_Metadata:
       m_Items: []
   - m_Id: 845650461642755
     m_Key: matchsetup.vsLocal
+    m_Metadata:
+      m_Items: []
+  - m_Id: 852077917949952
+    m_Key: matchsetup.map
     m_Metadata:
       m_Items: []
   m_Metadata:
