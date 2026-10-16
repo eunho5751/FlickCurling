@@ -213,12 +213,13 @@ namespace FlickCurling.EditorTools
             Legend(opponentRow, legendFont, "matchsetup.opponent");
             var opponent = Toggle(opponentRow, new[] { "matchsetup.vsAi", "matchsetup.vsLocal" }, 0,
                 new[] { AssetDatabase.LoadAssetAtPath<Sprite>(IconAi), AssetDatabase.LoadAssetAtPath<Sprite>(IconLocal) });
-            var modeRow = Row(content, "ModeRow");
-            Legend(modeRow, legendFont, "matchsetup.mode");
-            var mode = Toggle(modeRow, new[] { "matchsetup.modeBasic" }, 0);
+            // the level right under the opponent it belongs to, then the mode
             var levelRow = Row(content, "LevelRow");
             Legend(levelRow, legendFont, "matchsetup.level");
             var level = Toggle(levelRow, new[] { "level.easy", "level.normal", "level.hard" }, 1);
+            var modeRow = Row(content, "ModeRow");
+            Legend(modeRow, legendFont, "matchsetup.mode");
+            var mode = Toggle(modeRow, new[] { "matchsetup.modeBasic" }, 0);
 
             // OK, centred under the toggles; the space above it soaks up the rest of the window
             var spacer = Child<RectTransform>(content, "Spacer");
