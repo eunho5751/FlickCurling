@@ -31,12 +31,12 @@ namespace FlickCurling.EditorTools
         // buttons, and a slider (groove, fill, a go-stone handle)
         public static readonly (string path, Vector4 border)[] Controls =
         {
-            ("Assets/Art/Menu/ui_toggle_track.png", new Vector4(60, 50, 60, 50)),
+            ("Assets/Art/Menu/ui_toggle_track.png", new Vector4(54, 44, 54, 44)),
             ("Assets/Art/Menu/ui_toggle_on.png", new Vector4(28, 20, 28, 20)),
-            ("Assets/Art/Menu/ui_button_primary.png", new Vector4(60, 55, 60, 55)),
+            ("Assets/Art/Menu/ui_button_primary.png", new Vector4(46, 40, 46, 40)),
             ("Assets/Art/Menu/ui_button_secondary.png", new Vector4(44, 36, 44, 36)),
-            ("Assets/Art/Menu/ui_slider_track.png", new Vector4(30, 25, 30, 25)),
-            ("Assets/Art/Menu/ui_slider_fill.png", new Vector4(34, 30, 34, 30)),
+            ("Assets/Art/Menu/ui_slider_track.png", new Vector4(26, 22, 26, 22)),
+            ("Assets/Art/Menu/ui_slider_fill.png", new Vector4(16, 13, 16, 13)),
             ("Assets/Art/Menu/ui_slider_handle.png", Vector4.zero),
         };
 
