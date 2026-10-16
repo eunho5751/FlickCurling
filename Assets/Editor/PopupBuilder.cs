@@ -87,11 +87,12 @@ namespace FlickCurling.EditorTools
             ile.preferredWidth = ile.minWidth = TitleIconSize; ile.preferredHeight = TitleIconSize;
             icon.gameObject.SetActive(false);
             var title = MainMenuBuilder.Label(row, "Title", titleFont, 50, Ink);
+            title.margin = new Vector4(0, 10, 0, 0);   // top margin: the bar's face sits a little low
             title.text = "Title";
 
             // the small close button inside the header bar, at its right end
             var closeImg = MainMenuBuilder.Child<Image>(win.transform, "Close");
-            MainMenuBuilder.Place(closeImg.rectTransform, new Vector2(1, 1), new Vector2(-(SideW + CloseSize / 2 + 6), -(HeaderH / 2 + 2)), new Vector2(CloseSize, CloseSize));
+            MainMenuBuilder.Place(closeImg.rectTransform, new Vector2(1, 1), new Vector2(-(SideW + CloseSize / 2 + 6) + 25, -(HeaderH / 2 + 2)), new Vector2(CloseSize, CloseSize));
             closeImg.sprite = close; closeImg.preserveAspect = true;
             var closeButton = closeImg.gameObject.AddComponent<Button>();
             var cb = closeButton.colors; cb.highlightedColor = new Color(1.06f, 1.06f, 1.06f); cb.pressedColor = new Color(.82f, .82f, .82f); closeButton.colors = cb;
