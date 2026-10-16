@@ -12,8 +12,8 @@ using UnityEngine.UI;
 namespace FlickCurling.EditorTools
 {
     /// <summary>
-    /// Builds Assets/Scenes/MainMenu.unity from scratch: the board art, the logo over its house and the six mode buttons (layout
-    /// only; the buttons do nothing yet). The art (flat, casual) was generated with Codex (imagegen) and lives in
+    /// Builds Assets/Scenes/MainMenu.unity from scratch: the board art, the logo over its house, the six mode buttons (layout
+    /// only; the buttons do nothing yet) and a hidden instance of the shared popup (PopupBuilder). The art (flat, casual) was generated with Codex (imagegen) and lives in
     /// Assets/Art/Menu.
     /// </summary>
     public static class MainMenuBuilder
@@ -148,9 +148,15 @@ namespace FlickCurling.EditorTools
                 entries[i] = new MainMenu.Entry { Key = Keys[i], Label = label, Button = b };
             }
 
+            // the shared popup, over everything (its backdrop covers the whole screen) and hidden until a menu opens it
+            var popupPrefab = PopupBuilder.Build();
+            var popup = (GameObject)PrefabUtility.InstantiatePrefab(popupPrefab, canvasGo.transform);
+            popup.SetActive(false);
+
             var menu = canvasGo.AddComponent<MainMenu>();
             var so = new SerializedObject(menu);
             so.FindProperty("safeArea").objectReferenceValue = safe;
+            so.FindProperty("popup").objectReferenceValue = popup.GetComponent<Popup>();
             var arr = so.FindProperty("entries");
             arr.arraySize = entries.Length;
             for (int i = 0; i < entries.Length; i++)
@@ -174,7 +180,7 @@ namespace FlickCurling.EditorTools
 
         static string IconPath(string key) => "Assets/Art/Menu/icon_" + key.Substring("mainmenu.".Length) + ".png";
 
-        static Sprite ImportSprite(string path, Vector4 border, int maxSize = 2048)
+        internal static Sprite ImportSprite(string path, Vector4 border, int maxSize = 2048)
         {
             var ti = (TextureImporter)AssetImporter.GetAtPath(path);
             if (ti == null) throw new System.InvalidOperationException("FlickCurling: missing art " + path);
@@ -193,14 +199,14 @@ namespace FlickCurling.EditorTools
             return AssetDatabase.LoadAssetAtPath<Sprite>(path);
         }
 
-        static T Child<T>(Transform parent, string name) where T : Component
+        internal static T Child<T>(Transform parent, string name) where T : Component
         {
             var go = new GameObject(name, typeof(RectTransform));
             go.transform.SetParent(parent, false);
             return typeof(T) == typeof(RectTransform) ? (T)(Component)go.GetComponent<RectTransform>() : go.AddComponent<T>();
         }
 
-        static TextMeshProUGUI Label(Transform parent, string name, TMP_FontAsset font, float size, Color color)
+        internal static TextMeshProUGUI Label(Transform parent, string name, TMP_FontAsset font, float size, Color color)
         {
             var t = Child<TextMeshProUGUI>(parent, name);
             t.font = font; t.fontSize = size; t.color = color;
@@ -222,13 +228,13 @@ namespace FlickCurling.EditorTools
             rt.sizeDelta = new Vector2(width, Overflow);
         }
 
-        static void Stretch(RectTransform rt)
+        internal static void Stretch(RectTransform rt)
         {
             rt.anchorMin = Vector2.zero; rt.anchorMax = Vector2.one;
             rt.offsetMin = rt.offsetMax = Vector2.zero;
         }
 
-        static void Place(RectTransform rt, Vector2 anchor, Vector2 pos, Vector2 size)
+        internal static void Place(RectTransform rt, Vector2 anchor, Vector2 pos, Vector2 size)
         {
             rt.anchorMin = rt.anchorMax = anchor; rt.pivot = new Vector2(0.5f, 0.5f);
             rt.anchoredPosition = pos; rt.sizeDelta = size;

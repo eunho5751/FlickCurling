@@ -22,6 +22,10 @@ namespace FlickCurling.Game
 
         [SerializeField] RectTransform safeArea;
         [SerializeField] Entry[] entries;
+        [SerializeField] Popup popup;
+
+        /// <summary>The menu's shared popup window (hidden until shown).</summary>
+        public Popup Popup => popup;
 
         Rect lastSafe;
         Vector2Int lastScreen;
