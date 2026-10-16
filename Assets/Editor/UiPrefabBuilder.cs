@@ -1,0 +1,192 @@
+using System.IO;
+using System.Linq;
+using FlickCurling.Game;
+using TMPro;
+using UnityEditor;
+using UnityEngine;
+using UnityEngine.UI;
+
+namespace FlickCurling.EditorTools
+{
+    /// <summary>
+    /// Builds the shared UI control prefabs in Assets/Prefabs/UI, on the popup art (PopupBuilder.Controls): a primary
+    /// (coral) and a secondary (wooden) button, a group toggle (SegmentedToggle) and a slider. Screens use instances of
+    /// them; <see cref="SetLabel"/> and <see cref="SetOptions"/> fill an instance in with localized texts.
+    /// </summary>
+    public static class UiPrefabBuilder
+    {
+        public const string Dir = "Assets/Prefabs/UI";
+        public const string PrimaryPath = Dir + "/Button_Primary.prefab", SecondaryPath = Dir + "/Button_Secondary.prefab";
+        public const string TogglePath = Dir + "/ToggleGroup.prefab", SliderPath = Dir + "/Slider.prefab";
+
+        // default sizes in the menu's reference pixels
+        const float ButtonW = 380, ButtonH = 112, ToggleW = 720, ToggleH = 96, SliderW = 720, SliderH = 44, HandleSize = 76;
+        static readonly Color32 Cream = new Color32(0xf6, 0xea, 0xd2, 0xff), Ink = new Color32(0x4a, 0x2a, 0x12, 0xff);
+
+        static Sprite Art(string name) => AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Art/Menu/" + name + ".png");
+
+        [MenuItem("FlickCurling/Build UI Control Prefabs")]
+        public static void Build()
+        {
+            PopupBuilder.ImportControls();
+            Directory.CreateDirectory(Dir);
+            var font = AssetDatabase.LoadAssetAtPath<TMP_FontAsset>(FontBuilder.ButtonPath);   // Jua, Mochiy Pop One for Japanese
+            Save(MakeButton("Button_Primary", Art("ui_button_primary"), font), PrimaryPath);
+            Save(MakeButton("Button_Secondary", Art("ui_button_secondary"), font), SecondaryPath);
+            Save(MakeToggle(font), TogglePath);
+            Save(MakeSlider(), SliderPath);
+            Debug.Log("FlickCurling: built the UI control prefabs in " + Dir);
+        }
+
+        static void Save(GameObject go, string path)
+        {
+            PrefabUtility.SaveAsPrefabAsset(go, path);
+            Object.DestroyImmediate(go);
+        }
+
+        static void Pressable(Selectable b)
+        {
+            var cb = b.colors; cb.highlightedColor = new Color(1.06f, 1.06f, 1.06f); cb.pressedColor = new Color(.82f, .82f, .82f);
+            cb.disabledColor = new Color(.7f, .7f, .7f, .8f); b.colors = cb;
+        }
+
+        // a raised button with a centred label (its face sits a little above the bottom lip)
+        static GameObject MakeButton(string name, Sprite sprite, TMP_FontAsset font)
+        {
+            var img = new GameObject(name, typeof(RectTransform)).AddComponent<Image>();
+            img.rectTransform.sizeDelta = new Vector2(ButtonW, ButtonH);
+            img.sprite = sprite; img.type = Image.Type.Sliced; img.pixelsPerUnitMultiplier = sprite.rect.height / ButtonH;
+            Pressable(img.gameObject.AddComponent<Button>());
+            var label = MainMenuBuilder.Label(img.transform, "Label", font, 48, Cream);
+            MainMenuBuilder.Stretch(label.rectTransform); label.rectTransform.offsetMin = new Vector2(0, 8);
+            label.enableAutoSizing = true; label.fontSizeMin = 28; label.fontSizeMax = 48;
+            label.text = "Button";
+            return img.gameObject;
+        }
+
+        // the groove with the sliding wooden knob and one option; SetOptions makes it as many as needed
+        static GameObject MakeToggle(TMP_FontAsset font)
+        {
+            var track = new GameObject("ToggleGroup", typeof(RectTransform)).AddComponent<Image>();
+            track.rectTransform.sizeDelta = new Vector2(ToggleW, ToggleH);
+            var ts = Art("ui_toggle_track");
+            track.sprite = ts; track.type = Image.Type.Sliced; track.pixelsPerUnitMultiplier = ts.rect.height / ToggleH;
+            var inner = MainMenuBuilder.Child<RectTransform>(track.transform, "Inner");
+            MainMenuBuilder.Stretch(inner); inner.offsetMin = new Vector2(8, 9); inner.offsetMax = new Vector2(-8, -9);
+            var knob = MainMenuBuilder.Child<Image>(inner, "Knob");
+            var ks = Art("ui_toggle_on");
+            knob.sprite = ks; knob.type = Image.Type.Sliced; knob.pixelsPerUnitMultiplier = ks.rect.height / (ToggleH - 18);
+            knob.raycastTarget = false;
+            var krt = knob.rectTransform; krt.anchorMin = Vector2.zero; krt.anchorMax = Vector2.one; krt.offsetMin = krt.offsetMax = Vector2.zero;
+
+            var hit = MainMenuBuilder.Child<Image>(inner, "Option0");
+            hit.color = new Color(1, 1, 1, 0);   // only takes the tap
+            var rt = hit.rectTransform; rt.anchorMin = Vector2.zero; rt.anchorMax = Vector2.one; rt.offsetMin = rt.offsetMax = Vector2.zero;
+            hit.gameObject.AddComponent<Button>().transition = Selectable.Transition.None;
+            var label = MainMenuBuilder.Label(hit.transform, "Label", font, 40, Cream);
+            MainMenuBuilder.Stretch(label.rectTransform); label.rectTransform.offsetMin = new Vector2(0, 4);
+            label.text = "Option";
+
+            var toggle = track.gameObject.AddComponent<SegmentedToggle>();
+            Wire(toggle, krt, new[] { hit.GetComponent<Button>() }, new[] { label }, 0);
+            return track.gameObject;
+        }
+
+        static void Wire(SegmentedToggle toggle, RectTransform knob, Button[] options, TextMeshProUGUI[] labels, int selected)
+        {
+            var so = new SerializedObject(toggle);
+            so.FindProperty("knob").objectReferenceValue = knob;
+            so.FindProperty("selected").intValue = selected;
+            var ob = so.FindProperty("options"); ob.arraySize = options.Length;
+            var lb = so.FindProperty("labels"); lb.arraySize = labels.Length;
+            for (int i = 0; i < options.Length; i++)
+            {
+                ob.GetArrayElementAtIndex(i).objectReferenceValue = options[i];
+                lb.GetArrayElementAtIndex(i).objectReferenceValue = labels[i];
+            }
+            so.ApplyModifiedPropertiesWithoutUndo();
+        }
+
+        // a Unity slider: the groove, the honey fill and the go-stone handle
+        static GameObject MakeSlider()
+        {
+            var root = new GameObject("Slider", typeof(RectTransform));
+            ((RectTransform)root.transform).sizeDelta = new Vector2(SliderW, HandleSize);
+            var bg = MainMenuBuilder.Child<Image>(root.transform, "Background");
+            var tr = Art("ui_slider_track");
+            bg.sprite = tr; bg.type = Image.Type.Sliced; bg.pixelsPerUnitMultiplier = tr.rect.height / SliderH;
+            Band(bg.rectTransform, 0, 0);
+            var area = MainMenuBuilder.Child<RectTransform>(root.transform, "Fill Area");
+            Band(area, 6, 6);
+            var fill = MainMenuBuilder.Child<Image>(area, "Fill");
+            var fs = Art("ui_slider_fill");
+            fill.sprite = fs; fill.type = Image.Type.Sliced; fill.pixelsPerUnitMultiplier = fs.rect.height / (SliderH - 12);
+            fill.raycastTarget = false;
+            fill.rectTransform.anchorMin = Vector2.zero; fill.rectTransform.anchorMax = new Vector2(0, 1); fill.rectTransform.offsetMin = fill.rectTransform.offsetMax = Vector2.zero;
+            var slide = MainMenuBuilder.Child<RectTransform>(root.transform, "Handle Slide Area");
+            MainMenuBuilder.Stretch(slide); slide.offsetMin = new Vector2(HandleSize / 2, 0); slide.offsetMax = new Vector2(-HandleSize / 2, 0);
+            var handle = MainMenuBuilder.Child<Image>(slide, "Handle");
+            handle.sprite = Art("ui_slider_handle"); handle.preserveAspect = true;
+            handle.rectTransform.anchorMin = new Vector2(0, 0.5f); handle.rectTransform.anchorMax = new Vector2(0, 0.5f);
+            handle.rectTransform.sizeDelta = new Vector2(HandleSize, HandleSize);
+            var s = root.AddComponent<Slider>();
+            s.fillRect = fill.rectTransform; s.handleRect = handle.rectTransform; s.targetGraphic = handle;
+            s.direction = Slider.Direction.LeftToRight; s.minValue = 0; s.maxValue = 1; s.value = 0.5f;
+            Pressable(s);
+            return root;
+        }
+
+        // a horizontal band of the slider's height across its middle, inset left and right
+        static void Band(RectTransform rt, float left, float inset)
+        {
+            rt.anchorMin = new Vector2(0, 0.5f); rt.anchorMax = new Vector2(1, 0.5f);
+            rt.sizeDelta = new Vector2(-2 * left, SliderH - 2 * inset); rt.anchoredPosition = Vector2.zero;
+        }
+
+        // ---- filling in instances ----
+
+        /// <summary>Instantiates a control prefab under <paramref name="parent"/>.</summary>
+        public static GameObject Place(string prefabPath, Transform parent, string name = null)
+        {
+            var go = (GameObject)PrefabUtility.InstantiatePrefab(AssetDatabase.LoadAssetAtPath<GameObject>(prefabPath), parent);
+            if (name != null) go.name = name;
+            return go;
+        }
+
+        /// <summary>The button's label, localized by <paramref name="key"/> of the UI table.</summary>
+        public static Button SetLabel(GameObject button, string key)
+        {
+            var label = button.transform.Find("Label").GetComponent<TextMeshProUGUI>();
+            label.text = UiStrings.Entries.First(e => e[0] == key)[1];
+            LocalizeEvents.BindText(label, Loc.Table, key);   // Editor And Runtime
+            return button.GetComponent<Button>();
+        }
+
+        /// <summary>One equal option per key (localized), <paramref name="selected"/> picked; the prefab's option is the template.</summary>
+        public static SegmentedToggle SetOptions(GameObject toggleGo, string[] keys, int selected)
+        {
+            var inner = toggleGo.transform.Find("Inner");
+            var template = inner.Find("Option0").gameObject;
+            var options = new Button[keys.Length];
+            var labels = new TextMeshProUGUI[keys.Length];
+            for (int i = 0; i < keys.Length; i++)
+            {
+                var opt = i == 0 ? template : Object.Instantiate(template, inner);
+                opt.name = "Option" + i;
+                var rt = (RectTransform)opt.transform;
+                rt.anchorMin = new Vector2((float)i / keys.Length, 0); rt.anchorMax = new Vector2((float)(i + 1) / keys.Length, 1);
+                rt.offsetMin = rt.offsetMax = Vector2.zero;
+                var label = opt.transform.Find("Label").GetComponent<TextMeshProUGUI>();
+                label.text = UiStrings.Entries.First(e => e[0] == keys[i])[1];
+                label.color = i == selected ? Cream : Ink;
+                LocalizeEvents.BindText(label, Loc.Table, keys[i]);
+                options[i] = opt.GetComponent<Button>(); labels[i] = label;
+            }
+            var knob = (RectTransform)inner.Find("Knob");
+            knob.anchorMin = new Vector2((float)selected / keys.Length, 0); knob.anchorMax = new Vector2((float)(selected + 1) / keys.Length, 1);
+            var toggle = toggleGo.GetComponent<SegmentedToggle>();
+            Wire(toggle, knob, options, labels, selected);
+            return toggle;
+        }
+    }
+}
