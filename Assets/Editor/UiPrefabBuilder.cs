@@ -149,7 +149,7 @@ namespace FlickCurling.EditorTools
 
         // a TMP dropdown on the dropdown art: the field (the arrow in its wooden end cap) and the list below it, its rows
         // marked with the honey wood strip
-        const float DropdownW = 480, DropdownH = 82, DropdownRowH = 72;
+        const float DropdownW = 480, DropdownH = 82, DropdownRowH = 72, DropdownPad = 16;   // the list's inner padding
         static GameObject MakeDropdown(TMP_FontAsset font)
         {
             var res = new TMP_DefaultControls.Resources { standard = Art("ui_dropdown_item"), background = Art("ui_dropdown_list"), dropdown = Art("ui_dropdown"), checkmark = null, mask = null };
@@ -178,7 +178,7 @@ namespace FlickCurling.EditorTools
             var list = template.GetComponent<Image>();
             list.sprite = Art("ui_dropdown_list"); list.type = Image.Type.Sliced; list.pixelsPerUnitMultiplier = 2;   // a thinner rim than the art
             template.offsetMin = new Vector2(0, template.offsetMin.y); template.anchoredPosition = new Vector2(0, -6);
-            template.sizeDelta = new Vector2(0, DropdownRowH * 3);
+            template.sizeDelta = new Vector2(0, DropdownRowH * 6);   // only a cap: the list shrinks to its rows
             // TMP sizes the list to its rows alone, so the viewport fills it and the rows keep clear of the rim themselves;
             // a rect mask clips them to it
             var viewport = (RectTransform)template.Find("Viewport");
@@ -189,13 +189,17 @@ namespace FlickCurling.EditorTools
             var scrollbar = template.Find("Scrollbar");
             if (scrollbar) Object.DestroyImmediate(scrollbar.gameObject);
             template.GetComponent<ScrollRect>().verticalScrollbar = null;
+            // the padding goes inside the content round the item: TMP keeps the item's distance to the content's edges
+            // when it lays out the rows, so the list gets the same room above, below and beside them
             var content = (RectTransform)viewport.Find("Content");
-            content.sizeDelta = new Vector2(0, DropdownRowH);
+            content.sizeDelta = new Vector2(0, DropdownRowH + 2 * DropdownPad);
             var item = (RectTransform)content.Find("Item");
-            item.sizeDelta = new Vector2(0, DropdownRowH);
+            item.anchorMin = new Vector2(0, 0.5f); item.anchorMax = new Vector2(1, 0.5f); item.pivot = new Vector2(0.5f, 0.5f);
+            item.anchoredPosition = Vector2.zero;
+            item.sizeDelta = new Vector2(-2 * DropdownPad, DropdownRowH);
             var bg = item.Find("Item Background").GetComponent<Image>();
-            bg.sprite = Art("ui_dropdown_item"); bg.type = Image.Type.Sliced; bg.pixelsPerUnitMultiplier = bg.sprite.rect.height / (DropdownRowH - 18);
-            bg.rectTransform.offsetMin = new Vector2(12, 9); bg.rectTransform.offsetMax = new Vector2(-12, -9);
+            bg.sprite = Art("ui_dropdown_item"); bg.type = Image.Type.Sliced; bg.pixelsPerUnitMultiplier = bg.sprite.rect.height / (DropdownRowH - 6);
+            bg.rectTransform.offsetMin = new Vector2(0, 3); bg.rectTransform.offsetMax = new Vector2(0, -3);
             var toggle = item.GetComponent<Toggle>();
             // the strip marks the hovered and the pressed row, and the chosen one through its checkmark
             var tc = toggle.colors; tc.normalColor = new Color(1, 1, 1, 0); tc.highlightedColor = new Color(1, 1, 1, 0.55f);
@@ -203,11 +207,11 @@ namespace FlickCurling.EditorTools
             var check = item.Find("Item Checkmark").GetComponent<Image>();
             check.sprite = Art("ui_dropdown_item"); check.type = Image.Type.Sliced; check.pixelsPerUnitMultiplier = bg.pixelsPerUnitMultiplier;
             check.rectTransform.anchorMin = Vector2.zero; check.rectTransform.anchorMax = Vector2.one;
-            check.rectTransform.offsetMin = new Vector2(12, 9); check.rectTransform.offsetMax = new Vector2(-12, -9);
+            check.rectTransform.offsetMin = new Vector2(0, 3); check.rectTransform.offsetMax = new Vector2(0, -3);
             check.rectTransform.SetAsFirstSibling();
             var itemLabel = item.Find("Item Label").GetComponent<TextMeshProUGUI>();
             itemLabel.font = font; itemLabel.fontSize = 38; itemLabel.color = Ink; itemLabel.alignment = TextAlignmentOptions.Left;
-            itemLabel.rectTransform.offsetMin = new Vector2(36, 2); itemLabel.rectTransform.offsetMax = new Vector2(-24, 0);
+            itemLabel.rectTransform.offsetMin = new Vector2(24, 2); itemLabel.rectTransform.offsetMax = new Vector2(-16, 0);
             return go;
         }
 
