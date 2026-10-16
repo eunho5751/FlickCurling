@@ -38,7 +38,7 @@ namespace FlickCurling.EditorTools
         };
 
         // reference layout: a 1080 x 1920 portrait phone
-        const float RefW = 1080, RefH = 1920, ButtonW = 760, ButtonH = 124, ButtonGap = 30, ButtonsBottom = 110;
+        const float RefW = 1080, RefH = 1920, ButtonW = 760, ButtonH = 124, ButtonGap = 30, ButtonsBottom = 70;
 
         static readonly string[] Keys =
             { "mainmenu.ai", "mainmenu.local", "mainmenu.online", "mainmenu.leaderboard", "mainmenu.rules", "mainmenu.settings" };
