@@ -415,6 +415,14 @@ MonoBehaviour:
     m_Key: matchsetup.ok
     m_Metadata:
       m_Items: []
+  - m_Id: 838978871676928
+    m_Key: settings.music
+    m_Metadata:
+      m_Items: []
+  - m_Id: 838978871676929
+    m_Key: settings.sfx
+    m_Metadata:
+      m_Items: []
   m_Metadata:
     m_Items: []
   m_KeyGenerator:

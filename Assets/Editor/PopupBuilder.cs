@@ -41,6 +41,10 @@ namespace FlickCurling.EditorTools
             ("Assets/Art/Menu/ui_slider_track.png", new Vector4(26, 22, 26, 22)),
             ("Assets/Art/Menu/ui_slider_fill.png", new Vector4(16, 13, 16, 13)),
             ("Assets/Art/Menu/ui_slider_handle.png", Vector4.zero),
+            ("Assets/Art/Menu/ui_dropdown.png", new Vector4(30, 30, 60, 30)),   // the right border holds the arrow's end cap
+            ("Assets/Art/Menu/ui_dropdown_arrow.png", Vector4.zero),
+            ("Assets/Art/Menu/ui_dropdown_list.png", new Vector4(40, 40, 40, 40)),
+            ("Assets/Art/Menu/ui_dropdown_item.png", new Vector4(30, 25, 30, 25)),
         };
 
         [MenuItem("FlickCurling/Import Popup Controls")]

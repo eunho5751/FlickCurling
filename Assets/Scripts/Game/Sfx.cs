@@ -61,7 +61,7 @@ namespace FlickCurling.Game
         {
             if (!On) return;
             if (clip == null) clip = make();
-            src.PlayOneShot(clip, 1);
+            src.PlayOneShot(clip, GameSettings.SfxVolume);
         }
 
         /// <summary>A turn begins: two rising bell notes.</summary>
@@ -120,7 +120,7 @@ namespace FlickCurling.Game
             float now = Time.realtimeSinceStartup;
             if (now - lastSound < 0.018f) return;
             lastSound = now;
-            src.PlayOneShot(Blip(freq, q, len), Mathf.Min(1, vol) * 0.9f);
+            src.PlayOneShot(Blip(freq, q, len), Mathf.Min(1, vol) * 0.9f * GameSettings.SfxVolume);
         }
 
         public void Chime(int k)
@@ -143,7 +143,7 @@ namespace FlickCurling.Game
                 clip.SetData(data, 0);
                 chimes[k] = clip;
             }
-            src.PlayOneShot(clip, 1);
+            src.PlayOneShot(clip, GameSettings.SfxVolume);
         }
     }
 }

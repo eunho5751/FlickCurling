@@ -18,7 +18,7 @@ namespace FlickCurling.EditorTools
     {
         public const string Dir = "Assets/Prefabs/UI";
         public const string PrimaryPath = Dir + "/Button_Primary.prefab", SecondaryPath = Dir + "/Button_Secondary.prefab";
-        public const string TogglePath = Dir + "/ToggleGroup.prefab", SliderPath = Dir + "/Slider.prefab";
+        public const string TogglePath = Dir + "/ToggleGroup.prefab", SliderPath = Dir + "/Slider.prefab", DropdownPath = Dir + "/Dropdown.prefab";
         public const string FaderPath = "Assets/Resources/" + ScreenFader.ResourcePath + ".prefab";   // loaded at run time
 
         // default sizes in the menu's reference pixels
@@ -37,6 +37,7 @@ namespace FlickCurling.EditorTools
             Save(MakeButton("Button_Secondary", Art("ui_button_secondary"), font), SecondaryPath);
             Save(MakeToggle(font), TogglePath);
             Save(MakeSlider(), SliderPath);
+            Save(MakeDropdown(font), DropdownPath);
             Save(MakeFader(), FaderPath);
             Debug.Log("FlickCurling: built the UI control prefabs in " + Dir);
         }
@@ -144,6 +145,70 @@ namespace FlickCurling.EditorTools
         {
             rt.anchorMin = new Vector2(0, 0.5f); rt.anchorMax = new Vector2(1, 0.5f);
             rt.sizeDelta = new Vector2(-2 * left, SliderH - 2 * inset); rt.anchoredPosition = Vector2.zero;
+        }
+
+        // a TMP dropdown on the dropdown art: the field (the arrow in its wooden end cap) and the list below it, its rows
+        // marked with the honey wood strip
+        const float DropdownW = 480, DropdownH = 82, DropdownRowH = 72;
+        static GameObject MakeDropdown(TMP_FontAsset font)
+        {
+            var res = new TMP_DefaultControls.Resources { standard = Art("ui_dropdown_item"), background = Art("ui_dropdown_list"), dropdown = Art("ui_dropdown"), checkmark = null, mask = null };
+            var go = TMP_DefaultControls.CreateDropdown(res);
+            go.name = "Dropdown";
+            var rt = (RectTransform)go.transform;
+            rt.sizeDelta = new Vector2(DropdownW, DropdownH);
+            var dd = go.GetComponent<TMP_Dropdown>();
+            var field = go.GetComponent<Image>();
+            field.sprite = Art("ui_dropdown"); field.type = Image.Type.Sliced; field.pixelsPerUnitMultiplier = field.sprite.rect.height / DropdownH;
+            Pressable(dd);
+
+            // the chosen option, on the cream face
+            var label = (TextMeshProUGUI)dd.captionText;
+            label.font = font; label.fontSize = 40; label.color = Ink; label.alignment = TextAlignmentOptions.Left;
+            label.rectTransform.offsetMin = new Vector2(28, 6); label.rectTransform.offsetMax = new Vector2(-(DropdownH + 10), -2);
+            // the arrow in the end cap
+            var arrow = go.transform.Find("Arrow").GetComponent<Image>();
+            arrow.sprite = Art("ui_dropdown_arrow"); arrow.preserveAspect = true; arrow.color = Color.white;
+            var art = arrow.rectTransform;
+            art.anchorMin = art.anchorMax = new Vector2(1, 0.5f); art.pivot = new Vector2(0.5f, 0.5f);
+            art.anchoredPosition = new Vector2(-DropdownH * 0.36f, 2); art.sizeDelta = new Vector2(DropdownH * 0.42f, DropdownH * 0.42f);
+
+            // the list: the wooden-rimmed parchment, a little below the field
+            var template = (RectTransform)go.transform.Find("Template");
+            var list = template.GetComponent<Image>();
+            list.sprite = Art("ui_dropdown_list"); list.type = Image.Type.Sliced; list.pixelsPerUnitMultiplier = 2;   // a thinner rim than the art
+            template.offsetMin = new Vector2(0, template.offsetMin.y); template.anchoredPosition = new Vector2(0, -6);
+            template.sizeDelta = new Vector2(0, DropdownRowH * 3);
+            // TMP sizes the list to its rows alone, so the viewport fills it and the rows keep clear of the rim themselves;
+            // a rect mask clips them to it
+            var viewport = (RectTransform)template.Find("Viewport");
+            viewport.offsetMin = viewport.offsetMax = Vector2.zero;
+            Object.DestroyImmediate(viewport.GetComponent<Mask>());
+            Object.DestroyImmediate(viewport.GetComponent<Image>());
+            viewport.gameObject.AddComponent<RectMask2D>();
+            var scrollbar = template.Find("Scrollbar");
+            if (scrollbar) Object.DestroyImmediate(scrollbar.gameObject);
+            template.GetComponent<ScrollRect>().verticalScrollbar = null;
+            var content = (RectTransform)viewport.Find("Content");
+            content.sizeDelta = new Vector2(0, DropdownRowH);
+            var item = (RectTransform)content.Find("Item");
+            item.sizeDelta = new Vector2(0, DropdownRowH);
+            var bg = item.Find("Item Background").GetComponent<Image>();
+            bg.sprite = Art("ui_dropdown_item"); bg.type = Image.Type.Sliced; bg.pixelsPerUnitMultiplier = bg.sprite.rect.height / (DropdownRowH - 18);
+            bg.rectTransform.offsetMin = new Vector2(12, 9); bg.rectTransform.offsetMax = new Vector2(-12, -9);
+            var toggle = item.GetComponent<Toggle>();
+            // the strip marks the hovered and the pressed row, and the chosen one through its checkmark
+            var tc = toggle.colors; tc.normalColor = new Color(1, 1, 1, 0); tc.highlightedColor = new Color(1, 1, 1, 0.55f);
+            tc.pressedColor = new Color(1, 1, 1, 0.8f); tc.selectedColor = new Color(1, 1, 1, 0.55f); toggle.colors = tc;
+            var check = item.Find("Item Checkmark").GetComponent<Image>();
+            check.sprite = Art("ui_dropdown_item"); check.type = Image.Type.Sliced; check.pixelsPerUnitMultiplier = bg.pixelsPerUnitMultiplier;
+            check.rectTransform.anchorMin = Vector2.zero; check.rectTransform.anchorMax = Vector2.one;
+            check.rectTransform.offsetMin = new Vector2(12, 9); check.rectTransform.offsetMax = new Vector2(-12, -9);
+            check.rectTransform.SetAsFirstSibling();
+            var itemLabel = item.Find("Item Label").GetComponent<TextMeshProUGUI>();
+            itemLabel.font = font; itemLabel.fontSize = 38; itemLabel.color = Ink; itemLabel.alignment = TextAlignmentOptions.Left;
+            itemLabel.rectTransform.offsetMin = new Vector2(36, 2); itemLabel.rectTransform.offsetMax = new Vector2(-24, 0);
+            return go;
         }
 
         // the screen fade: its own overlay canvas above everything, one dark cover that also blocks every touch

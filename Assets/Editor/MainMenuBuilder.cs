@@ -154,12 +154,14 @@ namespace FlickCurling.EditorTools
             var popup = (GameObject)PrefabUtility.InstantiatePrefab(popupPrefab, canvasGo.transform);
             popup.SetActive(false);
             var matchSetup = BuildMatchSetup(popupPrefab, canvasGo.transform, buttonFont);
+            var settingsPanel = BuildSettings(popupPrefab, canvasGo.transform);
 
             var menu = canvasGo.AddComponent<MainMenu>();
             var so = new SerializedObject(menu);
             so.FindProperty("safeArea").objectReferenceValue = safe;
             so.FindProperty("popup").objectReferenceValue = popup.GetComponent<Popup>();
             so.FindProperty("matchSetup").objectReferenceValue = matchSetup;
+            so.FindProperty("settings").objectReferenceValue = settingsPanel;
             var arr = so.FindProperty("entries");
             arr.arraySize = entries.Length;
             for (int i = 0; i < entries.Length; i++)
@@ -231,6 +233,81 @@ namespace FlickCurling.EditorTools
             so.ApplyModifiedPropertiesWithoutUndo();
             go.SetActive(false);
             return setup;
+        }
+
+        // ---- the settings popup: music, sound effects and aim sensitivity sliders (with their values) and the language
+        // dropdown, one row each, from the shared prefabs (Popup, Slider, Dropdown) ----
+
+        const float SettingsW = 860, SettingsH = 640, SettingsRowH = 92, SettingsLabelW = 230, SettingsValueW = 80;
+
+        static SettingsPanel BuildSettings(GameObject popupPrefab, Transform parent)
+        {
+            var go = (GameObject)PrefabUtility.InstantiatePrefab(popupPrefab, parent);
+            go.name = "SettingsPopup";
+            var legendFont = AssetDatabase.LoadAssetAtPath<TMP_FontAsset>(FontBuilder.DisplayPath);
+            var title = go.transform.Find("Window/TitleRow/Title").GetComponent<TextMeshProUGUI>();
+            title.text = UiStrings.Entries.First(e => e[0] == "settings.button")[1];
+            LocalizeEvents.BindText(title, Loc.Table, "settings.button");
+            // the menu button's gear beside the title
+            var icon = go.transform.Find("Window/TitleRow/Icon").GetComponent<Image>();
+            icon.sprite = AssetDatabase.LoadAssetAtPath<Sprite>(IconPath("mainmenu.settings"));
+            icon.gameObject.SetActive(true);
+            ((RectTransform)go.transform.Find("Window")).sizeDelta = new Vector2(SettingsW, SettingsH);
+
+            var content = (RectTransform)go.transform.Find("Window/Content");
+            var v = content.gameObject.AddComponent<VerticalLayoutGroup>();
+            v.spacing = 18; v.childAlignment = TextAnchor.UpperCenter;
+            v.childControlWidth = v.childControlHeight = true;
+            v.childForceExpandWidth = true; v.childForceExpandHeight = false;
+
+            var (music, musicValue) = SliderRow(content, legendFont, "settings.music", 0, 1, false);
+            var (sfx, sfxValue) = SliderRow(content, legendFont, "settings.sfx", 0, 1, false);
+            var (sens, sensValue) = SliderRow(content, legendFont, "settings.aimSens", 1, GameSettings.SensLevels, true);
+            var langRow = SettingsRow(content, "Row_language", legendFont, "settings.language");
+            var dd = UiPrefabBuilder.Place(UiPrefabBuilder.DropdownPath, langRow, "Language");
+            var dle = dd.AddComponent<LayoutElement>(); dle.flexibleWidth = 1; dle.preferredHeight = 82;
+            var lang = dd.GetComponent<TMP_Dropdown>();
+
+            var panel = go.AddComponent<SettingsPanel>();
+            var so = new SerializedObject(panel);
+            so.FindProperty("popup").objectReferenceValue = go.GetComponent<Popup>();
+            so.FindProperty("music").objectReferenceValue = music; so.FindProperty("musicValue").objectReferenceValue = musicValue;
+            so.FindProperty("sfx").objectReferenceValue = sfx; so.FindProperty("sfxValue").objectReferenceValue = sfxValue;
+            so.FindProperty("sens").objectReferenceValue = sens; so.FindProperty("sensValue").objectReferenceValue = sensValue;
+            so.FindProperty("language").objectReferenceValue = lang;
+            so.ApplyModifiedPropertiesWithoutUndo();
+            go.SetActive(false);
+            return panel;
+        }
+
+        // a settings row: the label on the left, then the control
+        static RectTransform SettingsRow(RectTransform parent, string name, TMP_FontAsset font, string key)
+        {
+            var row = Child<RectTransform>(parent, name);
+            var h = row.gameObject.AddComponent<HorizontalLayoutGroup>();
+            h.spacing = 16; h.childAlignment = TextAnchor.MiddleLeft;
+            h.childControlWidth = h.childControlHeight = true; h.childForceExpandWidth = h.childForceExpandHeight = false;
+            row.gameObject.AddComponent<LayoutElement>().preferredHeight = SettingsRowH;
+            var t = Label(row, "Label", font, 38, Ink);
+            t.alignment = TextAlignmentOptions.Left;
+            t.enableAutoSizing = true; t.fontSizeMin = 26; t.fontSizeMax = 38;
+            t.text = UiStrings.Entries.First(e => e[0] == key)[1];
+            LocalizeEvents.BindText(t, Loc.Table, key);
+            var le = t.gameObject.AddComponent<LayoutElement>(); le.preferredWidth = le.minWidth = SettingsLabelW; le.preferredHeight = SettingsRowH;
+            return row;
+        }
+
+        static (Slider, TextMeshProUGUI) SliderRow(RectTransform parent, TMP_FontAsset font, string key, float min, float max, bool whole)
+        {
+            var row = SettingsRow(parent, "Row_" + key.Substring("settings.".Length), font, key);
+            var go = UiPrefabBuilder.Place(UiPrefabBuilder.SliderPath, row, "Slider");
+            var le = go.AddComponent<LayoutElement>(); le.flexibleWidth = 1; le.preferredHeight = 76;
+            var s = go.GetComponent<Slider>();
+            s.minValue = min; s.maxValue = max; s.wholeNumbers = whole; s.value = max;
+            var value = Label(row, "Value", font, 36, Ink);
+            value.alignment = TextAlignmentOptions.Right;
+            var vle = value.gameObject.AddComponent<LayoutElement>(); vle.preferredWidth = vle.minWidth = SettingsValueW; vle.preferredHeight = SettingsRowH;
+            return (s, value);
         }
 
         static RectTransform Row(RectTransform parent, string name)

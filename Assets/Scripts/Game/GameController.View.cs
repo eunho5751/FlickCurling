@@ -190,18 +190,16 @@ namespace FlickCurling.Game
         // and follows it as it drags. Below it two hands: a drag left of the stone steers, a pull right of it sets the power (up or down from the
         // touch point). The pull is called off if it crosses to the aim side, leaves the screen, or another touch lands on
         // the power side.
-        void LoadSettings() => sensLevel = Mathf.Clamp(PlayerPrefs.GetInt(SensPref, 2), 0, SensMul.Length - 1);
+        void LoadSettings() => sensLevel = GameSettings.SensLevel;
 
-        // aim sensitivity, levels 1..5 in settings; level 3 is the original speed
+        // aim sensitivity, levels 1..5 in settings (shared with the main menu's, GameSettings); level 3 is the original speed
         static readonly float[] SensMul = { 0.5f, 0.75f, 1f, 1.5f, 2f };
-        const string SensPref = "flickcurling-aimsens";
-        int sensLevel = 2;
+        int sensLevel = GameSettings.DefaultSens;
         float Sens => SensMul[sensLevel];
         void StepSens(int dir)
         {
             sensLevel = Mathf.Clamp(sensLevel + dir, 0, SensMul.Length - 1);
-            PlayerPrefs.SetInt(SensPref, sensLevel);
-            PlayerPrefs.Save();
+            GameSettings.SensLevel = sensLevel;
             RenderSettings();
         }
         sealed class Finger { public bool Power; public Vector2 Start, Last; public bool Out, Moved; }
