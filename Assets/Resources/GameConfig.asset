@@ -22,7 +22,7 @@ MonoBehaviour:
   showHitMarker: 1
   launchRingRadius: 8
   launchRingWidth: 4.5
-  hitRingRadius: 4
-  hitRingWidth: 3
+  hitRingRadius: 5
+  hitRingWidth: 2.5
   lsdBumperRadius: 4
   lsdBumpersPerHalf: 2
