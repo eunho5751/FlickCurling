@@ -32,18 +32,17 @@ namespace FlickCurling.Game
     {
         public readonly Canvas Canvas;
         readonly CanvasScaler scaler;
-        readonly RectTransform root, scorePanel, scoreTable, br, more, toastLayer, cardOv, cardRt, labelLayer, miniFrame;
-        readonly TextMeshProUGUI sensTxt, scorePill, cardEyebrow, cardTitle, cardHead, cardBody, soundTxt, speedTxt;
+        readonly RectTransform root, scorePanel, scoreTable, toastLayer, cardOv, cardRt, labelLayer, miniFrame;
+        readonly TextMeshProUGUI scorePill, cardEyebrow, cardTitle, cardHead, cardBody;
         readonly Image cardOvImg;
         readonly RectTransform cardActions;
-        readonly Button speedBtn;
+        readonly Image gear;
         readonly LayoutElement pillLe;
         // safe-area root for the HUD, and the two side columns used on wide screens
         readonly RectTransform safeRoot, safeTop, leftCol, pillRt;
         bool sideMode, hudShown;
         float insL, insT, insR, insB;
         readonly List<(TextMeshProUGUI t, string key)> bound = new List<(TextMeshProUGUI, string)>();
-        readonly List<(TextMeshProUGUI t, string code)> langButtons = new List<(TextMeshProUGUI, string)>();
         // toasts: a stack sitting just above the fuse on the min line, the newest at the bottom
         sealed class ToastItem
         {
@@ -58,9 +57,8 @@ namespace FlickCurling.Game
         Image cardFill;
         Button cardFirst;
 
-        public Action OnMenu, OnSound, OnSpeed, OnUiClick;
-        public Action<string> OnLanguage;
-        public Action<int> OnSens;   // -1 / +1 from the arrow buttons
+        public Action OnSettings, OnUiClick;
+        const float GearSize = 40;   // css px
 
         public Hud(Transform parent)
         {
@@ -123,55 +121,17 @@ namespace FlickCurling.Game
             cardGroup = cardOv.gameObject.AddComponent<CanvasGroup>();
             cardOv.gameObject.SetActive(false);
 
-            // ---- bottom right: settings (language, sound, menu), speed. Above the overlays, as in the prototype ----
-            br = Ui.Rect(root, "HudBR");
-            // its own safe-area root, created last so the corner buttons draw above the cards
+            // ---- top right: the settings gear (the main menu's icon), above the overlays ----
+            // its own safe-area root, created last so the gear draws above the cards
             safeTop = Ui.Rect(root, "SafeTop"); Ui.Stretch(safeTop);
-            br.SetParent(safeTop, false);
-            br.anchorMin = br.anchorMax = new Vector2(1, 0); br.pivot = new Vector2(1, 0); br.anchoredPosition = new Vector2(-12, 12);
-            var bv = Ui.VStack(br.gameObject, 0, 0, 0, 0, 6, TextAnchor.LowerRight);
-            bv.childForceExpandWidth = false;
-            Ui.Fit(br.gameObject, true, true);
-            more = Ui.Panel(br, "More", Palette.Glass, Palette.Line, 10).rectTransform;
-            Ui.VStack(more.gameObject, 6, 6, 6, 6, 2);
-            var mb = Ui.Button(more, "", false, () => { ClosePopovers(); OnMenu?.Invoke(); }, 13);
-            Flat(mb);
-            Bind(Ui.ButtonText(mb), "settings.toMenu");
-            var sb = Ui.Button(more, "", false, () => OnSound?.Invoke(), 13);
-            Flat(sb);
-            soundTxt = Ui.ButtonText(sb);
-            var sens = Ui.Label(more, "", 11, Palette.Muted);
-            sens.margin = new Vector4(12, 6, 12, 0);
-            Bind(sens, "settings.aimSens");
-            var sensRow = Ui.Rect(more, "AimSensitivity");
-            Ui.HStack(sensRow.gameObject, 4, 4, 0, 2, 0, TextAnchor.MiddleLeft);
-            var sPrev = Ui.Button(sensRow, "◀", false, () => OnSens?.Invoke(-1), 13, "SensPrev");
-            Flat(sPrev); sPrev.GetComponent<HorizontalLayoutGroup>().padding = new RectOffset(8, 8, 6, 6);
-            sensTxt = Ui.NoWrap(Ui.Label(sensRow, "", 13, Palette.Text, false, TextAnchor.MiddleCenter));
-            sensTxt.gameObject.AddComponent<LayoutElement>().minWidth = 84;
-            var sNext = Ui.Button(sensRow, "▶", false, () => OnSens?.Invoke(1), 13, "SensNext");
-            Flat(sNext); sNext.GetComponent<HorizontalLayoutGroup>().padding = new RectOffset(8, 8, 6, 6);
-            var lang = Ui.Label(more, "", 11, Palette.Muted);
-            lang.margin = new Vector4(12, 6, 12, 0);
-            Bind(lang, "settings.language");
-            var langRow = Ui.Rect(more, "Languages");
-            Ui.HStack(langRow.gameObject, 4, 4, 0, 2, 0, TextAnchor.MiddleLeft);
-            for (int i = 0; i < Loc.Codes.Length; i++)
-            {
-                string code = Loc.Codes[i];
-                var lb = Ui.Button(langRow, Loc.NativeNames[i], false, () => OnLanguage?.Invoke(code), 13, "Lang_" + code);
-                Flat(lb);
-                lb.GetComponent<HorizontalLayoutGroup>().padding = new RectOffset(8, 8, 6, 6);
-                langButtons.Add((Ui.ButtonText(lb), code));
-            }
-            more.gameObject.SetActive(false);
-            speedBtn = Ui.Button(br, "", false, () => OnSpeed?.Invoke(), 14, "Speed");
-            Compact(speedBtn);
-            speedTxt = Ui.ButtonText(speedBtn);
-            speedBtn.gameObject.SetActive(false);
-            var moreBtn = Ui.Button(br, "", false, () => { bool open = !more.gameObject.activeSelf; ClosePopovers(); more.gameObject.SetActive(open); }, 14, "Settings");
-            Compact(moreBtn);
-            Bind(Ui.ButtonText(moreBtn), "settings.button");
+            gear = Ui.Rect(safeTop, "Settings").gameObject.AddComponent<Image>();
+            var grt = gear.rectTransform;
+            grt.anchorMin = grt.anchorMax = grt.pivot = new Vector2(1, 1); grt.anchoredPosition = new Vector2(-10, -10);
+            grt.sizeDelta = new Vector2(GearSize, GearSize);
+            gear.preserveAspect = true;
+            var gb = gear.gameObject.AddComponent<Button>();
+            var gc = gb.colors; gc.highlightedColor = new Color(1.06f, 1.06f, 1.06f); gc.pressedColor = new Color(.78f, .78f, .78f); gb.colors = gc;
+            gb.onClick.AddListener(() => { ClosePopovers(); OnSettings?.Invoke(); });
 
             Relocalize();
         }
@@ -192,27 +152,11 @@ namespace FlickCurling.Game
         public void Relocalize()
         {
             foreach (var (t, key) in bound) t.text = Loc.T(key);
-            foreach (var (t, code) in langButtons) t.color = code == Loc.Code ? Palette.Brass : Palette.Text;
             lastTable = null;
         }
 
-        static void Flat(Button b)
-        {
-            var img = (Image)b.targetGraphic;
-            img.color = new Color(0, 0, 0, 0);
-            var border = img.transform.Find("Border");
-            if (border) border.gameObject.SetActive(false);
-            var h = b.GetComponent<HorizontalLayoutGroup>();
-            h.padding = new RectOffset(12, 12, 8, 8); h.childAlignment = TextAnchor.MiddleLeft;
-            Ui.ButtonText(b).alignment = TextAlignmentOptions.Left;
-            b.transition = Selectable.Transition.None;
-        }
-
-        static void Compact(Button b)
-        {
-            ((Image)b.targetGraphic).color = Palette.Rgba(44, 32, 23, .92f);
-            b.GetComponent<HorizontalLayoutGroup>().padding = new RectOffset(12, 12, 6, 6);
-        }
+        /// <summary>The settings gear's art (the main menu's icon).</summary>
+        public Sprite SettingsIcon { set => gear.sprite = value; }
 
         // ---------------- per-frame ----------------
 
@@ -246,16 +190,12 @@ namespace FlickCurling.Game
         }
 
         public bool HudVisible { set { hudShown = value; ApplyHudVisibility(); if (!value) scorePanel.gameObject.SetActive(false); } }
-        public bool SpeedVisible { set => speedBtn.gameObject.SetActive(value); }
-        public string SpeedText { set => speedTxt.text = value; }
-        public string SoundText { set => soundTxt.text = value; }
-        public string SensText { set => sensTxt.text = value; }
 
         /// <summary>Bottom edge of the top HUD row plus a margin, in css px (the camera keeps the far end clear of it).</summary>
         public float HudBottom => insT + (hudShown && !sideMode ? 10 + leftCol.rect.height + 8 : 18);
 
-        /// <summary>Where the right edge is free from (css px from the top): nothing sits in the top-right corner.</summary>
-        public float RightColumnBottom => insT + 10;
+        /// <summary>Where the right edge is free from (css px from the top): under the settings gear.</summary>
+        public float RightColumnBottom => insT + 10 + GearSize + 8;
 
         public void SetInsets(float l, float t, float r, float b)
         {
@@ -299,7 +239,6 @@ namespace FlickCurling.Game
         public void ClosePopovers()
         {
             scorePanel.gameObject.SetActive(false);
-            more.gameObject.SetActive(false);
         }
 
         public void SetScorePill(string rich) { if (scorePill.text != rich) scorePill.text = rich; }

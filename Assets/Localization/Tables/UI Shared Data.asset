@@ -75,20 +75,8 @@ MonoBehaviour:
     m_Key: settings.toMenu
     m_Metadata:
       m_Items: []
-  - m_Id: 2262749195
-    m_Key: settings.soundOn
-    m_Metadata:
-      m_Items: []
-  - m_Id: 2262749196
-    m_Key: settings.soundOff
-    m_Metadata:
-      m_Items: []
   - m_Id: 2262749197
     m_Key: settings.language
-    m_Metadata:
-      m_Items: []
-  - m_Id: 2262749198
-    m_Key: settings.speed
     m_Metadata:
       m_Items: []
   - m_Id: 2262749199

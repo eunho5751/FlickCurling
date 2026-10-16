@@ -35,7 +35,7 @@ namespace FlickCurling.Game
             foreach (var e in entries)
             {
                 if (e.Key == "mainmenu.offline") e.Button.onClick.AddListener(matchSetup.Open);
-                else if (e.Key == "mainmenu.settings") e.Button.onClick.AddListener(settings.Open);
+                else if (e.Key == "mainmenu.settings") e.Button.onClick.AddListener(() => settings.Open());
             }
         }
 

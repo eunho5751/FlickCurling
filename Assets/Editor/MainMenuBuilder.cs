@@ -154,7 +154,10 @@ namespace FlickCurling.EditorTools
             var popup = (GameObject)PrefabUtility.InstantiatePrefab(popupPrefab, canvasGo.transform);
             popup.SetActive(false);
             var matchSetup = BuildMatchSetup(popupPrefab, canvasGo.transform, buttonFont);
-            var settingsPanel = BuildSettings(popupPrefab, canvasGo.transform);
+            var settingsPrefab = BuildSettingsPrefab(popupPrefab);
+            var settingsGo = (GameObject)PrefabUtility.InstantiatePrefab(settingsPrefab, canvasGo.transform);
+            settingsGo.SetActive(false);
+            var settingsPanel = settingsGo.GetComponent<SettingsPanel>();
 
             var menu = canvasGo.AddComponent<MainMenu>();
             var so = new SerializedObject(menu);
@@ -246,11 +249,14 @@ namespace FlickCurling.EditorTools
         // ---- the settings popup: music, sound effects and aim sensitivity sliders (with their values) and the language
         // dropdown, one row each, from the shared prefabs (Popup, Slider, Dropdown) ----
 
-        const float SettingsW = 860, SettingsH = 640, SettingsRowH = 92, SettingsLabelW = 230, SettingsValueW = 80;
+        const float SettingsToMenuW = 460;
+        const float SettingsW = 860, SettingsH = 650, SettingsRowH = 92, SettingsLabelW = 230, SettingsValueW = 80;
 
-        static SettingsPanel BuildSettings(GameObject popupPrefab, Transform parent)
+        public const string SettingsPrefabPath = "Assets/Resources/" + SettingsPanel.ResourcePath + ".prefab";   // the game loads it too
+
+        static GameObject BuildSettingsPrefab(GameObject popupPrefab)
         {
-            var go = (GameObject)PrefabUtility.InstantiatePrefab(popupPrefab, parent);
+            var go = (GameObject)PrefabUtility.InstantiatePrefab(popupPrefab);
             go.name = "SettingsPopup";
             var legendFont = AssetDatabase.LoadAssetAtPath<TMP_FontAsset>(FontBuilder.DisplayPath);
             var title = go.transform.Find("Window/TitleRow/Title").GetComponent<TextMeshProUGUI>();
@@ -276,6 +282,15 @@ namespace FlickCurling.EditorTools
             var dle = dd.AddComponent<LayoutElement>(); dle.flexibleWidth = 1; dle.preferredHeight = 82;
             var lang = dd.GetComponent<TMP_Dropdown>();
 
+            // in the game only: back to the main menu, at the bottom
+            var spacer = Child<RectTransform>(content, "Spacer");
+            spacer.gameObject.AddComponent<LayoutElement>().flexibleHeight = 1;
+            var toMenuRow = Child<RectTransform>(content, "ToMenuRow");
+            toMenuRow.gameObject.AddComponent<LayoutElement>().preferredHeight = SetupOkH;
+            var toMenuGo = UiPrefabBuilder.Place(UiPrefabBuilder.SecondaryPath, toMenuRow, "ToMenu");
+            Place((RectTransform)toMenuGo.transform, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(SettingsToMenuW, SetupOkH));
+            var toMenu = UiPrefabBuilder.SetLabel(toMenuGo, "settings.toMenu");
+
             var panel = go.AddComponent<SettingsPanel>();
             var so = new SerializedObject(panel);
             so.FindProperty("popup").objectReferenceValue = go.GetComponent<Popup>();
@@ -283,9 +298,14 @@ namespace FlickCurling.EditorTools
             so.FindProperty("sfx").objectReferenceValue = sfx; so.FindProperty("sfxValue").objectReferenceValue = sfxValue;
             so.FindProperty("sens").objectReferenceValue = sens; so.FindProperty("sensValue").objectReferenceValue = sensValue;
             so.FindProperty("language").objectReferenceValue = lang;
+            so.FindProperty("toMenuRow").objectReferenceValue = toMenuRow.gameObject;
+            so.FindProperty("toMenu").objectReferenceValue = toMenu;
+            so.FindProperty("Icon").objectReferenceValue = icon.sprite;
             so.ApplyModifiedPropertiesWithoutUndo();
             go.SetActive(false);
-            return panel;
+            var prefab = PrefabUtility.SaveAsPrefabAsset(go, SettingsPrefabPath);
+            Object.DestroyImmediate(go);
+            return prefab;
         }
 
         // a settings row: the label on the left, then the control

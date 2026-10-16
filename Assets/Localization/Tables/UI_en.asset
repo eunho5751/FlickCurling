@@ -78,26 +78,13 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 2262749194
-    m_Localized: Back to menu
-    m_Metadata:
-      m_Items: []
-  - m_Id: 2262749195
-    m_Localized: Sound on
-    m_Metadata:
-      m_Items: []
-  - m_Id: 2262749196
-    m_Localized: Sound off
+    m_Localized: Back to Main Menu
     m_Metadata:
       m_Items: []
   - m_Id: 2262749197
     m_Localized: Language
     m_Metadata:
       m_Items: []
-  - m_Id: 2262749198
-    m_Localized: "{n}\xD7 speed"
-    m_Metadata:
-      m_Items:
-      - rid: 4297768082125881571
   - m_Id: 2262749199
     m_Localized: Last
     m_Metadata:
@@ -405,7 +392,6 @@ MonoBehaviour:
         m_SharedEntries:
         - id: 2254360590
         - id: 2262749184
-        - id: 2262749198
         - id: 2262749202
         - id: 2262749205
         - id: 2262749209

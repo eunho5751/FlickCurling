@@ -43,14 +43,11 @@ namespace FlickCurling.EditorTools
 
             // ---- settings ----
             new[] { "settings.button", "설정", "Settings", "設定" },
-            new[] { "settings.toMenu", "메뉴로 나가기", "Back to menu", "メニューに戻る" },
-            new[] { "settings.soundOn", "소리 켬", "Sound on", "サウンド オン" },
-            new[] { "settings.soundOff", "소리 끔", "Sound off", "サウンド オフ" },
+            new[] { "settings.toMenu", "메인 메뉴로 이동", "Back to Main Menu", "メインメニューへ" },
             new[] { "settings.aimSens", "방향 감도", "Aim Sensitivity", "照準感度" },
             new[] { "settings.music", "배경음", "Music", "BGM" },
             new[] { "settings.sfx", "효과음", "Sound Effects", "効果音" },
             new[] { "settings.language", "언어", "Language", "言語" },
-            new[] { "settings.speed", "{n}배속", "{n}× speed", "{n}倍速" },
 
             // ---- HUD ----
             new[] { "hud.hammer", "후공", "Last", "後攻" },

@@ -196,12 +196,7 @@ namespace FlickCurling.Game
         static readonly float[] SensMul = { 0.5f, 0.75f, 1f, 1.5f, 2f };
         int sensLevel = GameSettings.DefaultSens;
         float Sens => SensMul[sensLevel];
-        void StepSens(int dir)
-        {
-            sensLevel = Mathf.Clamp(sensLevel + dir, 0, SensMul.Length - 1);
-            GameSettings.SensLevel = sensLevel;
-            RenderSettings();
-        }
+
         sealed class Finger { public bool Power; public Vector2 Start, Last; public bool Out, Moved; }
         readonly Dictionary<int, Finger> fingers = new Dictionary<int, Finger>();
         double aimAng;      // radians from straight up the sheet

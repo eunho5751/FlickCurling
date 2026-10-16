@@ -78,26 +78,13 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 2262749194
-    m_Localized: "\uBA54\uB274\uB85C \uB098\uAC00\uAE30"
-    m_Metadata:
-      m_Items: []
-  - m_Id: 2262749195
-    m_Localized: "\uC18C\uB9AC \uCF2C"
-    m_Metadata:
-      m_Items: []
-  - m_Id: 2262749196
-    m_Localized: "\uC18C\uB9AC \uB054"
+    m_Localized: "\uBA54\uC778 \uBA54\uB274\uB85C \uC774\uB3D9"
     m_Metadata:
       m_Items: []
   - m_Id: 2262749197
     m_Localized: "\uC5B8\uC5B4"
     m_Metadata:
       m_Items: []
-  - m_Id: 2262749198
-    m_Localized: "{n}\uBC30\uC18D"
-    m_Metadata:
-      m_Items:
-      - rid: 4297768082125881572
   - m_Id: 2262749199
     m_Localized: "\uD6C4\uACF5"
     m_Metadata:
@@ -405,7 +392,6 @@ MonoBehaviour:
         m_SharedEntries:
         - id: 2254360590
         - id: 2262749184
-        - id: 2262749198
         - id: 2262749202
         - id: 2262749205
         - id: 2262749209

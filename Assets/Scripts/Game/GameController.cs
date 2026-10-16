@@ -180,14 +180,13 @@ namespace FlickCurling.Game
 
             sfx = new Sfx(gameObject);
             hud = new Hud(transform);
-            hud.OnMenu = ToMenu;
-            hud.OnSound = () => { sfx.On = !sfx.On; RenderSettings(); };
-            hud.OnSpeed = () => { speed = speed == 1 ? 2 : speed == 2 ? 4 : 1; RenderSettings(); };
-            hud.OnLanguage = Loc.Select;
-            hud.OnSens = StepSens;
+            // the settings gear opens the shared settings popup (Resources/SettingsPopup), with a way back to the menu
+            settingsPrefab = Resources.Load<SettingsPanel>(SettingsPanel.ResourcePath);
+            if (settingsPrefab) hud.SettingsIcon = settingsPrefab.Icon;
+            hud.OnSettings = OpenSettings;
+            GameSettings.Changed += OnSettingsChanged;
             LoadSettings();
             Loc.Changed += OnLocaleChanged;
-            RenderSettings();
             Resize(true);
             // the match picked in the main menu, or (the scene opened straight in the editor) two players on the basic map
             if (MatchLaunch.Take(out bool vsAi, out var level, out string map))
@@ -195,7 +194,35 @@ namespace FlickCurling.Game
             else StartMatch(Mode.Pvp, "base", 0, 0);
         }
 
-        void OnDestroy() => Loc.Changed -= OnLocaleChanged;
+        void OnDestroy() { Loc.Changed -= OnLocaleChanged; GameSettings.Changed -= OnSettingsChanged; }
+
+        SettingsPanel settingsPrefab, settings;
+        bool SettingsOpen => settings && settings.IsOpen;
+
+        // the popup on its own canvas above the HUD, laid out like the main menu (1080 x 1920 reference)
+        void OpenSettings()
+        {
+            if (!settingsPrefab) return;
+            if (!settings)
+            {
+                var go = new GameObject("SettingsCanvas", typeof(RectTransform));
+                go.transform.SetParent(transform, false);
+                var canvas = go.AddComponent<Canvas>();
+                canvas.renderMode = RenderMode.ScreenSpaceOverlay; canvas.sortingOrder = hud.Canvas.sortingOrder + 10;
+                var scaler = go.AddComponent<UnityEngine.UI.CanvasScaler>();
+                scaler.uiScaleMode = UnityEngine.UI.CanvasScaler.ScaleMode.ScaleWithScreenSize;
+                scaler.referenceResolution = new Vector2(1080, 1920);
+                scaler.screenMatchMode = UnityEngine.UI.CanvasScaler.ScreenMatchMode.Expand;
+                go.AddComponent<UnityEngine.UI.GraphicRaycaster>();
+                settings = Instantiate(settingsPrefab, go.transform);
+                settings.ToMenu += ToMenu;
+            }
+            ResetShotInput();   // a pull under way is let go without a shot
+            settings.Open(true);
+        }
+
+        // the aim sensitivity can change from the settings popup
+        void OnSettingsChanged() => sensLevel = GameSettings.SensLevel;
 
         // a human to aim and not yet pulling: loop the pulse; otherwise stop it at scale 1
         void UpdateTurnPulse()
@@ -215,17 +242,11 @@ namespace FlickCurling.Game
         void OnLocaleChanged()
         {
             hud.Relocalize();
-            RenderSettings();
             RenderHud();
             if (hud.CardVisible && cardFactory != null) hud.ReplaceCard(cardFactory(), null);
         }
 
-        void RenderSettings()
-        {
-            hud.SoundText = Loc.T(sfx.On ? "settings.soundOn" : "settings.soundOff");
-            hud.SpeedText = Loc.T("settings.speed", ("n", speed));
-            hud.SensText = (sensLevel + 1).ToString();
-        }
+
 
         static int LayerOr(string name, int fallback) { int l = LayerMask.NameToLayer(name); return l >= 0 ? l : fallback; }
 
@@ -257,7 +278,6 @@ namespace FlickCurling.Game
             ai[0] = ai[1] = null;
             if (md == Mode.Watch) { ai[0] = (AiLevel)b; ai[1] = (AiLevel)w; }
             else if (md != Mode.Pvp) ai[1] = (AiLevel)(md - Mode.Easy);
-            hud.SpeedVisible = md == Mode.Watch;
             hud.HudVisible = true;
             int seed = fx.Next();
             m = new Match(Maps.Build(key), PhysicsParams.Default, seed) { Listener = new LiveEvents(this) };
@@ -449,10 +469,10 @@ namespace FlickCurling.Game
             clockWait = ClockWait + (!m.InLsd && m.Shot == 0 ? 0.45f : 0);   // the end's first turn toast stays up longer
         }
 
-        // real time, held while the turn toast is up or a card covers the sheet
+        // real time, held while the turn toast is up, a card covers the sheet or the settings popup is open
         void TickClock(float rdt)
         {
-            if (clock < 0 || !HumanAim || hud.CardVisible) return;
+            if (clock < 0 || !HumanAim || hud.CardVisible || SettingsOpen) return;
             if (clockWait > 0) { clockWait -= rdt; return; }
             float before = clock;
             clock -= rdt;
