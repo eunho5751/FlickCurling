@@ -26,9 +26,30 @@ namespace FlickCurling.EditorTools
         const float WindowW = 860, WindowH = 760, TitleW = 560, TitleH = 120, CloseSize = 110;
         static readonly Color32 Cream = new Color32(0xf6, 0xea, 0xd2, 0xff), Ink = new Color32(0x4a, 0x2a, 0x12, 0xff);
 
+        // the controls that go on the popup (Codex, same plain style), each with its 9-slice border in source pixels (left,
+        // bottom, right, top): a segmented toggle group (groove and the sliding selected segment), primary and secondary
+        // buttons, and a slider (groove, fill, a go-stone handle)
+        public static readonly (string path, Vector4 border)[] Controls =
+        {
+            ("Assets/Art/Menu/ui_toggle_track.png", new Vector4(60, 50, 60, 50)),
+            ("Assets/Art/Menu/ui_toggle_on.png", new Vector4(48, 40, 48, 40)),
+            ("Assets/Art/Menu/ui_button_primary.png", new Vector4(60, 55, 60, 55)),
+            ("Assets/Art/Menu/ui_button_secondary.png", new Vector4(60, 50, 60, 50)),
+            ("Assets/Art/Menu/ui_slider_track.png", new Vector4(30, 25, 30, 25)),
+            ("Assets/Art/Menu/ui_slider_fill.png", new Vector4(34, 30, 34, 30)),
+            ("Assets/Art/Menu/ui_slider_handle.png", Vector4.zero),
+        };
+
+        [MenuItem("FlickCurling/Import Popup Controls")]
+        public static void ImportControls()
+        {
+            foreach (var c in Controls) MainMenuBuilder.ImportSprite(c.path, c.border, 512);
+        }
+
         [MenuItem("FlickCurling/Build Popup Prefab")]
         public static GameObject Build()
         {
+            ImportControls();
             var panel = MainMenuBuilder.ImportSprite(PanelPath, PanelBorder, 512);
             var plate = MainMenuBuilder.ImportSprite(TitlePath, TitleBorder, 1024);
             var close = MainMenuBuilder.ImportSprite(ClosePath, Vector4.zero, 256);
