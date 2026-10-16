@@ -539,10 +539,8 @@ namespace FlickCurling.Game
                 {
                     // the aim line is always up on your turn; the gauge fills while power is pulled
                     DrawAim(aimAng, Charging ? power : 0);
-                    if (Charging)
-                    {
-                        aim.Ring(World(powerStart), U(10), U(1.5f), Palette.Rgba(239, 226, 200, .45f));
-                    }
+                    // a small ring where the pull began
+                    if (Charging) aim.Ring(World(powerStart), U(10), U(1.5f), Palette.Rgba(239, 226, 200, .45f));
                     // the tapped target's marker, fixed where it was tapped; fine-tuning moves only the aim line
                     if (target.HasValue)
                     {
@@ -611,36 +609,41 @@ namespace FlickCurling.Game
             EndStones(); hud.EndLabels();
         }
 
+        // a ring gauge: a dark backing and a light track, filled clockwise from the top in one continuous ramp
+        // blue -> violet -> red (never through yellow, which vanishes on the wood); radius in sheet units, width in
+        // screen points
+        void DrawRingGauge(Vector2 c, float radius, float width, float pw)
+        {
+            aim.Ring(c, radius, U(width * 16 / 9f), Palette.Rgba(32, 20, 11, .6f));
+            aim.Ring(c, radius, U(width * 8 / 9f), Palette.Rgba(239, 226, 200, .18f));
+            if (pw <= 0) return;
+            var col = Palette.Hsl((220 + 145 * pw) % 360, 0.65f, (58 - 6 * pw) / 100f);
+            aim.Arc(c, radius, U(width), Mathf.PI / 2, Mathf.PI / 2 - pw * Mathf.PI * 2, col);
+        }
+
         void DrawAim(double ang, float pw)
         {
             var lp = new Vector2((float)m.LaunchX, LY);
             float lx = X(lp.x), ly = Y(lp.y);
-            // power gauge: dark backing ring so it reads on wood and on the dark table alike
-            float gr = SR + 4;
-            aim.Ring(lp, gr, U(8), Palette.Rgba(32, 20, 11, .6f));
-            aim.Ring(lp, gr, U(4), Palette.Rgba(239, 226, 200, .18f));
-            // one continuous ramp blue -> violet -> red (never through yellow, which vanishes on the wood)
-            var col = Palette.Hsl((220 + 145 * pw) % 360, 0.65f, (58 - 6 * pw) / 100f);
-            aim.Arc(lp, gr, U(4.5f), Mathf.PI / 2, Mathf.PI / 2 - pw * Mathf.PI * 2, col);
-            // direction arrow
             var dir = new Vector2((float)Math.Sin(ang), (float)Math.Cos(ang));
-            float len = 18 + pw * 70, r0 = SR * s + 6;
-            var a = lp + dir * U(r0); var b = lp + dir * U(r0 + len);
-            aim.Line(a, b, U(3), col);
-            var back = -dir * U(9);
-            aim.Tri(b, b + Rot(back, 0.45f), b + Rot(back, -0.45f), col);
+            float r0 = SR * s + 6;
+            // power gauge round the stone (radius and width from GameConfig)
+            DrawRingGauge(lp, launchRingRadius, launchRingWidth, pw);
             // aim line to first contact (or, with the hit marker off, on to a wall or the far end)
             var hit = AimRay(ang, !showHitMarker);
-            aim.Dashed(lp, hit.p, U(1.5f), U(5), U(5), Palette.Rgba(40, 24, 12, .6f));
+            // the dashes run between the two rings, stopping at their outer edges
+            float from = launchRingRadius + U(launchRingWidth * 8 / 9f), to = Vector2.Distance(lp, hit.p) - (hit.kind != HitKind.None ? hitRingRadius + U(hitRingWidth * 8 / 9f) : 0);
+            if (to > from) aim.Dashed(lp + dir * from, lp + dir * to, U(1.5f), U(5), U(5), Palette.Rgba(40, 24, 12, .6f));
+            // where the line ends is a second power gauge, so the power reads where the player is looking
+            if (hit.kind != HitKind.None) DrawRingGauge(hit.p, hitRingRadius, hitRingWidth, pw);
             bool noTicket = !m.InLsd && !Sheet.UnlimitedTickets && state == St.Aim && m.Tickets[(int)m.Cur] <= 0;
             if (hit.kind == HitKind.Wall && noTicket)
             {
-                aim.Ring(hit.p, SR, U(2), Palette.Hex("#c0503a"));
+                aim.Ring(hit.p, hitRingRadius + U(hitRingWidth + 2), U(2), Palette.Hex("#c0503a"));
                 bool leftSide = hit.p.x < W / 2;
-                hud.Label(Loc.T("float.noTicket"), X(hit.p.x) + (leftSide ? 1 : -1) * (SR * s + 6), Y(hit.p.y), 12, Palette.Hex("#ff9c84"), leftSide ? -1 : 1, false, true);
+                hud.Label(Loc.T("float.noTicket"), X(hit.p.x) + (leftSide ? 1 : -1) * (hitRingRadius * s + 10), Y(hit.p.y), 12, Palette.Hex("#ff9c84"), leftSide ? -1 : 1, false, true);
             }
-            else if (hit.kind != HitKind.None && showHitMarker) aim.Ring(hit.p, SR, U(1.2f), Palette.Rgba(40, 24, 12, .55f));
-            float tl = r0 + len + 18;
+            float tl = r0 + 26;
             if (pw > 0 && showPowerPercent) hud.Label($"{Mathf.RoundToInt(pw * 100)}%", lx + dir.x * tl, ly - dir.y * tl, 15, Palette.Hex("#ffe2a6"), 0, true, true);
         }
 
@@ -668,8 +671,6 @@ namespace FlickCurling.Game
             }
             fuse.Burn(new Vector3(tip.x, tip.y, -1), burning, 1 - left);
         }
-
-        static Vector2 Rot(Vector2 v, float a) => new Vector2(v.x * Mathf.Cos(a) - v.y * Mathf.Sin(a), v.x * Mathf.Sin(a) + v.y * Mathf.Cos(a));
 
         // printed on the sheet between the launch line and the min line, sized in sheet units like the other markings;
         // it fades while a shot is being aimed so the aim arrow reads over it

@@ -65,6 +65,7 @@ namespace FlickCurling.Game
         // your-turn pulse: the launch stone and the turn line grow and shrink while a human is to aim
         float turnPulse = 1;
         bool showPowerPercent = true, showHitMarker = true;   // from GameConfig
+        float launchRingRadius = 8, launchRingWidth = 4.5f, hitRingRadius = 4, hitRingWidth = 3;
         // the shot clock: a human has this long to throw once the turn toast has gone, or the stone is lost
         const float ClockWait = 1.45f;
         float ShotTime = 15;   // from GameConfig
@@ -116,6 +117,8 @@ namespace FlickCurling.Game
             showPowerPercent = config.showPowerPercent;
             showHitMarker = config.showHitMarker;
             ShotTime = config.turnSeconds;
+            launchRingRadius = config.launchRingRadius; launchRingWidth = config.launchRingWidth;
+            hitRingRadius = config.hitRingRadius; hitRingWidth = config.hitRingWidth;
             Application.targetFrameRate = 60;
             Loc.Init();
             if (!mainCam) mainCam = Camera.main;

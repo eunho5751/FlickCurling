@@ -31,8 +31,16 @@ namespace FlickCurling.Game
         [Header("Shot gauge")]
         [Tooltip("Show the power percentage beside the aim arrow while pulling")]
         public bool showPowerPercent = true;
-        [Tooltip("Show a ring where the aim line first meets a stone, post or wall (the no-ticket warning on a wall always shows)")]
+        [Tooltip("On: the aim line stops where it first meets a stone, post or wall. Off: it runs through stones and posts to a wall or the far end. Its ring gauge sits at the end either way")]
         public bool showHitMarker = true;
+        [Tooltip("Radius, in sheet units, of the power gauge ring round the launch stone (the stone's radius is 4 by default)")]
+        [Range(2f, 20f)] public float launchRingRadius = 8;
+        [Tooltip("Width, in screen points, of that ring's fill (its dark backing and track scale with it)")]
+        [Range(1f, 12f)] public float launchRingWidth = 4.5f;
+        [Tooltip("Radius, in sheet units, of the power gauge ring where the aim line ends")]
+        [Range(2f, 20f)] public float hitRingRadius = 4;
+        [Tooltip("Width, in screen points, of that ring's fill")]
+        [Range(1f, 12f)] public float hitRingWidth = 3;
 
         [Header("Turn order shot")]
         [Tooltip("Radius of every bumper, the one in front of the house included")]

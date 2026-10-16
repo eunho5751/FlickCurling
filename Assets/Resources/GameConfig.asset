@@ -15,10 +15,14 @@ MonoBehaviour:
   ends: 4
   shotsPerTeam: 4
   cushionTickets: 1
-  unlimitedTickets: 0
+  unlimitedTickets: 1
   turnSeconds: 20
   stoneRadius: 5
-  showPowerPercent: 1
+  showPowerPercent: 0
   showHitMarker: 1
+  launchRingRadius: 8
+  launchRingWidth: 4.5
+  hitRingRadius: 4
+  hitRingWidth: 3
   lsdBumperRadius: 4
   lsdBumpersPerHalf: 2

@@ -210,8 +210,6 @@ namespace FlickCurling.Game
             cv.Rect(0, HOG - 1.5f / FIT, W, HOG + 1.5f / FIT, Palette.Rgba(59, 36, 20, .5f));   // light: the shot-clock fuse lies on it
             cv.Rect(0, BACK - 1f / FIT, W, BACK + 1f / FIT, Palette.Hex("#3b2414"));
 
-            // launch mark
-            foreach (var lx in Sheet.Lanes) cv.Ring((float)lx, (float)Sheet.LaunchY, SR + 1.6f, 1.5f / FIT, Palette.Rgba(52, 32, 16, .5f));
 
             // posts
             foreach (var p in f.Posts)
