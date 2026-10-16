@@ -191,6 +191,9 @@ namespace FlickCurling.Game
             RenderSettings();
             Resize(true);
             ToMenu();
+            // a match picked in the main menu starts at once, without the setup card
+            if (MatchLaunch.Take(out bool vsAi, out var level, out string map))
+                StartMatch(vsAi ? Mode.Easy + (int)level : Mode.Pvp, map, 0, 0);
         }
 
         void OnDestroy() => Loc.Changed -= OnLocaleChanged;

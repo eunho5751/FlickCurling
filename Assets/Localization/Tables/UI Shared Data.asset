@@ -391,6 +391,30 @@ MonoBehaviour:
     m_Key: hud.first
     m_Metadata:
       m_Items: []
+  - m_Id: 807220323209216
+    m_Key: matchsetup.titleAi
+    m_Metadata:
+      m_Items: []
+  - m_Id: 807220369346560
+    m_Key: matchsetup.titleLocal
+    m_Metadata:
+      m_Items: []
+  - m_Id: 807220369346561
+    m_Key: matchsetup.mode
+    m_Metadata:
+      m_Items: []
+  - m_Id: 807220369346562
+    m_Key: matchsetup.modeBasic
+    m_Metadata:
+      m_Items: []
+  - m_Id: 807220369346563
+    m_Key: matchsetup.level
+    m_Metadata:
+      m_Items: []
+  - m_Id: 807220369346564
+    m_Key: matchsetup.ok
+    m_Metadata:
+      m_Items: []
   m_Metadata:
     m_Items: []
   m_KeyGenerator:

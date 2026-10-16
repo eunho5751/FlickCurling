@@ -152,11 +152,13 @@ namespace FlickCurling.EditorTools
             var popupPrefab = PopupBuilder.Build();
             var popup = (GameObject)PrefabUtility.InstantiatePrefab(popupPrefab, canvasGo.transform);
             popup.SetActive(false);
+            var matchSetup = BuildMatchSetup(popupPrefab, canvasGo.transform, buttonFont);
 
             var menu = canvasGo.AddComponent<MainMenu>();
             var so = new SerializedObject(menu);
             so.FindProperty("safeArea").objectReferenceValue = safe;
             so.FindProperty("popup").objectReferenceValue = popup.GetComponent<Popup>();
+            so.FindProperty("matchSetup").objectReferenceValue = matchSetup;
             var arr = so.FindProperty("entries");
             arr.arraySize = entries.Length;
             for (int i = 0; i < entries.Length; i++)
@@ -176,6 +178,132 @@ namespace FlickCurling.EditorTools
             EditorBuildSettings.scenes = scenes.ToArray();
             AssetDatabase.SaveAssets();
             Debug.Log("FlickCurling: built " + ScenePath);
+        }
+
+        // ---- the match setup popup (vs AI / local): mode and AI level as group toggles, and OK ----
+
+        const float SetupLegendH = 52, SetupToggleH = 96, SetupGap = 22, SetupOkW = 380, SetupOkH = 112;
+        static readonly Color32 Ink = new Color32(0x4a, 0x2a, 0x12, 0xff), Cream = new Color32(0xf6, 0xea, 0xd2, 0xff);
+
+        static MatchSetup BuildMatchSetup(GameObject popupPrefab, Transform parent, TMP_FontAsset buttonFont)
+        {
+            var go = (GameObject)PrefabUtility.InstantiatePrefab(popupPrefab, parent);
+            go.name = "MatchSetupPopup";
+            var legendFont = AssetDatabase.LoadAssetAtPath<TMP_FontAsset>(FontBuilder.DisplayPath);
+            var title = go.transform.Find("Window/TitlePlate/Title").GetComponent<TextMeshProUGUI>();
+            title.text = UiStrings.Entries.First(e => e[0] == "matchsetup.titleAi")[1];
+            var titleEvent = LocalizeEvents.BindText(title, Loc.Table, "matchsetup.titleAi");   // switched to the local title at runtime
+
+            var content = (RectTransform)go.transform.Find("Window/Content");
+            var v = content.gameObject.AddComponent<VerticalLayoutGroup>();
+            v.spacing = SetupGap; v.childAlignment = TextAnchor.UpperCenter;
+            v.childControlWidth = v.childControlHeight = true;
+            v.childForceExpandWidth = true; v.childForceExpandHeight = false;
+
+            var modeRow = Row(content, "ModeRow");
+            Legend(modeRow, legendFont, "matchsetup.mode");
+            var mode = Segmented(modeRow, buttonFont, new[] { "matchsetup.modeBasic" }, 0);
+            var levelRow = Row(content, "LevelRow");
+            Legend(levelRow, legendFont, "matchsetup.level");
+            var level = Segmented(levelRow, buttonFont, new[] { "level.easy", "level.normal", "level.hard" }, 1);
+
+            // OK, centred under the toggles; the space above it soaks up the rest of the window
+            var spacer = Child<RectTransform>(content, "Spacer");
+            spacer.gameObject.AddComponent<LayoutElement>().flexibleHeight = 1;
+            var okRow = Child<RectTransform>(content, "OkRow");
+            okRow.gameObject.AddComponent<LayoutElement>().preferredHeight = SetupOkH;
+            var okImg = Child<Image>(okRow, "Ok");
+            var okSprite = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Art/Menu/ui_button_primary.png");
+            Place(okImg.rectTransform, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(SetupOkW, SetupOkH));
+            okImg.sprite = okSprite; okImg.type = Image.Type.Sliced; okImg.pixelsPerUnitMultiplier = okSprite.rect.height / SetupOkH;
+            var ok = okImg.gameObject.AddComponent<Button>();
+            var cb = ok.colors; cb.highlightedColor = new Color(1.06f, 1.06f, 1.06f); cb.pressedColor = new Color(.82f, .82f, .82f); ok.colors = cb;
+            var okLabel = Label(okImg.transform, "Label", buttonFont, 48, Cream);
+            Stretch(okLabel.rectTransform); okLabel.rectTransform.offsetMin = new Vector2(0, 8);
+            okLabel.text = UiStrings.Entries.First(e => e[0] == "matchsetup.ok")[1];
+            LocalizeEvents.BindText(okLabel, Loc.Table, "matchsetup.ok");
+
+            var setup = go.AddComponent<MatchSetup>();
+            var so = new SerializedObject(setup);
+            so.FindProperty("popup").objectReferenceValue = go.GetComponent<Popup>();
+            so.FindProperty("title").objectReferenceValue = titleEvent;
+            so.FindProperty("mode").objectReferenceValue = mode;
+            so.FindProperty("levelRow").objectReferenceValue = levelRow.gameObject;
+            so.FindProperty("level").objectReferenceValue = level;
+            so.FindProperty("ok").objectReferenceValue = ok;
+            so.ApplyModifiedPropertiesWithoutUndo();
+            go.SetActive(false);
+            return setup;
+        }
+
+        static RectTransform Row(RectTransform parent, string name)
+        {
+            var row = Child<RectTransform>(parent, name);
+            var v = row.gameObject.AddComponent<VerticalLayoutGroup>();
+            v.spacing = 6; v.childControlWidth = v.childControlHeight = true;
+            v.childForceExpandWidth = true; v.childForceExpandHeight = false;
+            return row;
+        }
+
+        static void Legend(RectTransform row, TMP_FontAsset font, string key)
+        {
+            var t = Label(row, "Legend", font, 36, Ink);
+            t.alignment = TextAlignmentOptions.Left;
+            t.text = UiStrings.Entries.First(e => e[0] == key)[1];
+            LocalizeEvents.BindText(t, Loc.Table, key);
+            t.gameObject.AddComponent<LayoutElement>().preferredHeight = SetupLegendH;
+        }
+
+        // a groove split into one equal option per key, with the wooden segment over the selected one
+        static SegmentedToggle Segmented(RectTransform row, TMP_FontAsset font, string[] keys, int selected)
+        {
+            var track = Child<Image>(row, "Toggle");
+            var trackSprite = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Art/Menu/ui_toggle_track.png");
+            track.sprite = trackSprite; track.type = Image.Type.Sliced; track.pixelsPerUnitMultiplier = trackSprite.rect.height / SetupToggleH;
+            track.gameObject.AddComponent<LayoutElement>().preferredHeight = SetupToggleH;
+
+            // the knob and the options sit inside the groove's rim
+            var inner = Child<RectTransform>(track.transform, "Inner");
+            Stretch(inner); inner.offsetMin = new Vector2(8, 9); inner.offsetMax = new Vector2(-8, -9);
+            var knob = Child<Image>(inner, "Knob");
+            var knobSprite = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Art/Menu/ui_toggle_on.png");
+            knob.sprite = knobSprite; knob.type = Image.Type.Sliced; knob.pixelsPerUnitMultiplier = knobSprite.rect.height / (SetupToggleH - 18);
+            knob.raycastTarget = false;
+            var krt = knob.rectTransform;
+            krt.anchorMin = new Vector2((float)selected / keys.Length, 0); krt.anchorMax = new Vector2((float)(selected + 1) / keys.Length, 1);
+            krt.offsetMin = krt.offsetMax = Vector2.zero;
+
+            var buttons = new Button[keys.Length];
+            var labels = new TextMeshProUGUI[keys.Length];
+            for (int i = 0; i < keys.Length; i++)
+            {
+                var hit = Child<Image>(inner, "Option" + i);
+                hit.color = new Color(1, 1, 1, 0);   // only takes the tap
+                var rt = hit.rectTransform;
+                rt.anchorMin = new Vector2((float)i / keys.Length, 0); rt.anchorMax = new Vector2((float)(i + 1) / keys.Length, 1);
+                rt.offsetMin = rt.offsetMax = Vector2.zero;
+                var b = hit.gameObject.AddComponent<Button>();
+                b.transition = Selectable.Transition.None;
+                var label = Label(hit.transform, "Label", font, 40, i == selected ? Cream : Ink);
+                Stretch(label.rectTransform); label.rectTransform.offsetMin = new Vector2(0, 4);
+                label.text = UiStrings.Entries.First(e => e[0] == keys[i])[1];
+                LocalizeEvents.BindText(label, Loc.Table, keys[i]);
+                buttons[i] = b; labels[i] = label;
+            }
+
+            var toggle = track.gameObject.AddComponent<SegmentedToggle>();
+            var so = new SerializedObject(toggle);
+            so.FindProperty("knob").objectReferenceValue = krt;
+            so.FindProperty("selected").intValue = selected;
+            var ob = so.FindProperty("options"); ob.arraySize = keys.Length;
+            var lb = so.FindProperty("labels"); lb.arraySize = keys.Length;
+            for (int i = 0; i < keys.Length; i++)
+            {
+                ob.GetArrayElementAtIndex(i).objectReferenceValue = buttons[i];
+                lb.GetArrayElementAtIndex(i).objectReferenceValue = labels[i];
+            }
+            so.ApplyModifiedPropertiesWithoutUndo();
+            return toggle;
         }
 
         static string IconPath(string key) => "Assets/Art/Menu/icon_" + key.Substring("mainmenu.".Length) + ".png";

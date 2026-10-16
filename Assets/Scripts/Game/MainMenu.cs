@@ -7,7 +7,7 @@ namespace FlickCurling.Game
 {
     /// <summary>
     /// The main menu screen: the logo over the house and the mode buttons on the board art (built by MainMenuBuilder).
-    /// Layout only for now: the buttons press but do nothing yet. Each label is localized by its own LocalizeStringEvent
+    /// "vs AI" and "Local" open the match setup popup; the other buttons press but do nothing yet. Each label is localized by its own LocalizeStringEvent
     /// (table "UI"); this keeps the content inside the safe area.
     /// </summary>
     public sealed class MainMenu : MonoBehaviour
@@ -23,9 +23,20 @@ namespace FlickCurling.Game
         [SerializeField] RectTransform safeArea;
         [SerializeField] Entry[] entries;
         [SerializeField] Popup popup;
+        [SerializeField] MatchSetup matchSetup;
 
         /// <summary>The menu's shared popup window (hidden until shown).</summary>
         public Popup Popup => popup;
+
+        void Awake()
+        {
+            // the two match buttons open the match setup popup; the others do nothing yet
+            foreach (var e in entries)
+            {
+                if (e.Key == "mainmenu.ai") e.Button.onClick.AddListener(() => matchSetup.Open(true));
+                else if (e.Key == "mainmenu.local") e.Button.onClick.AddListener(() => matchSetup.Open(false));
+            }
+        }
 
         Rect lastSafe;
         Vector2Int lastScreen;

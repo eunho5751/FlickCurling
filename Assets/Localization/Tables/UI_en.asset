@@ -422,6 +422,30 @@ MonoBehaviour:
     m_Localized: First
     m_Metadata:
       m_Items: []
+  - m_Id: 807220323209216
+    m_Localized: vs AI
+    m_Metadata:
+      m_Items: []
+  - m_Id: 807220369346560
+    m_Localized: Local Match
+    m_Metadata:
+      m_Items: []
+  - m_Id: 807220369346561
+    m_Localized: Mode
+    m_Metadata:
+      m_Items: []
+  - m_Id: 807220369346562
+    m_Localized: Classic
+    m_Metadata:
+      m_Items: []
+  - m_Id: 807220369346563
+    m_Localized: Difficulty
+    m_Metadata:
+      m_Items: []
+  - m_Id: 807220369346564
+    m_Localized: OK
+    m_Metadata:
+      m_Items: []
   references:
     version: 2
     RefIds:
