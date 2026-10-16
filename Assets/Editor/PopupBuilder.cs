@@ -9,8 +9,8 @@ namespace FlickCurling.EditorTools
 {
     /// <summary>
     /// Builds Assets/Prefabs/Popup.prefab, the main menu's shared popup: a dim backdrop, the 9-sliced panel, a title plate
-    /// over its top edge, a round close button and a content area with a plain message text. The art (Codex, kept plain to
-    /// match the menu's wooden planks) lives in Assets/Art/Menu as popup_*.png. Sizes are in the menu's 1080 x 1920
+    /// over its top edge, a round close button and a content area with a plain message text. The art (Codex, hand-painted wood grain
+    /// like the menu's wooden planks, calm and casual) lives in Assets/Art/Menu as popup_*.png. Sizes are in the menu's 1080 x 1920
     /// reference pixels.
     /// </summary>
     public static class PopupBuilder
@@ -20,8 +20,8 @@ namespace FlickCurling.EditorTools
 
         // 9-slice borders in source pixels (left, bottom, right, top) and how many source pixels make one reference pixel,
         // which sets how thick the rims show
-        static readonly Vector4 PanelBorder = new Vector4(52, 52, 52, 52), TitleBorder = new Vector4(80, 40, 80, 40);
-        const float PanelPpu = 0.6f;
+        static readonly Vector4 PanelBorder = new Vector4(72, 72, 72, 72), TitleBorder = new Vector4(90, 50, 90, 50);
+        const float PanelPpu = 0.9f;
 
         const float WindowW = 860, WindowH = 760, TitleW = 560, TitleH = 120, CloseSize = 110;
         static readonly Color32 Cream = new Color32(0xf6, 0xea, 0xd2, 0xff), Ink = new Color32(0x4a, 0x2a, 0x12, 0xff);
@@ -32,9 +32,9 @@ namespace FlickCurling.EditorTools
         public static readonly (string path, Vector4 border)[] Controls =
         {
             ("Assets/Art/Menu/ui_toggle_track.png", new Vector4(60, 50, 60, 50)),
-            ("Assets/Art/Menu/ui_toggle_on.png", new Vector4(48, 40, 48, 40)),
+            ("Assets/Art/Menu/ui_toggle_on.png", new Vector4(28, 20, 28, 20)),
             ("Assets/Art/Menu/ui_button_primary.png", new Vector4(60, 55, 60, 55)),
-            ("Assets/Art/Menu/ui_button_secondary.png", new Vector4(60, 50, 60, 50)),
+            ("Assets/Art/Menu/ui_button_secondary.png", new Vector4(44, 36, 44, 36)),
             ("Assets/Art/Menu/ui_slider_track.png", new Vector4(30, 25, 30, 25)),
             ("Assets/Art/Menu/ui_slider_fill.png", new Vector4(34, 30, 34, 30)),
             ("Assets/Art/Menu/ui_slider_handle.png", Vector4.zero),
