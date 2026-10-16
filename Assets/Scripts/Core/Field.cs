@@ -44,6 +44,14 @@ namespace FlickCurling.Core
         }
 
         public bool InWindow(double y) => y >= 0 && y <= LiveTop;
+
+        /// <summary>The same field with <paramref name="extra"/> posts added (the turn order shot's bumpers).</summary>
+        public Field WithPosts(Post[] extra)
+        {
+            var all = new Post[Posts.Length + extra.Length];
+            Posts.CopyTo(all, 0); extra.CopyTo(all, Posts.Length);
+            return new Field { Key = Key, Walls = Walls, Posts = all, Zones = Zones, Kinks = Kinks, LiveTop = LiveTop };
+        }
     }
 
     public static class Maps

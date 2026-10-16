@@ -297,7 +297,7 @@ namespace FlickCurling.Game
                 After((900 + (float)fx.NextDouble() * 500) / 1000f / Speed, () =>
                 {
                     if (tok != token || state != St.Ai) return;
-                    var d = brain.DecideLsd(lvl, m.Lsd.TargetX, m.Lsd.TargetY, m.P);
+                    var d = brain.DecideLsd(lvl, m.Lsd.TargetX, m.Lsd.TargetY, m.P, m.ActiveField);
                     state = St.AiPull;
                     aiPull = new AiPull { Ang = d.Ang, Pw = d.Pw, Lx = d.Lx, T = 0, Intent = d.Intent };
                 });

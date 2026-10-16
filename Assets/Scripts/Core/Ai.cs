@@ -506,14 +506,42 @@ namespace FlickCurling.Core
         }
 
         /// <summary>Last stone draw: straight at the target from the centre lane, with this level's error.</summary>
-        public AiDecision DecideLsd(AiLevel lvl, double tx, double ty, PhysicsParams p)
+        /// <summary>
+        /// The last stone draw: tries a fan of angles and powers on <paramref name="field"/> (with the draw's bumpers),
+        /// keeps the throw that comes to rest closest to (tx, ty) - around or off the bumpers - then adds the level's
+        /// aim and power noise.
+        /// </summary>
+        public AiDecision DecideLsd(AiLevel lvl, double tx, double ty, PhysicsParams p, Field field)
         {
             P = p;
             var n = Noise[lvl];
-            double d = Sheet.Hypot(tx - 50, ty - LY);
-            double ang = AngTo(50, tx, ty) + rng.Gauss() * n.a;
-            double pw = Sheet.Clamp(PowFor(d) + rng.Gauss() * n.p, 0.1, 1);
-            return new AiDecision { Ang = ang, Pw = pw, Lx = 50, Intent = "lsd" };
+            double baseAng = AngTo(50, tx, ty), basePw = PowFor(Sheet.Hypot(tx - 50, ty - LY));
+            double bestA = baseAng, bestP = basePw, bestD = double.PositiveInfinity;
+            double Try(double a, double pw)
+            {
+                var st = new List<Stone> { new Stone { Id = 1, X = 50, Y = LY, Vx = Math.Sin(a) * pw * P.VMax, Vy = Math.Cos(a) * pw * P.VMax } };
+                Sim.Simulate(st, field, P);
+                var s = st[0];
+                bool ok = s.Live && !s.Flew && s.Y - SR >= Sheet.Hog && s.Y - SR <= Sheet.Back;
+                return ok ? Sheet.Dist(s.X, s.Y, tx, ty) : double.PositiveInfinity;
+            }
+            // coarse fan, then a finer look around the best
+            for (double a = -0.55; a <= 0.551; a += 0.025)
+                for (double k = 0.85; k <= 1.351; k += 0.05)
+                {
+                    double pw = Sheet.Clamp(basePw * k, 0.1, 1), d = Try(baseAng + a, pw);
+                    if (d < bestD) { bestD = d; bestA = baseAng + a; bestP = pw; }
+                }
+            double ca = bestA, cp = bestP;
+            for (double a = -0.02; a <= 0.0201; a += 0.005)
+                for (double k = -0.03; k <= 0.0301; k += 0.01)
+                {
+                    double pw = Sheet.Clamp(cp + k, 0.1, 1), d = Try(ca + a, pw);
+                    if (d < bestD) { bestD = d; bestA = ca + a; bestP = pw; }
+                }
+            double ang = bestA + rng.Gauss() * n.a;
+            double pwr = Sheet.Clamp(bestP + rng.Gauss() * n.p, 0.1, 1);
+            return new AiDecision { Ang = ang, Pw = pwr, Lx = 50, Intent = "lsd" };
         }
     }
 }

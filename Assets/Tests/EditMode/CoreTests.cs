@@ -289,12 +289,63 @@ namespace FlickCurling.Tests
         }
 
         [Test]
+        public void LastStoneDrawBumpers()
+        {
+            for (int seed = 0; seed < 300; seed++)
+            {
+                var m = new Match(Maps.Build(seed % 2 == 0 ? "base" : "bumper"), null, seed);
+                m.StartMatch();
+                var b = m.Lsd.Bumpers;
+                Assert.AreEqual(5, b.Length, $"seed {seed}");
+                // one on the centre line in front of the house, blocking the straight draw to the tee
+                Assert.AreEqual(Sheet.TeeX, b[0].X);
+                Assert.Less(b[0].Y + b[0].R, Sheet.TeeY - Sheet.R);
+                Assert.Greater(b[0].Y, Sheet.LaunchY);
+                // two each side, between the min line and the house's centre line, none touching the house
+                Assert.AreEqual(2, b.Skip(1).Count(p => p.X < Sheet.W / 2), $"seed {seed} left");
+                Assert.AreEqual(2, b.Skip(1).Count(p => p.X > Sheet.W / 2), $"seed {seed} right");
+                foreach (var p in b.Skip(1))
+                {
+                    Assert.That(p.Y, Is.InRange(Sheet.Hog, Sheet.TeeY));
+                    Assert.GreaterOrEqual(Sheet.Dist(p.X, p.Y, Sheet.TeeX, Sheet.TeeY), Sheet.R + p.R, "outside the house");
+                    foreach (var q in b) if (!q.Equals(p)) Assert.GreaterOrEqual(Sheet.Dist(p.X, p.Y, q.X, q.Y), 8, "spread out");
+                }
+                // in play only during the draw
+                Assert.AreEqual(m.Field.Posts.Length + 5, m.ActiveField.Posts.Length);
+                m.FinishLsd();
+                Assert.AreSame(m.Field, m.ActiveField);
+            }
+            // the same seed gives the same bumpers
+            var m1 = new Match(Maps.Build("base"), null, 9); m1.StartMatch();
+            var m2 = new Match(Maps.Build("base"), null, 9); m2.StartMatch();
+            Assert.AreEqual(m1.Lsd.Bumpers[3].X, m2.Lsd.Bumpers[3].X);
+        }
+
+        [Test]
+        public void LastStoneDrawStraightShotHitsTheBlocker()
+        {
+            var m = new Match(Maps.Build("base"), null, 4);
+            m.StartMatch();
+            m.BeginLsdShot();
+            m.Release(0, 0.7);   // straight at the tee
+            bool hit = false;
+            m.Listener = null;
+            for (int i = 0; i < Sim.MaxSteps && m.Moving; i++)
+            {
+                m.Step();
+                var s = m.ShotStone;
+                if (Sheet.Dist(s.X, s.Y, m.Lsd.Bumpers[0].X, m.Lsd.Bumpers[0].Y) <= Sheet.SR + m.Lsd.Bumpers[0].R + 0.5) hit = true;
+            }
+            Assert.IsTrue(hit, "a straight draw meets the bumper in front of the house");
+        }
+
+        [Test]
         public void LastStoneDrawCloserTakesHammer()
         {
             var m = new Match(Maps.Build("base"), null, 3);
             m.StartMatch();
             Assert.IsTrue(m.InLsd);
-            Assert.LessOrEqual(Sheet.Dist(m.Lsd.TargetX, m.Lsd.TargetY, Sheet.TeeX, Sheet.TeeY), Sheet.R - Sheet.SR - 2 + 1e-9);
+            Assert.AreEqual(Sheet.TeeX, m.Lsd.TargetX); Assert.AreEqual(Sheet.TeeY, m.Lsd.TargetY);   // the centre of the house
             m.Lsd.Dist[0] = 5; m.Lsd.Dist[1] = 3;
             Assert.AreEqual(Team.W, m.ResolveLsd(out bool coin));
             Assert.IsFalse(coin);

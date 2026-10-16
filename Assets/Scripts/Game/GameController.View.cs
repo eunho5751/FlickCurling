@@ -419,8 +419,8 @@ namespace FlickCurling.Game
                 var here = new Vector2((float)x, (float)y);
                 if (y > Sheet.L + 4 || y < 0) return (here, HitKind.None);
                 foreach (var st in live) if (Sheet.Dist(st.X, st.Y, x, y) < 2 * Sheet.SR) return (here, HitKind.Stone);
-                foreach (var p in m.Field.Posts) if (Sheet.Dist(p.X, p.Y, x, y) < p.R + Sheet.SR) return (here, HitKind.Post);
-                foreach (var w in m.Field.Walls)
+                foreach (var p in m.ActiveField.Posts) if (Sheet.Dist(p.X, p.Y, x, y) < p.R + Sheet.SR) return (here, HitKind.Post);
+                foreach (var w in m.ActiveField.Walls)
                 {
                     double ddx = w.X2 - w.X1, ddy = w.Y2 - w.Y1;
                     double t = Sheet.Clamp(((x - w.X1) * ddx + (y - w.Y1) * ddy) / (ddx * ddx + ddy * ddy), 0, 1);
@@ -490,19 +490,17 @@ namespace FlickCurling.Game
                     under.Ring(new Vector2((float)st.X, (float)st.Y), SR + 1.4f, U(3), GlowCol);
                 }
             }
-            // the draw target: a ring with a cross, under the stones
+            // the draw's bumpers (the target is the tee itself), brass studs like the map's posts, under the stones
             if (m.InLsd && m.Lsd != null)
             {
-                var T = new Vector2((float)m.Lsd.TargetX, (float)m.Lsd.TargetY);
-                float rr = U(Mathf.Max(7, SR * s * 0.9f)), pulse = (Mathf.Sin(time / 260) + 1) / 2;
-                under.Ring(T, rr, U(5), Palette.Rgba(32, 20, 11, .75f));
-                var gc = Palette.Rgba(255, 217, 138, 0.75f + 0.25f * pulse);
-                under.Ring(T, rr, U(2.5f), gc);
-                under.Line(T + new Vector2(-rr * 1.6f, 0), T + new Vector2(-rr * 0.5f, 0), U(2), gc);
-                under.Line(T + new Vector2(rr * 0.5f, 0), T + new Vector2(rr * 1.6f, 0), U(2), gc);
-                under.Line(T + new Vector2(0, -rr * 1.6f), T + new Vector2(0, -rr * 0.5f), U(2), gc);
-                under.Line(T + new Vector2(0, rr * 0.5f), T + new Vector2(0, rr * 1.6f), U(2), gc);
-                under.Disc(T, U(2), Palette.Gold);
+                foreach (var b in m.Lsd.Bumpers)
+                {
+                    var c = new Vector2((float)b.X, (float)b.Y); float br = (float)b.R;
+                    under.Disc(c + new Vector2(0.5f, -0.8f), br, Palette.Rgba(45, 22, 6, .4f));
+                    under.Disc(c, br, Palette.Hex("#7a5016"));
+                    under.Disc(c + new Vector2(-br * 0.08f, br * 0.1f), br * 0.82f, Palette.Hex("#c38f3a"));
+                    under.Disc(c + new Vector2(-br * 0.3f, br * 0.35f), br * 0.38f, Palette.Hex("#f6d58a"));
+                }
             }
             foreach (var f in fades) DrawStone(f.X, f.Y, f.Team, f.A);
             // stones

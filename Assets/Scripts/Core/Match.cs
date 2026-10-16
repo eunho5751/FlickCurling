@@ -36,8 +36,10 @@ namespace FlickCurling.Core
     {
         public readonly Team[] Order = { Team.B, Team.W };
         public int Idx;
-        public double TargetX, TargetY;
+        public double TargetX = Sheet.TeeX, TargetY = Sheet.TeeY;   // the centre of the house
         public double?[] Dist = new double?[2];   // null = not thrown yet, +inf = no record
+        public Post[] Bumpers = new Post[0];        // only on the sheet for the draw
+        public Field Field;                          // the map plus the bumpers
     }
 
     /// <summary>
@@ -103,9 +105,9 @@ namespace FlickCurling.Core
             End = 1; Shot = 0; Stones.Clear();
             Tickets[0] = Tickets[1] = TicketCount;
             InLsd = true;
-            // a fresh target somewhere in the house for every match
-            double a = rng.NextDouble() * Math.PI * 2, r = Math.Sqrt(rng.NextDouble()) * (Sheet.R - Sheet.SR - 2);
-            Lsd = new LsdState { TargetX = Sheet.TeeX + Math.Cos(a) * r, TargetY = Sheet.TeeY + Math.Sin(a) * r };
+            // the draw is to the centre of the house, around a fresh set of bumpers for every match
+            var bumpers = LsdBumpers(rng, Field.Posts);
+            Lsd = new LsdState { Bumpers = bumpers, Field = Field.WithPosts(bumpers) };
             Cur = Team.B;
         }
 
@@ -147,6 +149,44 @@ namespace FlickCurling.Core
 
         public void FinishLsd() { InLsd = false; Lsd = null; }
 
+        public const double LsdBumperR = 4, LsdBlockerR = 4, LsdBumperGap = 20;
+
+        /// <summary>
+        /// The last stone draw's bumpers: one on the centre line just in front of the house, so the tee cannot be reached
+        /// in a straight line, and two in each half (left and right) between the house's centre line and the min line,
+        /// placed at random but spread out (one in the lower and one in the upper part of the half, apart from every
+        /// other post), and never inside the house.
+        /// </summary>
+        public static Post[] LsdBumpers(Random rng, Post[] avoid)
+        {
+            var list = new List<Post> { new Post(Sheet.TeeX, Sheet.TeeY - Sheet.R - LsdBlockerR - 6, LsdBlockerR) };
+            double y0 = Sheet.Hog + 10, y1 = Sheet.TeeY, mid = (y0 + y1) / 2, rr = LsdBumperR;
+            bool Clear(double x, double y, double gap)
+            {
+                if (Sheet.Dist(x, y, Sheet.TeeX, Sheet.TeeY) < Sheet.R + rr + 1.5) return false;   // wholly outside the house
+                foreach (var p in list) if (Sheet.Dist(x, y, p.X, p.Y) < gap) return false;
+                foreach (var p in avoid) if (Sheet.Dist(x, y, p.X, p.Y) < gap) return false;
+                return true;
+            }
+            foreach (bool left in new[] { true, false })
+                foreach (bool lower in new[] { true, false })
+                {
+                    double xa = left ? 8 : Sheet.W / 2 + 8, xb = left ? Sheet.W / 2 - 8 : Sheet.W - 8;
+                    double ya = lower ? y0 : mid, yb = lower ? mid : y1;
+                    double x = 0, y = 0;
+                    bool placed = false;
+                    // the gap relaxes a little if a crowded spot leaves no room
+                    for (double gap = LsdBumperGap; !placed && gap >= 8; gap -= 4)
+                        for (int t = 0; t < 200 && !placed; t++)
+                        {
+                            x = xa + rng.NextDouble() * (xb - xa); y = ya + rng.NextDouble() * (yb - ya);
+                            placed = Clear(x, y, gap);
+                        }
+                    if (placed) list.Add(new Post(x, y, rr));
+                }
+            return list.ToArray();
+        }
+
         // ---------------- ends and shots ----------------
 
         public void StartEnd()
@@ -180,7 +220,10 @@ namespace FlickCurling.Core
             return s;
         }
 
-        public void Step() => Sim.Step(Stones, Field, P, this);
+        /// <summary>The field stones move on: during the last stone draw, the map plus the draw's bumpers.</summary>
+        public Field ActiveField => InLsd && Lsd != null ? Lsd.Field : Field;
+
+        public void Step() => Sim.Step(Stones, ActiveField, P, this);
 
         /// <summary>Simulates the shot to rest (headless use: tests, replays).</summary>
         public void RunToRest()

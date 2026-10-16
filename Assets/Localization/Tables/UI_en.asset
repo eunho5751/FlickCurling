@@ -206,7 +206,7 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 2262749213
-    m_Localized: The one closer to the target throws last in end 1!
+    m_Localized: The one closer to the centre of the house throws last in end 1!
     m_Metadata:
       m_Items: []
   - m_Id: 2262749216
@@ -395,11 +395,11 @@ MonoBehaviour:
       m_Items:
       - rid: 4297768082125881571
   - m_Id: 405297950543872
-    m_Localized: AI Match
+    m_Localized: vs AI
     m_Metadata:
       m_Items: []
   - m_Id: 405298000875520
-    m_Localized: Local Match
+    m_Localized: Local 2 Players
     m_Metadata:
       m_Items: []
   - m_Id: 405298000875521

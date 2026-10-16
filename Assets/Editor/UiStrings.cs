@@ -79,7 +79,7 @@ namespace FlickCurling.EditorTools
             // ---- last stone draw ----
             new[] { "lsd.eyebrow", "{map} 맵 · {mode}", "{map} map · {mode}", "{map}マップ・{mode}" },
             new[] { "lsd.title", "선후공 정하기", "Turn Order Shot", "先攻・後攻決め" },
-            new[] { "lsd.head", "표적에 가까운 쪽이 1엔드의 후공이 됩니다!", "The one closer to the target throws last in end 1!", "的に近い方が1エンドの後攻になります！" },
+            new[] { "lsd.head", "하우스 중앙에 가까운 쪽이 1엔드의 후공이 됩니다!", "The one closer to the centre of the house throws last in end 1!", "ハウスの中心に近い方が1エンドの後攻になります！" },
             new[] { "lsd.start", "시작", "Start", "スタート" },
             new[] { "lsd.resultEyebrow", "선후공 정하기 결과", "Turn order shot result", "先攻・後攻決めの結果" },
             new[] { "lsd.hasHammer", "{first}<voffset=0.12em> <color=#d9a54c>선공</color>│</voffset>{name}<voffset=0.12em> <color=#d9a54c>후공</color></voffset>", "{first}<voffset=0.12em> <color=#d9a54c>First</color>│</voffset>{name}<voffset=0.12em> <color=#d9a54c>Last</color></voffset>", "{first}<voffset=0.12em><color=#d9a54c>先攻</color>│</voffset>{name}<voffset=0.12em><color=#d9a54c>後攻</color></voffset>" },
