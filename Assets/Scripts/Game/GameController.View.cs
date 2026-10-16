@@ -186,9 +186,10 @@ namespace FlickCurling.Game
 
         enum GK { None, Pinch, Mini, Pan }
 
-        // shot controls, outside the scroll / pinch gesture: one finger pulls anywhere below the min line; sideways
-        // from the touch point steers and up or down from it is the power. A tap on the sheet above the min line
-        // aims straight at that spot (also mid-pull), and the pull then fine-tunes from there.
+        // shot controls, outside the scroll / pinch gesture: on your turn a touch above the min line aims at that spot
+        // and follows it as it drags. Below it two hands: a drag left of the stone steers, a pull right of it sets the power (up or down from the
+        // touch point). The pull is called off if it crosses to the aim side, leaves the screen, or another touch lands on
+        // the power side.
         void LoadSettings() => sensLevel = Mathf.Clamp(PlayerPrefs.GetInt(SensPref, 2), 0, SensMul.Length - 1);
 
         // aim sensitivity, levels 1..5 in settings; level 3 is the original speed
@@ -203,7 +204,7 @@ namespace FlickCurling.Game
             PlayerPrefs.Save();
             RenderSettings();
         }
-        sealed class Finger { public Vector2 Start, Last; public bool Out, Moved; public double Base; }
+        sealed class Finger { public bool Power; public Vector2 Start, Last; public bool Out, Moved; }
         readonly Dictionary<int, Finger> fingers = new Dictionary<int, Finger>();
         double aimAng;      // radians from straight up the sheet
         float power = -1;   // 0..1 while a power finger is down and inside its area, else -1
@@ -211,16 +212,14 @@ namespace FlickCurling.Game
         Vector2 powerStart;
         const float AimPerPx = 0.0035f, AimMax = 1.35f;
         // tap to aim
-        Vector2? target;   // the tapped spot on the sheet: the marker stays there while the aim is fine-tuned
-        const float TapMaxPx = 8, TapMaxSec = 0.35f;
-        int tapId = int.MinValue; Vector2 tapAt; float tapT;
         bool Charging => power >= 0;
         bool HumanAim => state == St.Aim && !IsAI(m.Cur);
 
-        void ResetShotInput() { fingers.Clear(); power = -1; powerId = int.MinValue; target = null; tapId = int.MinValue; }
+        void ResetShotInput() { fingers.Clear(); power = -1; powerId = int.MinValue; spotId = int.MinValue; }
+        int spotId = int.MinValue;   // the finger aiming at a spot above the min line (it follows as the finger drags)
 
-        // the control area: below the min line, on screen
-        bool InControls(Vector2 p) => p.y >= Y(HOG) && OnScreen(p);
+        // below the min line the two hands split at the launch stone: aim on its left, power on its right
+        bool RightOfStone(Vector2 p) => p.x >= X((float)m.LaunchX);
         bool OnScreen(Vector2 p) => p.y >= 0 && p.y <= ch && p.x >= 0 && p.x <= cw;
 
         readonly Dictionary<int, Vector2> pointers = new Dictionary<int, Vector2>();
@@ -287,26 +286,29 @@ namespace FlickCurling.Game
         {
             if (Hud.IsOverUi(screen)) return;
             hud.ClosePopovers();
-            // a second touch during a pull goes no further: below the min line it calls the shot off; on the sheet above
-            // it, it aims there at once and the pull goes on, steering from the new aim
-            var pull = fingers.Values.FirstOrDefault(f => !f.Out);
-            if (pull != null && HumanAim)
+            if (HumanAim && !MiniHit(p).HasValue)
             {
-                if (InControls(p)) { pull.Out = true; power = -1; }
-                else if (OnSheet(p)) { AimAt(World(p)); pull.Base = aimAng; pull.Start.x = pull.Last.x; }
-                return;
-            }
-            // the pull: one finger at a time, anywhere below the min line
-            if (HumanAim && InControls(p) && fingers.Count == 0)
-            {
-                fingers[id] = new Finger { Start = p, Last = p, Base = aimAng };
-                powerId = id; powerStart = p; power = 0;
+                // above the min line a touch aims straight at the touched spot, and dragging moves the aim with it (no
+                // power), also while the other hand is pulling
+                if (p.y < Y(HOG))
+                {
+                    if (OnSheet(p)) AimAt(World(p));
+                    spotId = id;
+                    return;
+                }
+                // below it, two hands: left of the stone a drag steers, right of it a pull sets the power. A second
+                // touch on the power side during a pull calls the shot off; a second one on the aim side does nothing
+                bool right = RightOfStone(p);
+                var pull = fingers.Values.FirstOrDefault(f => f.Power && !f.Out);
+                if (right && pull != null) { pull.Out = true; power = -1; return; }
+                if (fingers.Values.All(f => f.Power != right) && pointers.Count == 0)
+                {
+                    fingers[id] = new Finger { Power = right, Start = p, Last = p };
+                    if (right) { powerId = id; powerStart = p; power = 0; }
+                }
                 return;
             }
             pointers[id] = p;
-            // a touch on the sheet may be a tap (aim there) rather than a scroll; Up decides
-            if (pointers.Count == 1 && HumanAim && OnSheet(p)) { tapId = id; tapAt = p; tapT = Time.unscaledTime; }
-            else tapId = int.MinValue;
             if (pointers.Count == 2)
             {
                 var ab = pointers.Values.ToArray();
@@ -323,21 +325,25 @@ namespace FlickCurling.Game
 
         void Move(int id, Vector2 p)
         {
+            if (id == spotId)
+            {
+                if (HumanAim && OnSheet(p)) AimAt(World(p));
+                return;
+            }
             if (fingers.TryGetValue(id, out var fg))
             {
                 if (!HumanAim) return;
-                if (!fg.Out)
+                if (!fg.Power)
                 {
-                    // past the min line still pulls; only off the screen calls the shot off
-                    if (!OnScreen(p)) { fg.Out = true; power = -1; }
-                    else
-                    {
-                        float dx = p.x - fg.Start.x, dy = p.y - fg.Start.y;
-                        // sideways from the touch point steers from the aim the pull began with (straight up, or a tapped
-                        // spot), however far it is pulled
-                        aimAng = Mathf.Clamp((float)fg.Base + dx * AimPerPx * Sens, -AimMax, AimMax);
-                        power = Mathf.Min(Mathf.Abs(dy), maxPx) / maxPx;   // up or down from the touch point
-                    }
+                    // the aim hand: sideways movement turns the aim
+                    aimAng = Mathf.Clamp((float)aimAng + (p.x - fg.Last.x) * AimPerPx * Sens, -AimMax, AimMax);
+                }
+                else if (!fg.Out)
+                {
+                    // the power hand: past the min line still pulls; across to the aim side or off the screen calls the
+                    // shot off
+                    if (!OnScreen(p) || !RightOfStone(p)) { fg.Out = true; power = -1; }
+                    else power = Mathf.Min(Mathf.Abs(p.y - fg.Start.y), maxPx) / maxPx;   // up or down from the touch point
                 }
                 if ((p - fg.Start).sqrMagnitude >= 9) fg.Moved = true;   // more than a tap
                 fg.Last = p;
@@ -345,7 +351,6 @@ namespace FlickCurling.Game
             }
             if (!pointers.ContainsKey(id)) return;
             pointers[id] = p;
-            if (id == tapId && (p - tapAt).sqrMagnitude > TapMaxPx * TapMaxPx) tapId = int.MinValue;   // a scroll after all
             switch (gk)
             {
                 case GK.Mini:
@@ -374,9 +379,11 @@ namespace FlickCurling.Game
 
         void Up(int id, Vector2 p, bool isUp)
         {
+            if (id == spotId) { spotId = int.MinValue; return; }
             if (fingers.TryGetValue(id, out var fg))
             {
                 fingers.Remove(id);
+                if (!fg.Power) return;
                 float pw = power;
                 power = -1; powerId = int.MinValue;
                 // releasing always shoots at the current power; only a finger that left the area, or a pure tap, does not
@@ -384,22 +391,16 @@ namespace FlickCurling.Game
                 return;
             }
             if (!pointers.Remove(id)) return;
-            if (id == tapId)
-            {
-                tapId = int.MinValue;
-                if (isUp && HumanAim && Time.unscaledTime - tapT <= TapMaxSec) AimAt(World(p));
-            }
             if (pointers.Count == 0) gk = GK.None;
             else if (gk == GK.Pinch) { gk = GK.Pan; gLast = pointers.Values.First(); }
         }
 
-        // tap to aim: turn the aim toward a spot on the sheet and put the marker there
+        // turn the aim straight at a spot on the sheet (one ahead of the launch line)
         void AimAt(Vector2 w)
         {
             double dx = w.x - m.LaunchX, dy = w.y - Sheet.LaunchY;
-            if (dy < SR) return;   // at or behind the launch line: nowhere to throw
+            if (dy < Sheet.SR) return;
             aimAng = Math.Max(-AimMax, Math.Min(AimMax, Math.Atan2(dx, dy)));
-            target = w;
         }
 
         // =====================================================================
@@ -539,19 +540,10 @@ namespace FlickCurling.Game
                 {
                     // the aim line is always up on your turn; the gauge fills while power is pulled
                     DrawAim(aimAng, Charging ? power : 0);
+                    // the split between the aim side and the power side, faintly, below the min line
+                    aim.Dashed(new Vector2(lp.x, HOG), new Vector2(lp.x, lp.y + SR + 3), U(1.5f), U(4), U(6), Palette.Rgba(52, 32, 16, Charging ? .15f : .3f));
                     // a small ring where the pull began
                     if (Charging) aim.Ring(World(powerStart), U(10), U(1.5f), Palette.Rgba(239, 226, 200, .45f));
-                    // the tapped target's marker, fixed where it was tapped; fine-tuning moves only the aim line
-                    if (target.HasValue)
-                    {
-                        var tp = target.Value;
-                        var mk = Palette.Hex("#a3341f");
-                        aim.Ring(tp, 2.2f, U(2), mk);
-                        aim.Line(tp + new Vector2(-3.4f, 0), tp + new Vector2(-1.2f, 0), U(2), mk);
-                        aim.Line(tp + new Vector2(1.2f, 0), tp + new Vector2(3.4f, 0), U(2), mk);
-                        aim.Line(tp + new Vector2(0, -3.4f), tp + new Vector2(0, -1.2f), U(2), mk);
-                        aim.Line(tp + new Vector2(0, 1.2f), tp + new Vector2(0, 3.4f), U(2), mk);
-                    }
                 }
                 else if (state == St.AiPull)
                 {
