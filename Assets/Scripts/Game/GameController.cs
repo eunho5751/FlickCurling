@@ -610,7 +610,7 @@ namespace FlickCurling.Game
         /// and each side's stones left (during the last stone draw: the title and both distances; whose turn pops up as a
         /// toast instead). Null in the menu.
         /// </summary>
-        (string title, string head, string sub)? TurnInfo()
+        (string title, string head, string sub, string[] sides, string[] roles)? TurnInfo()
         {
             if (state == St.Menu) return null;
             string b = Ui.Icon(Team.B, 130), w = Ui.Icon(Team.W, 130);
@@ -618,7 +618,7 @@ namespace FlickCurling.Game
             {
                 // the distances sit level with the middle of the (larger) stone icons
                 string D(int i) => $"<voffset=0.28em>{FmtDist(m.Lsd.Dist[i])}</voffset>";
-                return (Loc.T("hud.lsd"), null, $"{b} {D(0)}      {w} {D(1)}");
+                return (Loc.T("hud.lsd"), null, $"{b} {D(0)}      {w} {D(1)}", null, null);
             }
             string Pips(Team team)
             {
@@ -629,10 +629,13 @@ namespace FlickCurling.Game
                 string now = throwing ? $"<color=#a3341f{(Charging || state == St.AiPull ? "4d" : "")}>●</color>" : "";
                 int rest = throwing ? left - 1 : left;
                 // a little smaller than the side icon, so the pips do not read as more side markers
-                return "<size=80%>" + new string('●', rest) + now + new string('○', Sheet.Per - left) + "</size>";
+                // raised to sit level with the middle of the (larger) side icon
+                return "<size=80%><voffset=0.3em>" + new string('●', rest) + now + new string('○', Sheet.Per - left) + "</voffset></size>";
             }
             string head = m.Shot < Sheet.Shots ? $"{m.Shot + 1} / {Sheet.Shots}" : Loc.T("hud.endOver");
-            return (null, head, $"{b} {Pips(Team.B)}      {w} {Pips(Team.W)}");
+            // each side's stones left in its own half, under "선공" / "후공"
+            string Role(Team team) => Loc.T(m.Hammer == team ? "hud.hammer" : "hud.first");
+            return (null, head, null, new[] { $"{b} {Pips(Team.B)}", $"{w} {Pips(Team.W)}" }, new[] { Role(Team.B), Role(Team.W) });
         }
 
         // =====================================================================

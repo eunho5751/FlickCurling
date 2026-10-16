@@ -681,8 +681,16 @@ namespace FlickCurling.Game
             var ink = Palette.Rgba(52, 32, 16, a);
             // whose turn is a toast; the sheet keeps the title (turn order shot) or the shot count
             // the title (or the shot count) at one size, with room before the row under it
-            hud.Label(info.Value.title ?? info.Value.head, X(W / 2), Y(54.5f), Mathf.RoundToInt(5.4f * s), ink, 0, true);
-            hud.Label(info.Value.sub, X(W / 2), Y(44), Mathf.RoundToInt(3.4f * s), ink);
+            if (info.Value.title != null) hud.Label(info.Value.title, X(W / 2), Y(54.5f), Mathf.RoundToInt(5.4f * s), ink, 0, true);
+            else hud.Label(info.Value.head, X(W / 2), Y(55), Mathf.RoundToInt(5.4f * 1.3f * s), ink, 0, true);   // the shot count, a size up
+            if (info.Value.sides == null) { hud.Label(info.Value.sub, X(W / 2), Y(44), Mathf.RoundToInt(3.4f * s), ink); return; }
+            // the stones left, black in the left half and white in the right, each centred in its half under its role
+            for (int i = 0; i < 2; i++)
+            {
+                float cx = X(i == 0 ? W / 4 : W * 3 / 4);
+                hud.Label(info.Value.roles[i], cx, Y(48), Mathf.RoundToInt(3.4f * s), ink, 0, true);
+                hud.Label(info.Value.sides[i], cx, Y(42.5f), Mathf.RoundToInt(5.1f * s), ink);
+            }
         }
 
         void DrawBoardLabels()

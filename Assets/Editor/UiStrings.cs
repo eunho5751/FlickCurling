@@ -66,6 +66,7 @@ namespace FlickCurling.EditorTools
 
             // ---- HUD ----
             new[] { "hud.hammer", "후공", "Last", "後攻" },
+            new[] { "hud.first", "선공", "First", "先攻" },
             new[] { "hud.idle", "대기", "Idle", "待機" },
             new[] { "hud.end", "{n}엔드", "End {n}", "第{n}エンド" },
             new[] { "hud.extra", "연장", "Extra", "延長" },

@@ -387,6 +387,10 @@ MonoBehaviour:
     m_Key: mainmenu.settings
     m_Metadata:
       m_Items: []
+  - m_Id: 716956820754432
+    m_Key: hud.first
+    m_Metadata:
+      m_Items: []
   m_Metadata:
     m_Items: []
   m_KeyGenerator:
