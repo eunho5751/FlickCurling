@@ -16,7 +16,9 @@ namespace FlickCurling.EditorTools
         static void OnPlayMode(PlayModeStateChange s)
         {
             if (s == PlayModeStateChange.EnteredPlayMode && !locked) { EditorApplication.LockReloadAssemblies(); locked = true; }
-            else if (s == PlayModeStateChange.ExitingPlayMode && locked) { EditorApplication.UnlockReloadAssemblies(); locked = false; }
+            // released on the way out, and again on reaching edit mode in case the exit was missed (a quick stop right
+            // after entering, with domain reload off, could leave the lock on and stall every compile after it)
+            else if ((s == PlayModeStateChange.ExitingPlayMode || s == PlayModeStateChange.EnteredEditMode) && locked) { EditorApplication.UnlockReloadAssemblies(); locked = false; }
         }
     }
 }
