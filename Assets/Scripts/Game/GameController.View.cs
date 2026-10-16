@@ -648,11 +648,13 @@ namespace FlickCurling.Game
             float left = Mathf.Clamp01(clock / ShotTime);
             var tip = new Vector2(Mathf.Lerp(x1, x0, left), y);
             var end = new Vector2(x1, y);
-            // still to burn: a twisted cord
-            under.Line(tip, end, 2.0f, Palette.Rgba(122, 88, 48, 1));
+            // still to burn: a twisted cord; in the last third of the time it flashes between red and its own colour
+            float red = left <= 1 / 3f ? (1 - Mathf.Cos(time / 120f)) / 2 : 0;
+            Color Cord(Color c, Color r) => Color.Lerp(c, r, red);
+            under.Line(tip, end, 2.0f, Cord(Palette.Rgba(122, 88, 48, 1), Palette.Rgba(206, 52, 36, 1)));
             for (float x = Mathf.Ceil(tip.x / 2f) * 2f; x < x1 - 0.9f; x += 2f)
-                under.Line(new Vector2(x, y - .9f), new Vector2(x + .9f, y + .9f), .5f, Palette.Rgba(78, 52, 24, .9f));
-            under.Line(tip + new Vector2(0, .5f), end + new Vector2(0, .5f), .35f, Palette.Rgba(196, 160, 104, .7f));
+                under.Line(new Vector2(x, y - .9f), new Vector2(x + .9f, y + .9f), .5f, Cord(Palette.Rgba(78, 52, 24, .9f), Palette.Rgba(122, 22, 14, .9f)));
+            under.Line(tip + new Vector2(0, .5f), end + new Vector2(0, .5f), .35f, Cord(Palette.Rgba(196, 160, 104, .7f), Palette.Rgba(255, 150, 126, .7f)));
             // lit once the turn toast has gone; the glow flickers
             bool burning = clockWait <= 0 && !hud.CardVisible;
             if (burning)
