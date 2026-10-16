@@ -1,14 +1,13 @@
 using FlickCurling.Core;
 using UnityEngine;
 using UnityEngine.Localization.Components;
-using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
 namespace FlickCurling.Game
 {
     /// <summary>
     /// The popup the main menu's "AI Match" and "Local Match" buttons open (built by MainMenuBuilder on the shared Popup): the mode
-    /// (only the basic one for now) and, against the AI, its level. OK starts that match in the Game scene straight away.
+    /// (only the basic one for now) and, against the AI, its level. OK fades over to the Game scene, which starts that match.
     /// </summary>
     public sealed class MatchSetup : MonoBehaviour
     {
@@ -46,7 +45,7 @@ namespace FlickCurling.Game
         {
             ok.interactable = false;
             MatchLaunch.Set(vsAi, (AiLevel)level.Selected, ModeMaps[Mathf.Clamp(mode.Selected, 0, ModeMaps.Length - 1)]);
-            SceneManager.LoadScene(MatchLaunch.GameScene);
+            ScreenFader.LoadScene(MatchLaunch.GameScene);
         }
     }
 }

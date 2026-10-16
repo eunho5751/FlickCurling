@@ -232,6 +232,8 @@ namespace FlickCurling.Game
 
         void HandleInput()
         {
+            // nothing takes a touch while the screen fades
+            if (ScreenFader.Busy) { mouseWasDown = false; return; }
             bool touched = false;
             foreach (var t in ETouch.activeTouches)
             {

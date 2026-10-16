@@ -577,12 +577,18 @@ namespace FlickCurling.Game
         /// <summary>Shows a card built by <paramref name="build"/>; the builder runs again if the language changes while it is up.</summary>
         void ShowCard(Func<CardSpec> build)
         {
-            cardFactory = build;
-            var c = build();
-            // a countdown card presses its button by itself; when watching the AIs it goes at the watch pace
-            if (Watching && c.Countdown > 0) c.Countdown = 2.6f / Speed;
-            hud.ShowCard(c, null);
-            sfx.Pop();
+            // a card waits for a screen fade to finish (coming from the main menu, the turn order card appears once the
+            // game has faded in, its countdown untouched)
+            ScreenFader.WhenClear(() =>
+            {
+                if (!this) return;
+                cardFactory = build;
+                var c = build();
+                // a countdown card presses its button by itself; when watching the AIs it goes at the watch pace
+                if (Watching && c.Countdown > 0) c.Countdown = 2.6f / Speed;
+                hud.ShowCard(c, null);
+                sfx.Pop();
+            });
         }
 
         // ---- HUD text ----

@@ -11,13 +11,15 @@ namespace FlickCurling.EditorTools
     /// <summary>
     /// Builds the shared UI control prefabs in Assets/Prefabs/UI, on the popup art (PopupBuilder.Controls): a primary
     /// (coral) and a secondary (wooden) button, a group toggle (SegmentedToggle) and a slider. Screens use instances of
-    /// them; <see cref="SetLabel"/> and <see cref="SetOptions"/> fill an instance in with localized texts.
+    /// them; <see cref="SetLabel"/> and <see cref="SetOptions"/> fill an instance in with localized texts. Also the screen
+    /// fade (Resources/ScreenFader, loaded by ScreenFader itself).
     /// </summary>
     public static class UiPrefabBuilder
     {
         public const string Dir = "Assets/Prefabs/UI";
         public const string PrimaryPath = Dir + "/Button_Primary.prefab", SecondaryPath = Dir + "/Button_Secondary.prefab";
         public const string TogglePath = Dir + "/ToggleGroup.prefab", SliderPath = Dir + "/Slider.prefab";
+        public const string FaderPath = "Assets/Resources/" + ScreenFader.ResourcePath + ".prefab";   // loaded at run time
 
         // default sizes in the menu's reference pixels
         const float ButtonW = 380, ButtonH = 112, ToggleW = 720, ToggleH = 96, SliderW = 720, SliderH = 44, HandleSize = 76;
@@ -35,6 +37,7 @@ namespace FlickCurling.EditorTools
             Save(MakeButton("Button_Secondary", Art("ui_button_secondary"), font), SecondaryPath);
             Save(MakeToggle(font), TogglePath);
             Save(MakeSlider(), SliderPath);
+            Save(MakeFader(), FaderPath);
             Debug.Log("FlickCurling: built the UI control prefabs in " + Dir);
         }
 
@@ -141,6 +144,25 @@ namespace FlickCurling.EditorTools
         {
             rt.anchorMin = new Vector2(0, 0.5f); rt.anchorMax = new Vector2(1, 0.5f);
             rt.sizeDelta = new Vector2(-2 * left, SliderH - 2 * inset); rt.anchoredPosition = Vector2.zero;
+        }
+
+        // the screen fade: its own overlay canvas above everything, one dark cover that also blocks every touch
+        static GameObject MakeFader()
+        {
+            var go = new GameObject("ScreenFader");
+            var canvas = go.AddComponent<Canvas>();
+            canvas.renderMode = RenderMode.ScreenSpaceOverlay; canvas.sortingOrder = ScreenFader.SortingOrder;
+            go.AddComponent<GraphicRaycaster>();
+            var group = go.AddComponent<CanvasGroup>();
+            group.alpha = 0; group.blocksRaycasts = false;
+            var cover = MainMenuBuilder.Child<Image>(go.transform, "Cover");
+            MainMenuBuilder.Stretch(cover.rectTransform);
+            cover.color = ScreenFader.Cover;
+            var fader = go.AddComponent<ScreenFader>();
+            var so = new SerializedObject(fader);
+            so.FindProperty("group").objectReferenceValue = group;
+            so.ApplyModifiedPropertiesWithoutUndo();
+            return go;
         }
 
         // ---- filling in instances ----
