@@ -25,14 +25,14 @@ namespace FlickCurling.Game
     }
 
     /// <summary>
-    /// The overlay canvas: top HUD row, score table, toast, cards, the start menu, corner buttons and world labels.
+    /// The overlay canvas: top HUD row, score table, toast, cards, corner buttons and world labels.
     /// Fixed text is bound to string-table keys and refreshed by <see cref="Relocalize"/>.
     /// </summary>
     public sealed class Hud
     {
         public readonly Canvas Canvas;
         readonly CanvasScaler scaler;
-        readonly RectTransform root, scorePanel, scoreTable, br, more, toastLayer, cardOv, cardRt, menu, menuCard, watchLv, labelLayer, miniFrame;
+        readonly RectTransform root, scorePanel, scoreTable, br, more, toastLayer, cardOv, cardRt, labelLayer, miniFrame;
         readonly TextMeshProUGUI sensTxt, scorePill, cardEyebrow, cardTitle, cardHead, cardBody, soundTxt, speedTxt;
         readonly Image cardOvImg;
         readonly RectTransform cardActions;
@@ -42,7 +42,6 @@ namespace FlickCurling.Game
         readonly RectTransform safeRoot, safeTop, leftCol, pillRt;
         bool sideMode, hudShown;
         float insL, insT, insR, insB;
-        readonly Pills modePills, mapPills, lvB, lvW;
         readonly List<(TextMeshProUGUI t, string key)> bound = new List<(TextMeshProUGUI, string)>();
         readonly List<(TextMeshProUGUI t, string code)> langButtons = new List<(TextMeshProUGUI, string)>();
         // toasts: a stack sitting just above the fuse on the min line, the newest at the bottom
@@ -59,7 +58,6 @@ namespace FlickCurling.Game
         Image cardFill;
         Button cardFirst;
 
-        public Action<int, int, int, int> OnStart;   // mode, map, black level, white level
         public Action OnMenu, OnSound, OnSpeed, OnUiClick;
         public Action<string> OnLanguage;
         public Action<int> OnSens;   // -1 / +1 from the arrow buttons
@@ -125,39 +123,9 @@ namespace FlickCurling.Game
             cardGroup = cardOv.gameObject.AddComponent<CanvasGroup>();
             cardOv.gameObject.SetActive(false);
 
-            // ---- start menu ----
-            var menuImg = Ui.Rect(root, "Menu").gameObject.AddComponent<Image>();
-            menu = menuImg.rectTransform; Ui.Stretch(menu);
-            menuImg.color = Palette.Rgba(20, 13, 8, .62f);
-            menuCard = Ui.Panel(menu, "MenuCard", Palette.Panel, Palette.Line, 12).rectTransform;
-            var mc = menuCard;
-            Ui.VStack(mc.gameObject, 20, 20, 20, 20, 12);
-            Ui.Fit(mc.gameObject, false, true);
-            Bind(Ui.Label(mc, "", 11, Palette.Muted), "menu.eyebrow");
-            Bind(FitOneLine(Ui.Label(mc, "", 44, Palette.Text, true), 26), "menu.title");
-            var lede = Bind(Ui.Label(mc, "", 14, Palette.Text), "menu.lede");
-            lede.lineSpacing = 12;
-            var mut = Bind(Ui.Label(mc, "", 14, Palette.Muted), "menu.note");
-            mut.lineSpacing = 12;
-            Legend(mc, "menu.mode");
-            modePills = new Pills(mc, ModeLabels(), 0);
-            watchLv = Ui.Rect(mc, "WatchLv");
-            Ui.VStack(watchLv.gameObject, 0, 0, 0, 0, 6);
-            Legend(watchLv, "menu.watchLevels");
-            lvB = LevelRow(watchLv, Team.B);
-            lvW = LevelRow(watchLv, Team.W);
-            watchLv.gameObject.SetActive(false);
-            modePills.Changed += i => watchLv.gameObject.SetActive(i == 4);
-            Legend(mc, "menu.map");
-            mapPills = new Pills(mc, MapLabels(), 0);
-            var acts = Ui.Rect(mc, "Actions");
-            acts.gameObject.AddComponent<FlowLayout>();
-            var start = Ui.Button(acts, "", true, () => OnStart?.Invoke(modePills.Selected, mapPills.Selected, lvB.Selected, lvW.Selected));
-            Bind(Ui.ButtonText(start), "menu.start");
-
             // ---- bottom right: settings (language, sound, menu), speed. Above the overlays, as in the prototype ----
             br = Ui.Rect(root, "HudBR");
-            // its own safe-area root, created last so the corner buttons draw above the cards and the menu
+            // its own safe-area root, created last so the corner buttons draw above the cards
             safeTop = Ui.Rect(root, "SafeTop"); Ui.Stretch(safeTop);
             br.SetParent(safeTop, false);
             br.anchorMin = br.anchorMax = new Vector2(1, 0); br.pivot = new Vector2(1, 0); br.anchoredPosition = new Vector2(-12, 12);
@@ -220,18 +188,10 @@ namespace FlickCurling.Game
             return t;
         }
 
-        static string[] ModeLabels() => new[] { Loc.T("mode.pvp"), Loc.T("mode.easy"), Loc.T("mode.normal"), Loc.T("mode.hard"), Loc.T("mode.watch") };
-        static string[] MapLabels() => new[] { Loc.T("map.base"), Loc.T("map.bumper"), Loc.T("map.zones"), Loc.T("map.kink"), Loc.T("map.random") };
-        static string[] LevelLabels() => new[] { Loc.T("level.easy"), Loc.T("level.normal"), Loc.T("level.hard") };
-
         /// <summary>Re-reads every fixed text from the string table (after a language change).</summary>
         public void Relocalize()
         {
             foreach (var (t, key) in bound) t.text = Loc.T(key);
-            modePills?.SetLabels(ModeLabels());
-            mapPills?.SetLabels(MapLabels());
-            lvB?.SetLabels(LevelLabels());
-            lvW?.SetLabels(LevelLabels());
             foreach (var (t, code) in langButtons) t.color = code == Loc.Code ? Palette.Brass : Palette.Text;
             lastTable = null;
         }
@@ -254,27 +214,6 @@ namespace FlickCurling.Game
             b.GetComponent<HorizontalLayoutGroup>().padding = new RectOffset(12, 12, 6, 6);
         }
 
-        void Legend(Transform parent, string key)
-        {
-            var t = Bind(Ui.Label(parent, "", 11, Palette.Muted), key);
-            t.gameObject.AddComponent<LayoutElement>().preferredHeight = 16;
-        }
-
-        Pills LevelRow(Transform parent, Team team)
-        {
-            var row = Ui.Rect(parent, "Lv" + team);
-            var h = Ui.HStack(row.gameObject, 0, 0, 0, 0, 10, TextAnchor.MiddleLeft);
-            h.childForceExpandWidth = false;
-            var name = Ui.Rect(row, "Name");
-            Ui.HStack(name.gameObject, 0, 0, 0, 0, 4, TextAnchor.MiddleLeft);
-            name.gameObject.AddComponent<LayoutElement>().preferredWidth = 52;
-            Ui.Dot(name, team);
-            Bind(Ui.NoWrap(Ui.Label(name, "", 13, Palette.Text)), team == Team.B ? "team.B" : "team.W");
-            var p = new Pills(row, LevelLabels(), 2);
-            p.Root.gameObject.AddComponent<LayoutElement>().flexibleWidth = 1;
-            return p;
-        }
-
         // ---------------- per-frame ----------------
 
         public void Tick(float cssPx, float cw, float ch)
@@ -290,7 +229,7 @@ namespace FlickCurling.Game
                 leftCol.sizeDelta = new Vector2(pillW, leftCol.sizeDelta.y);
             }
             float cardW = CardWidth(sw);
-            foreach (var rt in new[] { cardRt, menuCard })
+            foreach (var rt in new[] { cardRt })
             {
                 rt.sizeDelta = new Vector2(cardW, rt.sizeDelta.y);
                 // a card taller than the screen shrinks to fit rather than running off it
@@ -307,7 +246,6 @@ namespace FlickCurling.Game
         }
 
         public bool HudVisible { set { hudShown = value; ApplyHudVisibility(); if (!value) scorePanel.gameObject.SetActive(false); } }
-        public bool MenuVisible { set => menu.gameObject.SetActive(value); }
         public bool SpeedVisible { set => speedBtn.gameObject.SetActive(value); }
         public string SpeedText { set => speedTxt.text = value; }
         public string SoundText { set => soundTxt.text = value; }
@@ -548,7 +486,7 @@ namespace FlickCurling.Game
 
         const float CardButtonH = 46;
 
-        // cards and the menu: at most 420 wide, with a side margin of 6% of the (safe) width but never under 24
+        // cards: at most 420 wide, with a side margin of 6% of the (safe) width but never under 24
         static float CardWidth(float safeW) => Mathf.Min(420, safeW - 2 * Mathf.Max(24, safeW * 0.06f));
 
         void FillCard(CardSpec c, Action onAnyClick)

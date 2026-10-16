@@ -180,7 +180,6 @@ namespace FlickCurling.Game
 
             sfx = new Sfx(gameObject);
             hud = new Hud(transform);
-            hud.OnStart = (md, mp, b, w) => StartMatch((Mode)md, mp == 4 ? Maps.Keys[fx.Next(Maps.Keys.Length)] : Maps.Keys[mp], b, w);
             hud.OnMenu = ToMenu;
             hud.OnSound = () => { sfx.On = !sfx.On; RenderSettings(); };
             hud.OnSpeed = () => { speed = speed == 1 ? 2 : speed == 2 ? 4 : 1; RenderSettings(); };
@@ -190,10 +189,10 @@ namespace FlickCurling.Game
             Loc.Changed += OnLocaleChanged;
             RenderSettings();
             Resize(true);
-            ToMenu();
-            // a match picked in the main menu starts at once, without the setup card
+            // the match picked in the main menu, or (the scene opened straight in the editor) two players on the basic map
             if (MatchLaunch.Take(out bool vsAi, out var level, out string map))
                 StartMatch(vsAi ? Mode.Easy + (int)level : Mode.Pvp, map, 0, 0);
+            else StartMatch(Mode.Pvp, "base", 0, 0);
         }
 
         void OnDestroy() => Loc.Changed -= OnLocaleChanged;
@@ -266,7 +265,6 @@ namespace FlickCurling.Game
             m.StartMatch();
             fades.Clear(); floats.Clear();
             ShowField(m.Field);
-            hud.MenuVisible = false;
             userMoved = false;
             state = St.Coin;
             RenderHud();
@@ -551,28 +549,15 @@ namespace FlickCurling.Game
             });
         }
 
+        // back to the main menu scene, through the screen fade; whatever is under way here stops
         void ToMenu()
         {
             token++;
-            state = St.Menu; ResetShotInput(); aiPull = null; measure = null; restore = null; lsdShow = null; laneTo = null;
-            cardFactory = null;
-            hud.ClearToasts(); clock = -1;
-            m = new Match(Maps.Build("base"));
-            m.Stones = DemoStones();
-            fades.Clear(); floats.Clear();
-            hud.HideCard(); hud.MenuVisible = true; hud.SpeedVisible = false;
-            ai[0] = ai[1] = null; mode = Mode.Pvp;
-            hud.HudVisible = false;   // the menu card has the screen to itself
-            ShowField(m.Field);
-            zoom = 1; cx = W / 2; cy = L / 2; camTarget = null;
-            RenderHud();
+            ResetShotInput(); aiPull = null; clock = -1;
+            hud.ClearToasts(); hud.HideCard();
+            ScreenFader.LoadScene(MainMenuScene);
         }
-
-        static List<Stone> DemoStones()
-        {
-            var pts = new (Team t, double x, double y)[] { (Team.B, 50, 166), (Team.W, 58, 178), (Team.B, 41, 183), (Team.W, 50, 130), (Team.B, 72, 150), (Team.W, 30, 196) };
-            return pts.Select((p, i) => new Stone { Id = -10 - i, Team = p.t, X = p.x, Y = p.y }).ToList();
-        }
+        const string MainMenuScene = "MainMenu";
 
         /// <summary>Shows a card built by <paramref name="build"/>; the builder runs again if the language changes while it is up.</summary>
         void ShowCard(Func<CardSpec> build)

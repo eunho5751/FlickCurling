@@ -55,28 +55,8 @@ MonoBehaviour:
     m_Key: map.kink
     m_Metadata:
       m_Items: []
-  - m_Id: 2254360584
-    m_Key: map.random
-    m_Metadata:
-      m_Items: []
   - m_Id: 2254360585
     m_Key: mode.pvp
-    m_Metadata:
-      m_Items: []
-  - m_Id: 2254360586
-    m_Key: mode.easy
-    m_Metadata:
-      m_Items: []
-  - m_Id: 2254360587
-    m_Key: mode.normal
-    m_Metadata:
-      m_Items: []
-  - m_Id: 2254360588
-    m_Key: mode.hard
-    m_Metadata:
-      m_Items: []
-  - m_Id: 2254360589
-    m_Key: mode.watch
     m_Metadata:
       m_Items: []
   - m_Id: 2254360590
@@ -85,38 +65,6 @@ MonoBehaviour:
       m_Items: []
   - m_Id: 2262749184
     m_Key: mode.watchVs
-    m_Metadata:
-      m_Items: []
-  - m_Id: 2262749185
-    m_Key: menu.eyebrow
-    m_Metadata:
-      m_Items: []
-  - m_Id: 2262749186
-    m_Key: menu.title
-    m_Metadata:
-      m_Items: []
-  - m_Id: 2262749187
-    m_Key: menu.lede
-    m_Metadata:
-      m_Items: []
-  - m_Id: 2262749188
-    m_Key: menu.note
-    m_Metadata:
-      m_Items: []
-  - m_Id: 2262749189
-    m_Key: menu.mode
-    m_Metadata:
-      m_Items: []
-  - m_Id: 2262749190
-    m_Key: menu.watchLevels
-    m_Metadata:
-      m_Items: []
-  - m_Id: 2262749191
-    m_Key: menu.map
-    m_Metadata:
-      m_Items: []
-  - m_Id: 2262749192
-    m_Key: menu.start
     m_Metadata:
       m_Items: []
   - m_Id: 2262749193

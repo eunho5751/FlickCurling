@@ -59,28 +59,8 @@ MonoBehaviour:
     m_Localized: Bent Rails
     m_Metadata:
       m_Items: []
-  - m_Id: 2254360584
-    m_Localized: Random
-    m_Metadata:
-      m_Items: []
   - m_Id: 2254360585
     m_Localized: 2 Players
-    m_Metadata:
-      m_Items: []
-  - m_Id: 2254360586
-    m_Localized: AI Easy
-    m_Metadata:
-      m_Items: []
-  - m_Id: 2254360587
-    m_Localized: AI Normal
-    m_Metadata:
-      m_Items: []
-  - m_Id: 2254360588
-    m_Localized: AI Hard
-    m_Metadata:
-      m_Items: []
-  - m_Id: 2254360589
-    m_Localized: Watch AI
     m_Metadata:
       m_Items: []
   - m_Id: 2254360590
@@ -93,41 +73,6 @@ MonoBehaviour:
     m_Metadata:
       m_Items:
       - rid: 4297768082125881571
-  - m_Id: 2262749185
-    m_Localized: "Unity port \xB7 testing the rules and feel"
-    m_Metadata:
-      m_Items: []
-  - m_Id: 2262749186
-    m_Localized: Flick Curling
-    m_Metadata:
-      m_Items: []
-  - m_Id: 2262749187
-    m_Localized: Flick go stones to knock your opponent's out and leave only yours
-      in the middle. Four ends of 10 shots (5 stones each); only the side closest
-      to the centre scores.
-    m_Metadata:
-      m_Items: []
-  - m_Id: 2262749188
-    m_Localized: A stone that stops short of the min line or goes past the back line
-      doesn't count. Banking off the side rails is allowed.
-    m_Metadata:
-      m_Items: []
-  - m_Id: 2262749189
-    m_Localized: MODE
-    m_Metadata:
-      m_Items: []
-  - m_Id: 2262749190
-    m_Localized: AI LEVELS TO WATCH
-    m_Metadata:
-      m_Items: []
-  - m_Id: 2262749191
-    m_Localized: MAP
-    m_Metadata:
-      m_Items: []
-  - m_Id: 2262749192
-    m_Localized: Start
-    m_Metadata:
-      m_Items: []
   - m_Id: 2262749193
     m_Localized: Settings
     m_Metadata:
