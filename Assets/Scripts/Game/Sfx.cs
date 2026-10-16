@@ -1,9 +1,11 @@
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 
 namespace FlickCurling.Game
 {
-    /// <summary>Generated sounds, as the prototype's Web Audio blips: band-passed noise bursts and a triangle chime.</summary>
+    /// <summary>Generated sounds, as the prototype's Web Audio blips: band-passed noise bursts and a triangle chime, plus
+    /// soft synth cues (turn start, pop-up, end over, a void shot, the clock running low).</summary>
     public sealed class Sfx
     {
         const int Rate = 44100;
@@ -23,6 +25,69 @@ namespace FlickCurling.Game
             noise = new float[n];
             for (int i = 0; i < n; i++) noise[i] = (float)(r.NextDouble() * 2 - 1) * Mathf.Pow(1 - (float)i / n, 3);
         }
+
+        // ---- synth cues ----
+
+        static AudioClip Make(string name, float len, Func<float, float> f)
+        {
+            int n = (int)(Rate * len);
+            var data = new float[n];
+            for (int i = 0; i < n; i++) data[i] = f((float)i / Rate);
+            var clip = AudioClip.Create(name, n, 1, Rate, false);
+            clip.SetData(data, 0);
+            return clip;
+        }
+
+        // a soft bell: a sine with a faint inharmonic partial, a 5 ms attack and an exponential decay over len
+        static float Bell(float t, float f, float len)
+        {
+            if (t < 0 || t > len) return 0;
+            float env = Mathf.Min(1, t / 0.005f) * Mathf.Pow(0.001f, t / len);
+            return env * (Mathf.Sin(2 * Mathf.PI * f * t) + 0.25f * Mathf.Sin(2 * Mathf.PI * f * 2.76f * t) * Mathf.Pow(0.01f, t / len));
+        }
+
+        // a mellow square-ish tone (odd harmonics, rolled off) whose pitch slides from f0 to f1
+        static float Reed(float t, float f0, float f1, float len)
+        {
+            if (t < 0 || t > len) return 0;
+            float u = t / len, ph = 2 * Mathf.PI * (f0 * t + (f1 - f0) * t * u / 2);
+            float env = Mathf.Min(1, t / 0.01f) * (u < 0.7f ? 1 : (1 - u) / 0.3f);
+            return env * (Mathf.Sin(ph) + Mathf.Sin(3 * ph) / 5 + Mathf.Sin(5 * ph) / 12);
+        }
+
+        AudioClip turnClip, popClip, endClip, voidClip, warnClip;
+
+        void Play(ref AudioClip clip, Func<AudioClip> make)
+        {
+            if (!On) return;
+            if (clip == null) clip = make();
+            src.PlayOneShot(clip, 1);
+        }
+
+        /// <summary>A turn begins: two rising bell notes.</summary>
+        public void TurnStart() => Play(ref turnClip, () => Make("turn", 0.6f, t => 0.22f * (Bell(t, 784, 0.35f) + Bell(t - 0.11f, 1175, 0.45f))));
+
+        /// <summary>A card pops up: a quick upward blip.</summary>
+        public void Pop() => Play(ref popClip, () => Make("pop", 0.12f, t =>
+        {
+            float u = Mathf.Min(1, t / 0.07f);
+            return 0.35f * Mathf.Sin(2 * Mathf.PI * (380 * t + 300 * t * u)) * Mathf.Min(1, t / 0.004f) * Mathf.Pow(0.01f, t / 0.12f);
+        }));
+
+        /// <summary>An end is over: a rising arpeggio, C E G C.</summary>
+        public void EndOver() => Play(ref endClip, () => Make("end", 1.1f, t =>
+            0.18f * (Bell(t, 523, 0.4f) + Bell(t - 0.09f, 659, 0.4f) + Bell(t - 0.18f, 784, 0.45f) + Bell(t - 0.27f, 1046, 0.8f))));
+
+        /// <summary>The shot does not count (short of the min line, past the back line, a lost cushion, out of time): a
+        /// falling "wah-wah".</summary>
+        public void Void() => Play(ref voidClip, () => Make("void", 0.6f, t => 0.2f * (Reed(t, 392, 370, 0.18f) + Reed(t - 0.2f, 294, 247, 0.38f))));
+
+        /// <summary>The clock is running low: two quick high beeps.</summary>
+        public void Warn() => Play(ref warnClip, () => Make("warn", 0.25f, t =>
+        {
+            float a = t < 0.07f ? t : t > 0.13f && t < 0.2f ? t - 0.13f : -1;
+            return a < 0 ? 0 : 0.28f * Mathf.Sin(2 * Mathf.PI * 1318 * t) * Mathf.Min(1, a / 0.004f) * Mathf.Min(1, (0.07f - a) / 0.01f);
+        }));
 
         AudioClip Blip(int freq, float q, float len)
         {

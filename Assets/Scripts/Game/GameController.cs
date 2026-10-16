@@ -301,6 +301,7 @@ namespace FlickCurling.Game
             CamTo(AimView(zoom), 3.5f);
             RenderHud();
             hud.TurnToast(Loc.T("hud.turn", ("name", SideOf(m.Cur, 130))));
+            sfx.TurnStart();
             StartClock();
             if (state == St.Ai)
             {
@@ -320,6 +321,7 @@ namespace FlickCurling.Game
         {
             double d = m.RecordLsd(out bool shortOfHog);
             bool ok = !double.IsInfinity(d);
+            if (!ok) sfx.Void();
             if (!ok) hud.Toast(Loc.T("hud.noRecord"), Loc.T(shortOfHog ? "lsd.shortOfHog" : "lsd.offSheet"), 1800);
             var s = m.ShotStone;
             lsdShow = ok ? new LsdShow { X = (float)s.X, Y = (float)s.Y, D = d, T = 0 } : new LsdShow { T = 0.6f };
@@ -369,6 +371,7 @@ namespace FlickCurling.Game
             RenderHud();
             // the first thrower's opening turn of each end also notes the bonus guard it starts with
             hud.TurnToast(Loc.T("hud.turn", ("name", SideOf(m.Cur, 130))), m.Shot == 0 ? Loc.T("bonus.title") : null);
+            sfx.TurnStart();
             StartClock();
             if (state == St.Ai) RunAI();
         }
@@ -423,6 +426,7 @@ namespace FlickCurling.Game
                 state = St.Restoring;
                 restore = new Restore { T = 0, From = m.Stones.ToDictionary(s => s.Id, s => new Vector2((float)s.X, (float)s.Y)) };
                 hud.Toast(Loc.T("foul.lost", ("team", Ui.Icon(m.Cur))), null, 3400, 14);
+                sfx.Void();
                 return;
             }
             foreach (var r in res.Removed) fades.Add(new Fade { X = (float)r.Stone.X, Y = (float)r.Stone.Y, Team = r.Stone.Team, A = 1 });
@@ -431,7 +435,7 @@ namespace FlickCurling.Game
             var knocked = new List<string>();
             foreach (var t in new[] { Team.B, Team.W })
                 if (res.Knocked[(int)t] > 0) knocked.Add(Loc.T("out.knocked", ("team", Ui.Icon(t)), ("n", res.Knocked[(int)t])));
-            if (head != null) hud.Toast(head, string.Join("\n", knocked));
+            if (head != null) { hud.Toast(head, string.Join("\n", knocked)); sfx.Void(); }
             else if (knocked.Count > 0) hud.Toast(string.Join("\n", knocked));
             state = St.Settle; settleT = 0.9f;
         }
@@ -449,7 +453,10 @@ namespace FlickCurling.Game
         {
             if (clock < 0 || !HumanAim || hud.CardVisible) return;
             if (clockWait > 0) { clockWait -= rdt; return; }
+            float before = clock;
             clock -= rdt;
+            // a third of the time left: the fuse starts flashing red and a warning beeps
+            if (before > ShotTime / 3 && clock <= ShotTime / 3 && clock > 0) sfx.Warn();
             if (clock <= 0) TimeOut();
         }
 
@@ -459,7 +466,7 @@ namespace FlickCurling.Game
             clock = -1;
             ResetShotInput();
             m.Forfeit();
-            sfx.Blip(0.5f, 260, 2, 0.14f);
+            sfx.Void();
             if (m.InLsd)
             {
                 hud.Toast(Loc.T("timeout.title"), Loc.T("timeout.lsd"), 1800);
@@ -481,6 +488,7 @@ namespace FlickCurling.Game
         void FinishEnd()
         {
             var eo = m.FinishEnd();
+            sfx.EndOver();
             measure = new Measure { T = 0, Sc = eo.Score, PrevHammer = eo.PrevHammer, Dur = 0.5f + eo.Score.List.Count * 0.3f + 0.7f };
             state = St.Measure;
             userMoved = false;
@@ -571,6 +579,7 @@ namespace FlickCurling.Game
             // a countdown card presses its button by itself; when watching the AIs it goes at the watch pace
             if (Watching && c.Countdown > 0) c.Countdown = 2.6f / Speed;
             hud.ShowCard(c, null);
+            sfx.Pop();
         }
 
         // ---- HUD text ----
