@@ -8,9 +8,9 @@ namespace FlickCurling.Game
 {
     /// <summary>
     /// The shared popup window of the main menu (the prefab Assets/Prefabs/Popup.prefab, built by PopupBuilder): a dim
-    /// backdrop, a 9-sliced cream panel in a wooden frame, a wooden title plate over its top edge and a round close
-    /// button. Put what the popup shows under <see cref="Content"/> (or just set <see cref="Message"/>); the window can be
-    /// any size (<see cref="SetSize"/>), the art keeps its rims.
+    /// backdrop, a 9-sliced cream panel in a wooden frame with the title on its wide top bar and a small round close
+    /// button at that bar's right end. Put what the popup shows under <see cref="Content"/> (or just set
+    /// <see cref="Message"/>); the window can be any size (<see cref="SetSize"/>), the art keeps its rims.
     /// </summary>
     public sealed class Popup : MonoBehaviour
     {

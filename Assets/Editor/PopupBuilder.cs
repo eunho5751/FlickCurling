@@ -8,23 +8,26 @@ using UnityEngine.UI;
 namespace FlickCurling.EditorTools
 {
     /// <summary>
-    /// Builds Assets/Prefabs/Popup.prefab, the main menu's shared popup: a dim backdrop, the 9-sliced panel, a title plate
-    /// over its top edge, a round close button and a content area with a plain message text. The art (Codex, hand-painted wood grain
+    /// Builds Assets/Prefabs/Popup.prefab, the main menu's shared popup: a dim backdrop, the 9-sliced panel whose wooden
+    /// frame has a wide header bar along the top, the title written on that bar with a small round close button at its
+    /// right end, and a content area with a plain message text. The art (Codex, hand-painted wood grain
     /// like the menu's wooden planks, calm and casual) lives in Assets/Art/Menu as popup_*.png. Sizes are in the menu's 1080 x 1920
     /// reference pixels.
     /// </summary>
     public static class PopupBuilder
     {
         public const string PrefabPath = "Assets/Prefabs/Popup.prefab";
-        const string PanelPath = "Assets/Art/Menu/popup_panel.png", TitlePath = "Assets/Art/Menu/popup_title.png", ClosePath = "Assets/Art/Menu/popup_close.png";
+        const string PanelPath = "Assets/Art/Menu/popup_panel.png", ClosePath = "Assets/Art/Menu/popup_close.png";
 
         // 9-slice borders in source pixels (left, bottom, right, top) and how many source pixels make one reference pixel,
         // which sets how thick the rims show
-        static readonly Vector4 PanelBorder = new Vector4(72, 72, 72, 72), TitleBorder = new Vector4(90, 50, 90, 50);
+        static readonly Vector4 PanelBorder = new Vector4(56, 56, 56, 112);   // the top border holds the header bar
         const float PanelPpu = 0.9f;
 
-        const float WindowW = 860, WindowH = 760, TitleW = 560, TitleH = 120, CloseSize = 110;
-        static readonly Color32 Cream = new Color32(0xf6, 0xea, 0xd2, 0xff), Ink = new Color32(0x4a, 0x2a, 0x12, 0xff);
+        // the header bar is 91 source pixels tall (outline included), so about 101 reference pixels at PanelPpu; the frame's
+        // other bars about 38
+        const float WindowW = 860, WindowH = 785, HeaderH = 101, SideW = 38, CloseSize = 64;
+        static readonly Color32 Ink = new Color32(0x4a, 0x2a, 0x12, 0xff);
 
         // the controls that go on the popup (Codex, same plain style), each with its 9-slice border in source pixels (left,
         // bottom, right, top): a segmented toggle group (groove and the sliding selected segment), primary and secondary
@@ -51,7 +54,6 @@ namespace FlickCurling.EditorTools
         {
             ImportControls();
             var panel = MainMenuBuilder.ImportSprite(PanelPath, PanelBorder, 512);
-            var plate = MainMenuBuilder.ImportSprite(TitlePath, TitleBorder, 1024);
             var close = MainMenuBuilder.ImportSprite(ClosePath, Vector4.zero, 256);
             var titleFont = AssetDatabase.LoadAssetAtPath<TMP_FontAsset>(FontBuilder.ButtonPath);   // Jua, Mochiy Pop One for Japanese
             var bodyFont = AssetDatabase.LoadAssetAtPath<TMP_FontAsset>(FontBuilder.DisplayPath);
@@ -71,28 +73,26 @@ namespace FlickCurling.EditorTools
             MainMenuBuilder.Place(win.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(0, 40), new Vector2(WindowW, WindowH));
             win.sprite = panel; win.type = Image.Type.Sliced; win.pixelsPerUnitMultiplier = PanelPpu;
 
-            // the title plate sits across the panel's top edge
-            var plateImg = MainMenuBuilder.Child<Image>(win.transform, "TitlePlate");
-            MainMenuBuilder.Place(plateImg.rectTransform, new Vector2(0.5f, 1), new Vector2(0, -6), new Vector2(TitleW, TitleH));
-            plateImg.sprite = plate; plateImg.type = Image.Type.Sliced; plateImg.pixelsPerUnitMultiplier = plate.rect.height / TitleH;
-            plateImg.raycastTarget = false;
-            var title = MainMenuBuilder.Label(plateImg.transform, "Title", titleFont, 50, Cream);
-            MainMenuBuilder.Stretch(title.rectTransform);
-            title.rectTransform.offsetMin = new Vector2(30, 8); title.rectTransform.offsetMax = new Vector2(-30, 0);   // the face sits above the bottom lip
+            // the title is written on the header bar, centred, in the menu planks' dark brown; it keeps clear of the close
+            // button at the bar's right end
+            var title = MainMenuBuilder.Label(win.transform, "Title", titleFont, 50, Ink);
+            var trt = title.rectTransform;
+            trt.anchorMin = new Vector2(0, 1); trt.anchorMax = new Vector2(1, 1); trt.pivot = new Vector2(0.5f, 1);
+            trt.offsetMin = new Vector2(SideW + CloseSize + 24, -HeaderH + 10); trt.offsetMax = new Vector2(-(SideW + CloseSize + 24), -6);
             title.enableAutoSizing = true; title.fontSizeMin = 30; title.fontSizeMax = 50;
             title.text = "Title";
 
-            // the close button over the top right corner
+            // the small close button inside the header bar, at its right end
             var closeImg = MainMenuBuilder.Child<Image>(win.transform, "Close");
-            MainMenuBuilder.Place(closeImg.rectTransform, new Vector2(1, 1), new Vector2(-22, -22), new Vector2(CloseSize, CloseSize));
+            MainMenuBuilder.Place(closeImg.rectTransform, new Vector2(1, 1), new Vector2(-(SideW + CloseSize / 2 + 6), -(HeaderH / 2 + 2)), new Vector2(CloseSize, CloseSize));
             closeImg.sprite = close; closeImg.preserveAspect = true;
             var closeButton = closeImg.gameObject.AddComponent<Button>();
             var cb = closeButton.colors; cb.highlightedColor = new Color(1.06f, 1.06f, 1.06f); cb.pressedColor = new Color(.82f, .82f, .82f); closeButton.colors = cb;
 
-            // what the popup shows goes here, inside the frame and below the title plate
+            // what the popup shows goes here, inside the frame and below the header bar
             var content = MainMenuBuilder.Child<RectTransform>(win.transform, "Content");
             MainMenuBuilder.Stretch(content);
-            content.offsetMin = new Vector2(70, 70); content.offsetMax = new Vector2(-70, -110);
+            content.offsetMin = new Vector2(70, 70); content.offsetMax = new Vector2(-70, -(HeaderH + 34));
             var message = MainMenuBuilder.Label(content, "Message", bodyFont, 40, Ink);
             MainMenuBuilder.Stretch(message.rectTransform);
             message.textWrappingMode = TextWrappingModes.Normal;

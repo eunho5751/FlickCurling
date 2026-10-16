@@ -169,9 +169,12 @@ namespace FlickCurling.EditorTools
             var template = inner.Find("Option0").gameObject;
             var options = new Button[keys.Length];
             var labels = new TextMeshProUGUI[keys.Length];
+            // all the copies first, from the bare template, so none of them carries another option's localization
+            var opts = new GameObject[keys.Length];
+            for (int i = 0; i < keys.Length; i++) opts[i] = i == 0 ? template : Object.Instantiate(template, inner);
             for (int i = 0; i < keys.Length; i++)
             {
-                var opt = i == 0 ? template : Object.Instantiate(template, inner);
+                var opt = opts[i];
                 opt.name = "Option" + i;
                 var rt = (RectTransform)opt.transform;
                 rt.anchorMin = new Vector2((float)i / keys.Length, 0); rt.anchorMax = new Vector2((float)(i + 1) / keys.Length, 1);

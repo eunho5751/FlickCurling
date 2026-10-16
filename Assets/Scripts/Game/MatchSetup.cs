@@ -18,7 +18,7 @@ namespace FlickCurling.Game
         [SerializeField] GameObject levelRow;
         [SerializeField] SegmentedToggle level;
         [SerializeField] Button ok;
-        [SerializeField] Vector2 sizeAi = new Vector2(860, 760), sizeLocal = new Vector2(860, 584);
+        [SerializeField] Vector2 sizeAi = new Vector2(860, 785), sizeLocal = new Vector2(860, 609);
 
         // the modes, in the toggle's order, as the maps they play on
         static readonly string[] ModeMaps = { "base" };
