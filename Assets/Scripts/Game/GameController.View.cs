@@ -408,7 +408,8 @@ namespace FlickCurling.Game
 
         enum HitKind { None, Stone, Post, Wall }
 
-        (Vector2 p, HitKind kind) AimRay(double ang)
+        // with the hit marker off, the line runs on through stones and posts to a wall or the far end of the sheet
+        (Vector2 p, HitKind kind) AimRay(double ang, bool throughObjects = false)
         {
             double dx = Math.Sin(ang), dy = Math.Cos(ang);
             double x = m.LaunchX, y = Sheet.LaunchY;
@@ -418,8 +419,11 @@ namespace FlickCurling.Game
                 x += dx * 0.35; y += dy * 0.35;
                 var here = new Vector2((float)x, (float)y);
                 if (y > Sheet.L + 4 || y < 0) return (here, HitKind.None);
-                foreach (var st in live) if (Sheet.Dist(st.X, st.Y, x, y) < 2 * Sheet.SR) return (here, HitKind.Stone);
-                foreach (var p in m.ActiveField.Posts) if (Sheet.Dist(p.X, p.Y, x, y) < p.R + Sheet.SR) return (here, HitKind.Post);
+                if (!throughObjects)
+                {
+                    foreach (var st in live) if (Sheet.Dist(st.X, st.Y, x, y) < 2 * Sheet.SR) return (here, HitKind.Stone);
+                    foreach (var p in m.ActiveField.Posts) if (Sheet.Dist(p.X, p.Y, x, y) < p.R + Sheet.SR) return (here, HitKind.Post);
+                }
                 foreach (var w in m.ActiveField.Walls)
                 {
                     double ddx = w.X2 - w.X1, ddy = w.Y2 - w.Y1;
@@ -625,19 +629,19 @@ namespace FlickCurling.Game
             aim.Line(a, b, U(3), col);
             var back = -dir * U(9);
             aim.Tri(b, b + Rot(back, 0.45f), b + Rot(back, -0.45f), col);
-            // aim line to first contact
-            var hit = AimRay(ang);
+            // aim line to first contact (or, with the hit marker off, on to a wall or the far end)
+            var hit = AimRay(ang, !showHitMarker);
             aim.Dashed(lp, hit.p, U(1.5f), U(5), U(5), Palette.Rgba(40, 24, 12, .6f));
-            bool noTicket = !m.InLsd && state == St.Aim && m.Tickets[(int)m.Cur] <= 0;
+            bool noTicket = !m.InLsd && !Sheet.UnlimitedTickets && state == St.Aim && m.Tickets[(int)m.Cur] <= 0;
             if (hit.kind == HitKind.Wall && noTicket)
             {
                 aim.Ring(hit.p, SR, U(2), Palette.Hex("#c0503a"));
                 bool leftSide = hit.p.x < W / 2;
                 hud.Label(Loc.T("float.noTicket"), X(hit.p.x) + (leftSide ? 1 : -1) * (SR * s + 6), Y(hit.p.y), 12, Palette.Hex("#ff9c84"), leftSide ? -1 : 1, false, true);
             }
-            else if (hit.kind != HitKind.None) aim.Ring(hit.p, SR, U(1.2f), Palette.Rgba(40, 24, 12, .55f));
+            else if (hit.kind != HitKind.None && showHitMarker) aim.Ring(hit.p, SR, U(1.2f), Palette.Rgba(40, 24, 12, .55f));
             float tl = r0 + len + 18;
-            if (pw > 0) hud.Label($"{Mathf.RoundToInt(pw * 100)}%", lx + dir.x * tl, ly - dir.y * tl, 15, Palette.Hex("#ffe2a6"), 0, true, true);
+            if (pw > 0 && showPowerPercent) hud.Label($"{Mathf.RoundToInt(pw * 100)}%", lx + dir.x * tl, ly - dir.y * tl, 15, Palette.Hex("#ffe2a6"), 0, true, true);
         }
 
         // the shot clock as a fuse laid over the min line, burning from the left end toward the right; the burnt part
@@ -715,7 +719,7 @@ namespace FlickCurling.Game
             if (HumanAim || state == St.AiPull)
             {
                 double ang = HumanAim ? aimAng : aiPull.Ang;
-                var hit = AimRay(ang);
+                var hit = AimRay(ang, !showHitMarker);
                 mini.Dashed(new Vector2((float)m.LaunchX, LY), hit.p, one, 2 * one, 2 * one, Palette.Rgba(40, 24, 12, .8f));
             }
             // current view

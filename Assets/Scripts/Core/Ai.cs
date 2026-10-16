@@ -22,7 +22,7 @@ namespace FlickCurling.Core
         {
             Field = m.Field, P = m.P, Team = team, Level = lvl,
             Stones = m.Stones.Where(s => s.Live).Select(s => s.Clone()).ToList(),
-            Tickets = (int[])m.Tickets.Clone(), Hammer = m.Hammer, Shot = m.Shot, End = m.End,
+            Tickets = Sheet.UnlimitedTickets ? new[] { 99, 99 } : (int[])m.Tickets.Clone(),   // unlimited: the AI banks freely Hammer = m.Hammer, Shot = m.Shot, End = m.End,
             Diff = m.Total(team) - m.Total(Sheet.Other(team))
         };
     }
@@ -92,7 +92,8 @@ namespace FlickCurling.Core
 
         public Ai(int seed) { rng = new Random(seed); }
 
-        const double SR = Sheet.SR, W = Sheet.W, LY = Sheet.LaunchY;
+        const double W = Sheet.W, LY = Sheet.LaunchY;
+        static double SR => Sheet.SR;
 
         static double AngTo(double lx, double x, double y) => Math.Atan2(x - lx, y - LY);
         double PowFor(double d) => Math.Sqrt(2 * P.Decel * Math.Max(d, 1)) / P.VMax;

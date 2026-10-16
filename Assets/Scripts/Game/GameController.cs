@@ -28,7 +28,8 @@ namespace FlickCurling.Game
         enum St { Menu, Coin, Aim, Ai, AiPull, Moving, Restoring, Settle, Measure, EndCard, Over, LsdShow }
         enum Mode { Pvp, Easy, Normal, Hard, Watch }
 
-        const float W = (float)Sheet.W, L = (float)Sheet.L, HOG = (float)Sheet.Hog, BACK = (float)Sheet.Back, R = (float)Sheet.R, SR = (float)Sheet.SR;
+        const float W = (float)Sheet.W, L = (float)Sheet.L, HOG = (float)Sheet.Hog, BACK = (float)Sheet.Back, R = (float)Sheet.R;
+        static float SR => (float)Sheet.SR;
         const float TEEX = (float)Sheet.TeeX, TEEY = (float)Sheet.TeeY, LY = (float)Sheet.LaunchY;
         const float VIEW_TOP = BACK + 10;
 
@@ -63,8 +64,10 @@ namespace FlickCurling.Game
         Func<CardSpec> cardFactory;   // rebuilds the visible card after a language change
         // your-turn pulse: the launch stone and the turn line grow and shrink while a human is to aim
         float turnPulse = 1;
+        bool showPowerPercent = true, showHitMarker = true;   // from GameConfig
         // the shot clock: a human has this long to throw once the turn toast has gone, or the stone is lost
-        const float ShotTime = 15, ClockWait = 1.45f;
+        const float ClockWait = 1.45f;
+        float ShotTime = 15;   // from GameConfig
         float clock = -1, clockWait;
         FuseFx fuse;
         Tween pulseTween;
@@ -107,6 +110,12 @@ namespace FlickCurling.Game
 
         void Awake()
         {
+            // the tunable rules first: the stone sprites and the board are sized from them
+            var config = GameConfig.Load();
+            config.Apply();
+            showPowerPercent = config.showPowerPercent;
+            showHitMarker = config.showHitMarker;
+            ShotTime = config.turnSeconds;
             Application.targetFrameRate = 60;
             Loc.Init();
             if (!mainCam) mainCam = Camera.main;

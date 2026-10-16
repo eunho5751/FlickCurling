@@ -322,6 +322,44 @@ namespace FlickCurling.Tests
         }
 
         [Test]
+        public void ConfiguredRulesApply()
+        {
+            try
+            {
+                Sheet.Configure(ends: 2, shotsPerTeam: 3, stoneRadius: 5, lsdBumperRadius: 3, lsdBumpersPerHalf: 1, tickets: 3);
+                Assert.AreEqual(6, Sheet.Shots); Assert.AreEqual(3, Sheet.Per); Assert.AreEqual(2, Sheet.Ends); Assert.AreEqual(5, Sheet.SR);
+                var m = new Match(Maps.Build("base"), null, 2);
+                m.StartMatch();
+                Assert.AreEqual(3, m.Lsd.Bumpers.Length, "one in front of the house and one per half");
+                Assert.IsTrue(m.Lsd.Bumpers.All(b => b.R == 3));
+                Assert.AreEqual(3, m.Tickets[0], "three cushion tickets");
+                m.FinishLsd(); m.StartEnd();
+                for (int i = 0; i < 6; i++) { Assert.IsFalse(m.ShotsDone); m.AdvanceShot(); }
+                Assert.IsTrue(m.ShotsDone, "an end is 3 shots each");
+                m.Scores[0].Add(1); m.Scores[1].Add(0); m.End = 2; m.Scores[0].Add(0); m.Scores[1].Add(0);
+                Assert.AreEqual(AfterEnd.GameOver, m.NextStep(), "two ends");
+            }
+            finally { Sheet.Configure(); }
+        }
+
+        [Test]
+        public void UnlimitedTicketsNeverSpendOrFoul()
+        {
+            try
+            {
+                Sheet.Configure(tickets: 0, unlimitedTickets: true);
+                var m = new Match(Maps.Build("base"), null, 1) { Hammer = Team.W };
+                m.StartEnd(); m.Stones.Clear(); m.BeginShot();
+                m.Release(0.9, 0.9);   // off the side rail first
+                m.RunToRest();
+                Assert.IsFalse(m.Foul, "no foul with no tickets when unlimited");
+                Assert.AreEqual(0, m.Tickets[(int)m.Cur]);
+                Assert.Greater(m.Cushions, 0);
+            }
+            finally { Sheet.Configure(); }
+        }
+
+        [Test]
         public void LastStoneDrawStraightShotHitsTheBlocker()
         {
             var m = new Match(Maps.Build("base"), null, 4);

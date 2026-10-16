@@ -73,13 +73,14 @@ namespace FlickCurling.Core
         public LsdState Lsd;
         public IMatchEvents Listener;
 
-        public Match(Field field, PhysicsParams p = null, int seed = 0, int ticketCount = 2)
+        /// <param name="ticketCount">cushion tickets per team in an end; -1 = Sheet.Tickets</param>
+        public Match(Field field, PhysicsParams p = null, int seed = 0, int ticketCount = -1)
         {
             Field = field;
             P = p ?? PhysicsParams.Default;
-            TicketCount = ticketCount;
+            TicketCount = ticketCount < 0 ? Sheet.Tickets : ticketCount;
             rng = new Random(seed);
-            Tickets[0] = Tickets[1] = ticketCount;
+            Tickets[0] = Tickets[1] = TicketCount;
         }
 
         public int Total(Team t) => Scores[(int)t].Sum();
@@ -149,18 +150,20 @@ namespace FlickCurling.Core
 
         public void FinishLsd() { InLsd = false; Lsd = null; }
 
-        public const double LsdBumperR = 4, LsdBlockerR = 4, LsdBumperGap = 20;
+        public const double LsdBumperGap = 20;
 
         /// <summary>
-        /// The last stone draw's bumpers: one on the centre line just in front of the house, so the tee cannot be reached
-        /// in a straight line, and two in each half (left and right) between the house's centre line and the min line,
-        /// placed at random but spread out (one in the lower and one in the upper part of the half, apart from every
-        /// other post), and never inside the house.
+        /// The last stone draw's bumpers (all Sheet.LsdBumperR): one on the centre line just in front of the house, so the
+        /// tee cannot be reached in a straight line, and Sheet.LsdBumpersPerHalf in each half (left and right) between the
+        /// house's centre line and the min line, placed at random but spread out (one in each band from low to high, apart
+        /// from every other post), and never inside the house.
         /// </summary>
         public static Post[] LsdBumpers(Random rng, Post[] avoid)
         {
-            var list = new List<Post> { new Post(Sheet.TeeX, Sheet.TeeY - Sheet.R - LsdBlockerR - 6, LsdBlockerR) };
-            double y0 = Sheet.Hog + 10, y1 = Sheet.TeeY, mid = (y0 + y1) / 2, rr = LsdBumperR;
+            double rr = Sheet.LsdBumperR;
+            var list = new List<Post> { new Post(Sheet.TeeX, Sheet.TeeY - Sheet.R - rr - 6, rr) };
+            double y0 = Sheet.Hog + 10, y1 = Sheet.TeeY;
+            int bands = Sheet.LsdBumpersPerHalf;
             bool Clear(double x, double y, double gap)
             {
                 if (Sheet.Dist(x, y, Sheet.TeeX, Sheet.TeeY) < Sheet.R + rr + 1.5) return false;   // wholly outside the house
@@ -169,10 +172,10 @@ namespace FlickCurling.Core
                 return true;
             }
             foreach (bool left in new[] { true, false })
-                foreach (bool lower in new[] { true, false })
+                for (int band = 0; band < bands; band++)
                 {
                     double xa = left ? 8 : Sheet.W / 2 + 8, xb = left ? Sheet.W / 2 - 8 : Sheet.W - 8;
-                    double ya = lower ? y0 : mid, yb = lower ? mid : y1;
+                    double ya = y0 + (y1 - y0) * band / bands, yb = y0 + (y1 - y0) * (band + 1) / bands;
                     double x = 0, y = 0;
                     bool placed = false;
                     // the gap relaxes a little if a crowded spot leaves no room
@@ -311,7 +314,8 @@ namespace FlickCurling.Core
             if (g.Dead) { if (vn > 6) Listener?.OnDeadRail(s); return; }
             // only a direct cushion counts: the shot stone reaching a side wall before it has touched any stone.
             // The first one uses a ticket, or fouls without one; the turn order shot never spends tickets.
-            if (!InLsd && !ShotHitStone && !WallTouched && !Foul)
+            // with unlimited tickets cushions are simply free
+            if (!InLsd && !Sheet.UnlimitedTickets && !ShotHitStone && !WallTouched && !Foul)
             {
                 WallTouched = true;
                 if (Tickets[(int)s.Team] > 0) { Tickets[(int)s.Team]--; Listener?.OnTicket(s, true); }
