@@ -18,6 +18,7 @@ namespace FlickCurling.Game
         [SerializeField] GameObject levelRow;
         [SerializeField] SegmentedToggle level;
         [SerializeField] Button ok;
+        [SerializeField] Sprite iconAi, iconLocal;   // the menu buttons' icons, beside the title
         [SerializeField] Vector2 sizeAi = new Vector2(860, 785), sizeLocal = new Vector2(860, 609);
 
         // the modes, in the toggle's order, as the maps they play on
@@ -30,13 +31,15 @@ namespace FlickCurling.Game
         public void Open(bool againstAi)
         {
             vsAi = againstAi;
-            title.StringReference.TableEntryReference = againstAi ? "matchsetup.titleAi" : "matchsetup.titleLocal";
-            title.RefreshString();
+            popup.SetIcon(againstAi ? iconAi : iconLocal);
             levelRow.SetActive(againstAi);
             mode.Select(0, false, false);   // the basic mode is picked each time
             var size = againstAi ? sizeAi : sizeLocal;
             popup.SetSize(size.x, size.y);
             popup.Show();
+            // the title's key is switched once the popup is up: a LocalizeStringEvent on a hidden object does not refresh
+            title.StringReference.SetReference(title.StringReference.TableReference, againstAi ? "matchsetup.titleAi" : "matchsetup.titleLocal");
+            title.RefreshString();
         }
 
         void StartMatch()

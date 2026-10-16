@@ -192,7 +192,7 @@ namespace FlickCurling.EditorTools
             var go = (GameObject)PrefabUtility.InstantiatePrefab(popupPrefab, parent);
             go.name = "MatchSetupPopup";
             var legendFont = AssetDatabase.LoadAssetAtPath<TMP_FontAsset>(FontBuilder.DisplayPath);
-            var title = go.transform.Find("Window/Title").GetComponent<TextMeshProUGUI>();
+            var title = go.transform.Find("Window/TitleRow/Title").GetComponent<TextMeshProUGUI>();
             title.text = UiStrings.Entries.First(e => e[0] == "matchsetup.titleAi")[1];
             var titleEvent = LocalizeEvents.BindText(title, Loc.Table, "matchsetup.titleAi");   // switched to the local title at runtime
 
@@ -226,6 +226,8 @@ namespace FlickCurling.EditorTools
             so.FindProperty("levelRow").objectReferenceValue = levelRow.gameObject;
             so.FindProperty("level").objectReferenceValue = level;
             so.FindProperty("ok").objectReferenceValue = ok;
+            so.FindProperty("iconAi").objectReferenceValue = AssetDatabase.LoadAssetAtPath<Sprite>(IconPath("mainmenu.ai"));
+            so.FindProperty("iconLocal").objectReferenceValue = AssetDatabase.LoadAssetAtPath<Sprite>(IconPath("mainmenu.local"));
             so.ApplyModifiedPropertiesWithoutUndo();
             go.SetActive(false);
             return setup;

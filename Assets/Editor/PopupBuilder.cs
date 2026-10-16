@@ -26,7 +26,7 @@ namespace FlickCurling.EditorTools
 
         // the header bar is 91 source pixels tall (outline included), so about 101 reference pixels at PanelPpu; the frame's
         // other bars about 38
-        const float WindowW = 860, WindowH = 785, HeaderH = 101, SideW = 38, CloseSize = 64;
+        const float WindowW = 860, WindowH = 785, HeaderH = 101, SideW = 38, CloseSize = 64, TitleIconSize = 64;
         static readonly Color32 Ink = new Color32(0x4a, 0x2a, 0x12, 0xff);
 
         // the controls that go on the popup (Codex, same plain style), each with its 9-slice border in source pixels (left,
@@ -73,13 +73,20 @@ namespace FlickCurling.EditorTools
             MainMenuBuilder.Place(win.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(0, 40), new Vector2(WindowW, WindowH));
             win.sprite = panel; win.type = Image.Type.Sliced; win.pixelsPerUnitMultiplier = PanelPpu;
 
-            // the title is written on the header bar, centred, in the menu planks' dark brown; it keeps clear of the close
-            // button at the bar's right end
-            var title = MainMenuBuilder.Label(win.transform, "Title", titleFont, 50, Ink);
-            var trt = title.rectTransform;
-            trt.anchorMin = new Vector2(0, 1); trt.anchorMax = new Vector2(1, 1); trt.pivot = new Vector2(0.5f, 1);
-            trt.offsetMin = new Vector2(SideW + CloseSize + 24, -HeaderH + 10); trt.offsetMax = new Vector2(-(SideW + CloseSize + 24), -6);
-            title.enableAutoSizing = true; title.fontSizeMin = 30; title.fontSizeMax = 50;
+            // the title is written on the header bar, centred, in the menu planks' dark brown, with an optional icon on its
+            // left (the pair is centred together); it keeps clear of the close button at the bar's right end
+            var row = MainMenuBuilder.Child<RectTransform>(win.transform, "TitleRow");
+            row.anchorMin = new Vector2(0, 1); row.anchorMax = new Vector2(1, 1); row.pivot = new Vector2(0.5f, 1);
+            row.offsetMin = new Vector2(SideW + CloseSize + 24, -HeaderH + 8); row.offsetMax = new Vector2(-(SideW + CloseSize + 24), -6);
+            var h = row.gameObject.AddComponent<HorizontalLayoutGroup>();
+            h.spacing = 14; h.childAlignment = TextAnchor.MiddleCenter;
+            h.childControlWidth = h.childControlHeight = true; h.childForceExpandWidth = h.childForceExpandHeight = false;
+            var icon = MainMenuBuilder.Child<Image>(row, "Icon");
+            icon.preserveAspect = true; icon.raycastTarget = false;
+            var ile = icon.gameObject.AddComponent<LayoutElement>();
+            ile.preferredWidth = ile.minWidth = TitleIconSize; ile.preferredHeight = TitleIconSize;
+            icon.gameObject.SetActive(false);
+            var title = MainMenuBuilder.Label(row, "Title", titleFont, 50, Ink);
             title.text = "Title";
 
             // the small close button inside the header bar, at its right end
@@ -104,6 +111,7 @@ namespace FlickCurling.EditorTools
             so.FindProperty("group").objectReferenceValue = group;
             so.FindProperty("window").objectReferenceValue = win.rectTransform;
             so.FindProperty("title").objectReferenceValue = title;
+            so.FindProperty("titleIcon").objectReferenceValue = icon;
             so.FindProperty("message").objectReferenceValue = message;
             so.FindProperty("content").objectReferenceValue = content;
             so.FindProperty("closeButton").objectReferenceValue = closeButton;

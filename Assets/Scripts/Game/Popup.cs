@@ -17,6 +17,7 @@ namespace FlickCurling.Game
         [SerializeField] CanvasGroup group;
         [SerializeField] RectTransform window;
         [SerializeField] TextMeshProUGUI title;
+        [SerializeField] Image titleIcon;
         [SerializeField] TextMeshProUGUI message;
         [SerializeField] RectTransform content;
         [SerializeField] Button closeButton;
@@ -27,6 +28,13 @@ namespace FlickCurling.Game
 
         public RectTransform Content => content;
         public string Title { get => title.text; set => title.text = value; }
+
+        /// <summary>The icon on the title's left, or null for none.</summary>
+        public void SetIcon(Sprite icon)
+        {
+            titleIcon.sprite = icon;
+            titleIcon.gameObject.SetActive(icon != null);
+        }
         /// <summary>A plain text body inside the content area; empty hides it.</summary>
         public string Message { get => message.text; set { message.text = value; message.gameObject.SetActive(!string.IsNullOrEmpty(value)); } }
         /// <summary>Whether a tap on the dim backdrop closes the popup (on by default).</summary>
