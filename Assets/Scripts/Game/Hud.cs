@@ -122,6 +122,7 @@ namespace FlickCurling.Game
             cardBody.lineSpacing = 12;
             cardActions = Ui.Rect(cardRt, "Actions");
             cardActions.gameObject.AddComponent<FlowLayout>().SpacingX = 8;
+            cardGroup = cardOv.gameObject.AddComponent<CanvasGroup>();
             cardOv.gameObject.SetActive(false);
 
             // ---- start menu ----
@@ -294,7 +295,7 @@ namespace FlickCurling.Game
                 rt.sizeDelta = new Vector2(cardW, rt.sizeDelta.y);
                 // a card taller than the screen shrinks to fit rather than running off it
                 float h = rt.rect.height, room = sh - 32;
-                rt.localScale = Vector3.one * (h > room && h > 0 ? room / h : 1);
+                rt.localScale = Vector3.one * (h > room && h > 0 ? room / h : 1) * (rt == cardRt ? cardPop : 1);
             }
             viewW = cw; viewH = ch;
             TickToasts();
@@ -518,7 +519,11 @@ namespace FlickCurling.Game
 
         // ---------------- card ----------------
 
-        public bool CardVisible => cardOv.gameObject.activeSelf;
+        // up as far as the game is concerned (a card fading out is already gone)
+        public bool CardVisible => cardShown;
+        bool cardShown;
+        CanvasGroup cardGroup;
+        float cardPop = 1;   // the entrance's grow, on top of the fit-to-screen scale
         public int CardSeq => cardSeq;
 
         public int ShowCard(CardSpec c, Action onAnyClick)
@@ -527,7 +532,14 @@ namespace FlickCurling.Game
             cardSpan = c.Countdown;
             cardDeadline = c.Countdown > 0 ? Time.unscaledTime + c.Countdown : 0;
             FillCard(c, onAnyClick);
+            cardShown = true;
             cardOv.gameObject.SetActive(true);
+            // the main menu popup's entrance: the dim and card fade in while the card grows a little past its size
+            DOTween.Kill(cardGroup); DOTween.Kill(cardRt);
+            cardGroup.alpha = 0; cardGroup.interactable = cardGroup.blocksRaycasts = true;
+            cardPop = 0.9f;
+            DOTween.To(() => cardGroup.alpha, a => cardGroup.alpha = a, 1, 0.15f).SetUpdate(true).SetTarget(cardGroup);
+            DOTween.To(() => cardPop, v => cardPop = v, 1, 0.2f).SetEase(Ease.OutBack).SetUpdate(true).SetTarget(cardRt);
             return cardSeq;
         }
 
@@ -569,7 +581,17 @@ namespace FlickCurling.Game
             cardRt.anchoredPosition = new Vector2((insL - insR) / 2, (insB - insT) / 2);
         }
 
-        public void HideCard() { cardDeadline = 0; cardOv.gameObject.SetActive(false); }
+        // gone for the game at once; on screen it fades out like the main menu popup
+        public void HideCard()
+        {
+            cardDeadline = 0;
+            if (!cardShown) return;
+            cardShown = false;
+            DOTween.Kill(cardGroup); DOTween.Kill(cardRt);
+            cardGroup.interactable = cardGroup.blocksRaycasts = false;
+            DOTween.To(() => cardGroup.alpha, a => cardGroup.alpha = a, 0, 0.12f).SetUpdate(true).SetTarget(cardGroup)
+                .OnComplete(() => cardOv.gameObject.SetActive(false));
+        }
 
         // a lighter band inside the button, clipped to its rounded shape, that drains from the right toward the left
         static Image CountdownFill(Button btn)
