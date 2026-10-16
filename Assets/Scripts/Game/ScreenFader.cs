@@ -57,7 +57,7 @@ namespace FlickCurling.Game
             {
                 await FadeOut();
                 await SceneManager.LoadSceneAsync(scene);
-                await UniTask.Yield();   // the new scene's first frame (Awake, Start) before it shows
+                await Settle();   // the new scene's set-up frames stay covered
                 await FadeIn();
             }
             finally { running--; Flush(); }
@@ -73,6 +73,18 @@ namespace FlickCurling.Game
             Flush();
         }
 
+        // a freshly loaded scene spends its first frames building (one can take most of a second); the fade waits until a
+        // few frames in a row come quickly, so it then runs smoothly over what the scene will look like
+        async UniTask Settle()
+        {
+            int quick = 0;
+            for (int i = 0; i < 120 && quick < 3; i++)
+            {
+                await UniTask.Yield(PlayerLoopTiming.Update, destroyCancellationToken);
+                quick = Time.unscaledDeltaTime < 0.05f ? quick + 1 : 0;
+            }
+        }
+
         async UniTask Fade(float to)
         {
             running++;
@@ -80,7 +92,9 @@ namespace FlickCurling.Game
             {
                 group.blocksRaycasts = true;
                 float from = group.alpha;
-                for (float t = 0; t < duration; t += Time.unscaledDeltaTime)
+                // each frame moves the fade by at most a 30th of a second, so a slow frame (a scene loading) slows it down
+                // rather than making it jump
+                for (float t = 0; t < duration; t += Mathf.Min(Time.unscaledDeltaTime, 1 / 30f))
                 {
                     group.alpha = Mathf.Lerp(from, to, Mathf.SmoothStep(0, 1, t / duration));
                     await UniTask.Yield(PlayerLoopTiming.Update, destroyCancellationToken);
