@@ -394,14 +394,6 @@ MonoBehaviour:
     m_Metadata:
       m_Items:
       - rid: 4297768082125881571
-  - m_Id: 405297950543872
-    m_Localized: AI Match
-    m_Metadata:
-      m_Items: []
-  - m_Id: 405298000875520
-    m_Localized: Local Match
-    m_Metadata:
-      m_Items: []
   - m_Id: 405298000875521
     m_Localized: Online Match
     m_Metadata:
@@ -420,14 +412,6 @@ MonoBehaviour:
       m_Items: []
   - m_Id: 716956820754432
     m_Localized: First
-    m_Metadata:
-      m_Items: []
-  - m_Id: 807220323209216
-    m_Localized: AI Match
-    m_Metadata:
-      m_Items: []
-  - m_Id: 807220369346560
-    m_Localized: Local Match
     m_Metadata:
       m_Items: []
   - m_Id: 807220369346561
@@ -452,6 +436,22 @@ MonoBehaviour:
       m_Items: []
   - m_Id: 838978871676929
     m_Localized: Sound Effects
+    m_Metadata:
+      m_Items: []
+  - m_Id: 845650461642752
+    m_Localized: Offline Match
+    m_Metadata:
+      m_Items: []
+  - m_Id: 845650461642753
+    m_Localized: Opponent
+    m_Metadata:
+      m_Items: []
+  - m_Id: 845650461642754
+    m_Localized: AI
+    m_Metadata:
+      m_Items: []
+  - m_Id: 845650461642755
+    m_Localized: Local 2P
     m_Metadata:
       m_Items: []
   references:

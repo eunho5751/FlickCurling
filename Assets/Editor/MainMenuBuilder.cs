@@ -41,7 +41,7 @@ namespace FlickCurling.EditorTools
         const float RefW = 1080, RefH = 1920, ButtonW = 760, ButtonH = 124, ButtonGap = 30, ButtonsBottom = 70;
 
         static readonly string[] Keys =
-            { "mainmenu.ai", "mainmenu.local", "mainmenu.online", "mainmenu.leaderboard", "mainmenu.rules", "mainmenu.settings" };
+            { "mainmenu.offline", "mainmenu.online", "mainmenu.leaderboard", "mainmenu.rules", "mainmenu.settings" };
 
         [MenuItem("FlickCurling/Build Main Menu Scene")]
         public static void Build()
@@ -183,8 +183,9 @@ namespace FlickCurling.EditorTools
             Debug.Log("FlickCurling: built " + ScenePath);
         }
 
-        // ---- the match setup popup (AI match / local): mode and AI level as group toggles, and OK, all from the shared
-        // prefabs (Popup, ToggleGroup, Button_Primary) ----
+        // ---- the match setup popup (offline match): the opponent (AI / local two players, each with its icon), the mode
+        // and, against the AI, its level as group toggles, and OK, all from the shared prefabs (Popup, ToggleGroup,
+        // Button_Primary) ----
 
         const float SetupLegendH = 52, SetupToggleH = 96, SetupGap = 22, SetupOkW = 380, SetupOkH = 112;
         static readonly Color32 Ink = new Color32(0x4a, 0x2a, 0x12, 0xff);
@@ -194,9 +195,13 @@ namespace FlickCurling.EditorTools
             var go = (GameObject)PrefabUtility.InstantiatePrefab(popupPrefab, parent);
             go.name = "MatchSetupPopup";
             var legendFont = AssetDatabase.LoadAssetAtPath<TMP_FontAsset>(FontBuilder.DisplayPath);
+            // titled like the menu button, with its icon
             var title = go.transform.Find("Window/TitleRow/Title").GetComponent<TextMeshProUGUI>();
-            title.text = UiStrings.Entries.First(e => e[0] == "matchsetup.titleAi")[1];
-            var titleEvent = LocalizeEvents.BindText(title, Loc.Table, "matchsetup.titleAi");   // switched to the local title at runtime
+            title.text = UiStrings.Entries.First(e => e[0] == "mainmenu.offline")[1];
+            LocalizeEvents.BindText(title, Loc.Table, "mainmenu.offline");
+            var icon = go.transform.Find("Window/TitleRow/Icon").GetComponent<Image>();
+            icon.sprite = AssetDatabase.LoadAssetAtPath<Sprite>(IconPath("mainmenu.offline"));
+            icon.gameObject.SetActive(true);
 
             var content = (RectTransform)go.transform.Find("Window/Content");
             var v = content.gameObject.AddComponent<VerticalLayoutGroup>();
@@ -204,6 +209,10 @@ namespace FlickCurling.EditorTools
             v.childControlWidth = v.childControlHeight = true;
             v.childForceExpandWidth = true; v.childForceExpandHeight = false;
 
+            var opponentRow = Row(content, "OpponentRow");
+            Legend(opponentRow, legendFont, "matchsetup.opponent");
+            var opponent = Toggle(opponentRow, new[] { "matchsetup.vsAi", "matchsetup.vsLocal" }, 0,
+                new[] { AssetDatabase.LoadAssetAtPath<Sprite>(IconAi), AssetDatabase.LoadAssetAtPath<Sprite>(IconLocal) });
             var modeRow = Row(content, "ModeRow");
             Legend(modeRow, legendFont, "matchsetup.mode");
             var mode = Toggle(modeRow, new[] { "matchsetup.modeBasic" }, 0);
@@ -223,13 +232,11 @@ namespace FlickCurling.EditorTools
             var setup = go.AddComponent<MatchSetup>();
             var so = new SerializedObject(setup);
             so.FindProperty("popup").objectReferenceValue = go.GetComponent<Popup>();
-            so.FindProperty("title").objectReferenceValue = titleEvent;
+            so.FindProperty("opponent").objectReferenceValue = opponent;
             so.FindProperty("mode").objectReferenceValue = mode;
             so.FindProperty("levelRow").objectReferenceValue = levelRow.gameObject;
             so.FindProperty("level").objectReferenceValue = level;
             so.FindProperty("ok").objectReferenceValue = ok;
-            so.FindProperty("iconAi").objectReferenceValue = AssetDatabase.LoadAssetAtPath<Sprite>(IconPath("mainmenu.ai"));
-            so.FindProperty("iconLocal").objectReferenceValue = AssetDatabase.LoadAssetAtPath<Sprite>(IconPath("mainmenu.local"));
             so.ApplyModifiedPropertiesWithoutUndo();
             go.SetActive(false);
             return setup;
@@ -329,12 +336,15 @@ namespace FlickCurling.EditorTools
         }
 
         // a group toggle (the shared prefab) with one option per key, filling the row's width
-        static SegmentedToggle Toggle(RectTransform row, string[] keys, int selected)
+        static SegmentedToggle Toggle(RectTransform row, string[] keys, int selected, Sprite[] icons = null)
         {
             var go = UiPrefabBuilder.Place(UiPrefabBuilder.TogglePath, row, "Toggle");
             go.AddComponent<LayoutElement>().preferredHeight = SetupToggleH;
-            return UiPrefabBuilder.SetOptions(go, keys, selected);
+            return UiPrefabBuilder.SetOptions(go, keys, selected, icons);
         }
+
+        // the opponents' icons (the old vs AI and local menu buttons' art)
+        const string IconAi = "Assets/Art/Menu/icon_ai.png", IconLocal = "Assets/Art/Menu/icon_local.png";
 
         static string IconPath(string key) => "Assets/Art/Menu/icon_" + key.Substring("mainmenu.".Length) + ".png";
 

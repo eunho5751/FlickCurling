@@ -7,7 +7,7 @@ namespace FlickCurling.Game
 {
     /// <summary>
     /// The main menu screen: the logo over the house and the mode buttons on the board art (built by MainMenuBuilder).
-    /// "AI Match" and "Local Match" open the match setup popup and "Settings" the settings popup; the other buttons press but do nothing yet. Each label is localized by its own LocalizeStringEvent
+    /// "Offline Match" opens the match setup popup and "Settings" the settings popup; the other buttons press but do nothing yet. Each label is localized by its own LocalizeStringEvent
     /// (table "UI"); this keeps the content inside the safe area.
     /// </summary>
     public sealed class MainMenu : MonoBehaviour
@@ -31,11 +31,10 @@ namespace FlickCurling.Game
 
         void Awake()
         {
-            // the two match buttons open the match setup popup, settings its popup; the others do nothing yet
+            // offline match opens the match setup popup, settings its popup; the others do nothing yet
             foreach (var e in entries)
             {
-                if (e.Key == "mainmenu.ai") e.Button.onClick.AddListener(() => matchSetup.Open(true));
-                else if (e.Key == "mainmenu.local") e.Button.onClick.AddListener(() => matchSetup.Open(false));
+                if (e.Key == "mainmenu.offline") e.Button.onClick.AddListener(matchSetup.Open);
                 else if (e.Key == "mainmenu.settings") e.Button.onClick.AddListener(settings.Open);
             }
         }

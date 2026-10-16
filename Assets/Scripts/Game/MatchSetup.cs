@@ -1,50 +1,56 @@
 using FlickCurling.Core;
 using UnityEngine;
-using UnityEngine.Localization.Components;
 using UnityEngine.UI;
 
 namespace FlickCurling.Game
 {
     /// <summary>
-    /// The popup the main menu's "AI Match" and "Local Match" buttons open (built by MainMenuBuilder on the shared Popup): the mode
-    /// (only the basic one for now) and, against the AI, its level. OK fades over to the Game scene, which starts that match.
+    /// The popup the main menu's "Offline Match" button opens (built by MainMenuBuilder on the shared Popup): the opponent
+    /// (the AI or a second player on this device), the mode (only the basic one for now) and, against the AI, its level,
+    /// all as group toggles. OK fades over to the Game scene, which starts that match.
     /// </summary>
     public sealed class MatchSetup : MonoBehaviour
     {
         [SerializeField] Popup popup;
-        [SerializeField] LocalizeStringEvent title;
+        [SerializeField] SegmentedToggle opponent;   // 0 the AI, 1 local two players
         [SerializeField] SegmentedToggle mode;
         [SerializeField] GameObject levelRow;
         [SerializeField] SegmentedToggle level;
         [SerializeField] Button ok;
-        [SerializeField] Sprite iconAi, iconLocal;   // the menu buttons' icons, beside the title
-        [SerializeField] Vector2 sizeAi = new Vector2(860, 785), sizeLocal = new Vector2(860, 609);
+        [SerializeField] Vector2 sizeAi = new Vector2(860, 940), sizeLocal = new Vector2(860, 764);
 
         // the modes, in the toggle's order, as the maps they play on
         static readonly string[] ModeMaps = { "base" };
 
-        bool vsAi;
+        bool VsAi => opponent.Selected == 0;
 
-        void Awake() => ok.onClick.AddListener(StartMatch);
-
-        public void Open(bool againstAi)
+        void Awake()
         {
-            vsAi = againstAi;
-            popup.SetIcon(againstAi ? iconAi : iconLocal);
-            levelRow.SetActive(againstAi);
-            mode.Select(0, false, false);   // the basic mode is picked each time
-            var size = againstAi ? sizeAi : sizeLocal;
-            popup.SetSize(size.x, size.y);
+            ok.onClick.AddListener(StartMatch);
+            opponent.Changed += _ => Fit();
+        }
+
+        public void Open()
+        {
+            // each time: against the AI, the basic mode
+            opponent.Select(0, false, false);
+            mode.Select(0, false, false);
+            Fit();
             popup.Show();
-            // the title's key is switched once the popup is up: a LocalizeStringEvent on a hidden object does not refresh
-            title.StringReference.SetReference(title.StringReference.TableReference, againstAi ? "matchsetup.titleAi" : "matchsetup.titleLocal");
-            title.RefreshString();
+        }
+
+        // the level row only against the AI; the window grows or shrinks to match
+        void Fit()
+        {
+            levelRow.SetActive(VsAi);
+            var size = VsAi ? sizeAi : sizeLocal;
+            popup.SetSize(size.x, size.y);
         }
 
         void StartMatch()
         {
             ok.interactable = false;
-            MatchLaunch.Set(vsAi, (AiLevel)level.Selected, ModeMaps[Mathf.Clamp(mode.Selected, 0, ModeMaps.Length - 1)]);
+            MatchLaunch.Set(VsAi, (AiLevel)level.Selected, ModeMaps[Mathf.Clamp(mode.Selected, 0, ModeMaps.Length - 1)]);
             ScreenFader.LoadScene(MatchLaunch.GameScene);
         }
     }

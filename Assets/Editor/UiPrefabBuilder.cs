@@ -244,6 +244,23 @@ namespace FlickCurling.EditorTools
             return go;
         }
 
+        const float OptionIconSize = 52;
+
+        // puts an icon on the label's left: the two in a centred row across the option
+        static void WithIcon(Transform option, TextMeshProUGUI label, Sprite sprite)
+        {
+            var row = MainMenuBuilder.Child<RectTransform>(option, "Row");
+            MainMenuBuilder.Stretch(row); row.offsetMin = new Vector2(8, 4); row.offsetMax = new Vector2(-8, 0);
+            var h = row.gameObject.AddComponent<HorizontalLayoutGroup>();
+            h.spacing = 10; h.childAlignment = TextAnchor.MiddleCenter;
+            h.childControlWidth = h.childControlHeight = true; h.childForceExpandWidth = h.childForceExpandHeight = false;
+            var icon = MainMenuBuilder.Child<Image>(row, "Icon");
+            icon.sprite = sprite; icon.preserveAspect = true; icon.raycastTarget = false;
+            var le = icon.gameObject.AddComponent<LayoutElement>();
+            le.preferredWidth = le.minWidth = OptionIconSize; le.preferredHeight = OptionIconSize;
+            label.transform.SetParent(row, false);
+        }
+
         /// <summary>The button's label, localized by <paramref name="key"/> of the UI table.</summary>
         public static Button SetLabel(GameObject button, string key)
         {
@@ -253,16 +270,20 @@ namespace FlickCurling.EditorTools
             return button.GetComponent<Button>();
         }
 
-        /// <summary>One equal option per key (localized), <paramref name="selected"/> picked; the prefab's option is the template.</summary>
-        public static SegmentedToggle SetOptions(GameObject toggleGo, string[] keys, int selected)
+        /// <summary>One equal option per key (localized), <paramref name="selected"/> picked; the prefab's option is the template.
+        /// With <paramref name="icons"/>, each label has its icon on the left, the pair centred in the option.</summary>
+        public static SegmentedToggle SetOptions(GameObject toggleGo, string[] keys, int selected, Sprite[] icons = null)
         {
             var inner = toggleGo.transform.Find("Inner");
             var template = inner.Find("Option0").gameObject;
             var options = new Button[keys.Length];
             var labels = new TextMeshProUGUI[keys.Length];
-            // all the copies first, from the bare template, so none of them carries another option's localization
+            // every option is a fresh copy of the bare template (so none carries another option's localization, and they
+            // can be rearranged: a prefab instance's own children cannot); the template itself is put away
             var opts = new GameObject[keys.Length];
-            for (int i = 0; i < keys.Length; i++) opts[i] = i == 0 ? template : Object.Instantiate(template, inner);
+            for (int i = 0; i < keys.Length; i++) opts[i] = Object.Instantiate(template, inner);
+            template.name = "OptionTemplate";
+            template.SetActive(false);
             for (int i = 0; i < keys.Length; i++)
             {
                 var opt = opts[i];
@@ -274,6 +295,7 @@ namespace FlickCurling.EditorTools
                 label.text = UiStrings.Entries.First(e => e[0] == keys[i])[1];
                 label.color = i == selected ? Cream : Ink;
                 LocalizeEvents.BindText(label, Loc.Table, keys[i]);
+                if (icons != null && i < icons.Length && icons[i] != null) WithIcon(opt.transform, label, icons[i]);
                 options[i] = opt.GetComponent<Button>(); labels[i] = label;
             }
             var knob = (RectTransform)inner.Find("Knob");

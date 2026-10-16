@@ -363,14 +363,6 @@ MonoBehaviour:
     m_Key: end.nextHammer
     m_Metadata:
       m_Items: []
-  - m_Id: 405297950543872
-    m_Key: mainmenu.ai
-    m_Metadata:
-      m_Items: []
-  - m_Id: 405298000875520
-    m_Key: mainmenu.local
-    m_Metadata:
-      m_Items: []
   - m_Id: 405298000875521
     m_Key: mainmenu.online
     m_Metadata:
@@ -389,14 +381,6 @@ MonoBehaviour:
       m_Items: []
   - m_Id: 716956820754432
     m_Key: hud.first
-    m_Metadata:
-      m_Items: []
-  - m_Id: 807220323209216
-    m_Key: matchsetup.titleAi
-    m_Metadata:
-      m_Items: []
-  - m_Id: 807220369346560
-    m_Key: matchsetup.titleLocal
     m_Metadata:
       m_Items: []
   - m_Id: 807220369346561
@@ -421,6 +405,22 @@ MonoBehaviour:
       m_Items: []
   - m_Id: 838978871676929
     m_Key: settings.sfx
+    m_Metadata:
+      m_Items: []
+  - m_Id: 845650461642752
+    m_Key: mainmenu.offline
+    m_Metadata:
+      m_Items: []
+  - m_Id: 845650461642753
+    m_Key: matchsetup.opponent
+    m_Metadata:
+      m_Items: []
+  - m_Id: 845650461642754
+    m_Key: matchsetup.vsAi
+    m_Metadata:
+      m_Items: []
+  - m_Id: 845650461642755
+    m_Key: matchsetup.vsLocal
     m_Metadata:
       m_Items: []
   m_Metadata:
