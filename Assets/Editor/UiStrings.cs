@@ -48,15 +48,15 @@ namespace FlickCurling.EditorTools
             new[] { "menu.start", "경기 시작", "Start", "試合開始" },
 
             // ---- main menu scene ----
-            new[] { "mainmenu.ai", "AI 대전", "vs AI", "AI対戦" },
-            new[] { "mainmenu.local", "로컬 2인 대전", "Local 2 Players", "ローカル2人対戦" },
+            new[] { "mainmenu.ai", "AI 대전", "AI Match", "AI対戦" },
+            new[] { "mainmenu.local", "로컬 대전", "Local Match", "ローカル対戦" },
             new[] { "mainmenu.online", "온라인 대전", "Online Match", "オンライン対戦" },
             new[] { "mainmenu.leaderboard", "리더보드", "Leaderboard", "ランキング" },
             new[] { "mainmenu.rules", "게임 규칙", "How to Play", "ルール" },
             new[] { "mainmenu.settings", "설정", "Settings", "設定" },
 
             // ---- main menu: match setup popup ----
-            new[] { "matchsetup.titleAi", "AI 대전", "vs AI", "AI対戦" },
+            new[] { "matchsetup.titleAi", "AI 대전", "AI Match", "AI対戦" },
             new[] { "matchsetup.titleLocal", "로컬 대전", "Local Match", "ローカル対戦" },
             new[] { "matchsetup.mode", "모드", "Mode", "モード" },
             new[] { "matchsetup.modeBasic", "기본", "Classic", "ベーシック" },

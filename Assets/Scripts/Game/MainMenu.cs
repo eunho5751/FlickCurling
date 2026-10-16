@@ -7,7 +7,7 @@ namespace FlickCurling.Game
 {
     /// <summary>
     /// The main menu screen: the logo over the house and the mode buttons on the board art (built by MainMenuBuilder).
-    /// "vs AI" and "Local" open the match setup popup; the other buttons press but do nothing yet. Each label is localized by its own LocalizeStringEvent
+    /// "AI Match" and "Local Match" open the match setup popup; the other buttons press but do nothing yet. Each label is localized by its own LocalizeStringEvent
     /// (table "UI"); this keeps the content inside the safe area.
     /// </summary>
     public sealed class MainMenu : MonoBehaviour

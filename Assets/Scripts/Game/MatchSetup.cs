@@ -7,7 +7,7 @@ using UnityEngine.UI;
 namespace FlickCurling.Game
 {
     /// <summary>
-    /// The popup the main menu's "vs AI" and "Local" buttons open (built by MainMenuBuilder on the shared Popup): the mode
+    /// The popup the main menu's "AI Match" and "Local Match" buttons open (built by MainMenuBuilder on the shared Popup): the mode
     /// (only the basic one for now) and, against the AI, its level. OK starts that match in the Game scene straight away.
     /// </summary>
     public sealed class MatchSetup : MonoBehaviour

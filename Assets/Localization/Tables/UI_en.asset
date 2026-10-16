@@ -395,11 +395,11 @@ MonoBehaviour:
       m_Items:
       - rid: 4297768082125881571
   - m_Id: 405297950543872
-    m_Localized: vs AI
+    m_Localized: AI Match
     m_Metadata:
       m_Items: []
   - m_Id: 405298000875520
-    m_Localized: Local 2 Players
+    m_Localized: Local Match
     m_Metadata:
       m_Items: []
   - m_Id: 405298000875521
@@ -423,7 +423,7 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 807220323209216
-    m_Localized: vs AI
+    m_Localized: AI Match
     m_Metadata:
       m_Items: []
   - m_Id: 807220369346560

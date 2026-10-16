@@ -181,7 +181,7 @@ namespace FlickCurling.EditorTools
             Debug.Log("FlickCurling: built " + ScenePath);
         }
 
-        // ---- the match setup popup (vs AI / local): mode and AI level as group toggles, and OK, all from the shared
+        // ---- the match setup popup (AI match / local): mode and AI level as group toggles, and OK, all from the shared
         // prefabs (Popup, ToggleGroup, Button_Primary) ----
 
         const float SetupLegendH = 52, SetupToggleH = 96, SetupGap = 22, SetupOkW = 380, SetupOkH = 112;
