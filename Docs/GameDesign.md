@@ -226,3 +226,11 @@ HUD (반투명 패널)
 - 상품은 카드(ShopCard 프리팹)로 한 줄에 3개: 위에 이름, 가운데 그림, 아래 나무 띠에 코인 아이콘과 가격.
 - 카드마다 맨 위 가운데에 황동 못이 박혀 있고, 카드는 못을 축으로 좌우 ±3° 안에서 무작위로 살짝 기울어져 걸린다.
 - 지금은 테스트 상품 3개(코인 한 줌 100, 황금 알 500, 보물 상자 1,200), 구매 기능 없음.
+
+## 계정 (Unity Gaming Services)
+- 게임을 켜면 UGS Authentication으로 로그인한다. 처음엔 게스트(익명) 플레이어가 새로 만들어지고, 이후에는 기기에 남은 세션으로 같은 플레이어(게스트든 연동된 계정이든)로 다시 들어간다.
+- 설정 팝업 맨 위: 닉네임과 PID(UGS 플레이어 ID). 게스트는 UGS가 주는 이름(예: SmoothEatingUmbrella#21809)을 그대로 보여 준다.
+- "Google로 로그인": Android에서 Google 계정 선택 창(Credential Manager, Sign in with Google)이 뜨고, 고른 계정을 지금 플레이어에 연동한다. 그 Google 계정이 이미 다른 플레이어에 연동돼 있으면 그 플레이어로 전환한다. 연동되면 버튼 대신 "✓ Google로 연동됨".
+- 에디터·다른 플랫폼에서는 Google 로그인을 쓸 수 없다는 안내만 나온다.
+- Apple(iOS)은 같은 구조(IIdentityProvider)로 자리만 만들어 두었다(AppleIdentityProvider, 아직 비활성).
+- 필요한 외부 설정: Google Cloud Console의 Web 클라이언트 ID(Assets/Resources/AccountConfig.asset에 입력)와 Android 클라이언트(패키지명 + 서명 SHA-1), UGS 대시보드의 Google 로그인 공급자 설정.

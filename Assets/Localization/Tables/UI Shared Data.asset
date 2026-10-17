@@ -371,6 +371,38 @@ MonoBehaviour:
     m_Key: shop.item.chest
     m_Metadata:
       m_Items: []
+  - m_Id: 1066247632375808
+    m_Key: account.pid
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1066247632375809
+    m_Key: account.nickname
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1066247632375810
+    m_Key: account.googleLogin
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1066247632375811
+    m_Key: account.googleLinked
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1066247632375812
+    m_Key: account.signingIn
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1066247632375813
+    m_Key: account.offline
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1066247632375814
+    m_Key: account.googleUnavailable
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1066247632375815
+    m_Key: account.linkFailed
+    m_Metadata:
+      m_Items: []
   m_Metadata:
     m_Items: []
   m_KeyGenerator:

@@ -253,7 +253,7 @@ namespace FlickCurling.EditorTools
         // dropdown, one row each, from the shared prefabs (Popup, Slider, Dropdown) ----
 
         const float SettingsToMenuW = 460;
-        const float SettingsW = 860, SettingsH = 650, SettingsRowH = 92, SettingsLabelW = 230, SettingsValueW = 80;
+        const float SettingsW = 860, SettingsH = 820, SettingsRowH = 92, SettingsLabelW = 230, SettingsValueW = 80;
 
         // ---- the shop popup: the products as cards hanging from nails, three in a row (three test products for now) ----
 
@@ -321,6 +321,8 @@ namespace FlickCurling.EditorTools
             v.childControlWidth = v.childControlHeight = true;
             v.childForceExpandWidth = true; v.childForceExpandHeight = false;
 
+            // the account first: PID, nickname, Google sign-in (or that it is linked), and a status line
+            BuildAccountRow(content, legendFont);
             var (music, musicValue) = SliderRow(content, legendFont, "settings.music", 0, 1, false);
             var (sfx, sfxValue) = SliderRow(content, legendFont, "settings.sfx", 0, 1, false);
             var (sens, sensValue) = SliderRow(content, legendFont, "settings.aimSens", 1, GameSettings.SensLevels, true);
@@ -353,6 +355,59 @@ namespace FlickCurling.EditorTools
             var prefab = PrefabUtility.SaveAsPrefabAsset(go, SettingsPrefabPath);
             Object.DestroyImmediate(go);
             return prefab;
+        }
+
+        const float AccountRowH = 150, GoogleButtonW = 330, GoogleButtonH = 92;
+
+        static void BuildAccountRow(RectTransform parent, TMP_FontAsset font)
+        {
+            var row = Child<RectTransform>(parent, "Account");
+            row.gameObject.AddComponent<LayoutElement>().preferredHeight = AccountRowH;
+            var h = row.gameObject.AddComponent<HorizontalLayoutGroup>();
+            h.spacing = 16; h.childAlignment = TextAnchor.MiddleLeft;
+            h.childControlWidth = h.childControlHeight = true; h.childForceExpandWidth = h.childForceExpandHeight = false;
+
+            // PID and nickname, one above the other, with the status line under them
+            var info = Child<RectTransform>(row, "Info");
+            info.gameObject.AddComponent<LayoutElement>().flexibleWidth = 1;
+            var v = info.gameObject.AddComponent<VerticalLayoutGroup>();
+            v.spacing = 4; v.childAlignment = TextAnchor.MiddleLeft;
+            v.childControlWidth = v.childControlHeight = true; v.childForceExpandWidth = true; v.childForceExpandHeight = false;
+            TextMeshProUGUI Line(string name, float size, float height, Color32 color)
+            {
+                var t = Label(info, name, font, size, color);
+                t.alignment = TextAlignmentOptions.Left;
+                t.enableAutoSizing = true; t.fontSizeMin = 18; t.fontSizeMax = size;
+                t.gameObject.AddComponent<LayoutElement>().preferredHeight = height;
+                return t;
+            }
+            var nickname = Line("Nickname", 38, 48, Ink);
+            var pid = Line("Pid", 26, 34, new Color32(0x7a, 0x5a, 0x3a, 0xff));
+            var status = Line("Status", 24, 30, new Color32(0xa3, 0x4a, 0x2a, 0xff));
+            nickname.text = UiStrings.Entries.First(e => e[0] == "account.nickname")[1];
+            pid.text = "PID"; status.text = "";
+
+            // Google: the sign-in button, or in its place that the account is linked
+            var slot = Child<RectTransform>(row, "Google");
+            var sle = slot.gameObject.AddComponent<LayoutElement>(); sle.preferredWidth = sle.minWidth = GoogleButtonW; sle.preferredHeight = GoogleButtonH;
+            var button = UiPrefabBuilder.Place(UiPrefabBuilder.SecondaryPath, slot, "SignIn");
+            Stretch((RectTransform)button.transform);
+            var signIn = UiPrefabBuilder.SetLabel(button, "account.googleLogin");
+            var linked = Label(slot, "Linked", font, 34, new Color32(0x3f, 0x6e, 0x2a, 0xff));
+            Stretch(linked.rectTransform);
+            linked.enableAutoSizing = true; linked.fontSizeMin = 20; linked.fontSizeMax = 34;
+            linked.text = UiStrings.Entries.First(e => e[0] == "account.googleLinked")[1];
+            LocalizeEvents.BindText(linked, Loc.Table, "account.googleLinked");
+            linked.gameObject.SetActive(false);
+
+            var panel = row.gameObject.AddComponent<FlickCurling.Game.Account.AccountPanel>();
+            var so = new SerializedObject(panel);
+            so.FindProperty("pid").objectReferenceValue = pid;
+            so.FindProperty("nickname").objectReferenceValue = nickname;
+            so.FindProperty("status").objectReferenceValue = status;
+            so.FindProperty("googleButton").objectReferenceValue = signIn;
+            so.FindProperty("googleLinked").objectReferenceValue = linked.gameObject;
+            so.ApplyModifiedPropertiesWithoutUndo();
         }
 
         // a settings row: the label on the left, then the control

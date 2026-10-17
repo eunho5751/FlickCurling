@@ -22,7 +22,7 @@ namespace FlickCurling.Game
         [SerializeField] TMP_Dropdown language;
         [SerializeField] GameObject toMenuRow;
         [SerializeField] Button toMenu;
-        [SerializeField] Vector2 sizeMenu = new Vector2(860, 650), sizeGame = new Vector2(860, 840);
+        [SerializeField] Vector2 sizeMenu = new Vector2(860, 820), sizeGame = new Vector2(860, 1010);
         [Tooltip("The settings gear, for buttons that open this popup")]
         public Sprite Icon;
 

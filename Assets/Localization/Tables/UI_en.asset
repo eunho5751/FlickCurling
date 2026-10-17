@@ -398,6 +398,38 @@ MonoBehaviour:
     m_Localized: Treasure Chest
     m_Metadata:
       m_Items: []
+  - m_Id: 1066247632375808
+    m_Localized: PID
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1066247632375809
+    m_Localized: Nickname
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1066247632375810
+    m_Localized: Sign in with Google
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1066247632375811
+    m_Localized: "\u2713 Linked with Google"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1066247632375812
+    m_Localized: "Connecting\u2026"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1066247632375813
+    m_Localized: Couldn't reach the server
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1066247632375814
+    m_Localized: Google sign-in isn't available here
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1066247632375815
+    m_Localized: Couldn't link with Google
+    m_Metadata:
+      m_Items: []
   references:
     version: 2
     RefIds:

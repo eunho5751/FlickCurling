@@ -55,6 +55,16 @@ namespace FlickCurling.EditorTools
             new[] { "settings.sfx", "효과음", "Sound Effects", "効果音" },
             new[] { "settings.language", "언어", "Language", "言語" },
 
+            // ---- settings: account (UGS) ----
+            new[] { "account.pid", "PID", "PID", "PID" },
+            new[] { "account.nickname", "닉네임", "Nickname", "ニックネーム" },
+            new[] { "account.googleLogin", "Google로 로그인", "Sign in with Google", "Googleでログイン" },
+            new[] { "account.googleLinked", "✓ Google로 연동됨", "✓ Linked with Google", "✓ Google連携済み" },
+            new[] { "account.signingIn", "연결 중…", "Connecting…", "接続中…" },
+            new[] { "account.offline", "서버에 연결하지 못했어요", "Couldn't reach the server", "サーバーに接続できませんでした" },
+            new[] { "account.googleUnavailable", "이 기기에서는 Google 로그인을 쓸 수 없어요", "Google sign-in isn't available here", "この端末ではGoogleログインを使えません" },
+            new[] { "account.linkFailed", "Google 연동에 실패했어요", "Couldn't link with Google", "Google連携に失敗しました" },
+
             // ---- HUD ----
             new[] { "hud.hammer", "후공", "Last", "後攻" },
             new[] { "hud.first", "선공", "First", "先攻" },

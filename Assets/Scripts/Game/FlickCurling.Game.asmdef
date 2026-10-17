@@ -8,7 +8,9 @@
         "Unity.TextMeshPro",
         "Unity.Localization",
         "Unity.ResourceManager",
-        "UniTask"
+        "UniTask",
+        "Unity.Services.Core",
+        "Unity.Services.Authentication"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
