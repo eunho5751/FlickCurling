@@ -257,8 +257,9 @@ namespace FlickCurling.EditorTools
 
         // ---- the shop popup: the products as cards hanging from nails, three in a row (three test products for now) ----
 
-        // the gap leaves room for the cards' tilt: two neighbours leaning toward each other never touch
-        const float ShopW = 880, ShopH = 580, ShopGap = 34;
+        // the gap leaves room for the cards' tilt: two neighbours leaning toward each other never touch; the window is wide
+        // enough for three cards beside the scrollbar
+        const float ShopW = 920, ShopH = 580, ShopGap = 34;
 
         static Popup BuildShop(GameObject popupPrefab, Transform parent)
         {
@@ -272,13 +273,17 @@ namespace FlickCurling.EditorTools
             icon.gameObject.SetActive(true);
             ((RectTransform)go.transform.Find("Window")).sizeDelta = new Vector2(ShopW, ShopH);
 
-            var content = (RectTransform)go.transform.Find("Window/Content");
+            // the products scroll (the shared ScrollView) when there are more than fit
+            var area = (RectTransform)go.transform.Find("Window/Content");
+            var scroll = UiPrefabBuilder.Place(UiPrefabBuilder.ScrollViewPath, area, "Products");
+            Stretch((RectTransform)scroll.transform);
+            var content = (RectTransform)scroll.transform.Find("Viewport/Content");
             var grid = content.gameObject.AddComponent<GridLayoutGroup>();
             grid.cellSize = new Vector2(UiPrefabBuilder.ShopCardW, UiPrefabBuilder.ShopCardH);
             grid.spacing = new Vector2(ShopGap, 16);
             grid.childAlignment = TextAnchor.UpperCenter;
             grid.constraint = GridLayoutGroup.Constraint.FixedColumnCount; grid.constraintCount = 3;
-            grid.padding = new RectOffset(0, 0, 8, 0);
+            grid.padding = new RectOffset(0, 0, 8, 12);
 
             foreach (var (key, art, price) in new[] { ("shop.item.coins", "shop_item_coins", 100), ("shop.item.goldStone", "shop_item_goldstone", 500), ("shop.item.chest", "shop_item_chest", 1200) })
             {

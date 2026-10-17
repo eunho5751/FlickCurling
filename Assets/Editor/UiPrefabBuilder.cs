@@ -19,7 +19,7 @@ namespace FlickCurling.EditorTools
         public const string Dir = "Assets/Prefabs/UI";
         public const string PrimaryPath = Dir + "/Button_Primary.prefab", SecondaryPath = Dir + "/Button_Secondary.prefab";
         public const string TogglePath = Dir + "/ToggleGroup.prefab", SliderPath = Dir + "/Slider.prefab", DropdownPath = Dir + "/Dropdown.prefab";
-        public const string ShopCardPath = Dir + "/ShopCard.prefab";
+        public const string ShopCardPath = Dir + "/ShopCard.prefab", ScrollViewPath = Dir + "/ScrollView.prefab";
         public const string FaderPath = "Assets/Resources/" + ScreenFader.ResourcePath + ".prefab";   // loaded at run time
 
         // default sizes in the menu's reference pixels
@@ -41,6 +41,7 @@ namespace FlickCurling.EditorTools
             Save(MakeDropdown(font), DropdownPath);
             Save(MakeFader(), FaderPath);
             Save(MakeShopCard(font), ShopCardPath);
+            Save(MakeScrollView(), ScrollViewPath);
             Debug.Log("FlickCurling: built the UI control prefabs in " + Dir);
         }
 
@@ -305,6 +306,51 @@ namespace FlickCurling.EditorTools
             amount.text = price.ToString("N0");
             PrefabUtility.RecordPrefabInstancePropertyModifications(amount);
             return c;
+        }
+
+        // a vertical scroll view: a clipped viewport whose content grows with what is put in it (Viewport/Content), and a
+        // wooden scrollbar on the right (a carved groove and a honey wood handle) that shows only when there is more to see
+        public const float ScrollbarW = 24, ScrollbarGap = 10;
+        static GameObject MakeScrollView()
+        {
+            var root = new GameObject("ScrollView", typeof(RectTransform));
+            ((RectTransform)root.transform).sizeDelta = new Vector2(600, 400);
+            var sr = root.AddComponent<ScrollRect>();
+            sr.horizontal = false; sr.vertical = true;
+            sr.movementType = ScrollRect.MovementType.Elastic; sr.inertia = true; sr.scrollSensitivity = 30;
+
+            var viewport = MainMenuBuilder.Child<Image>(root.transform, "Viewport");
+            MainMenuBuilder.Stretch(viewport.rectTransform);
+            viewport.color = new Color(1, 1, 1, 0);   // catches drags on the gaps between items
+            viewport.gameObject.AddComponent<RectMask2D>();
+            var content = MainMenuBuilder.Child<RectTransform>(viewport.transform, "Content");
+            content.anchorMin = new Vector2(0, 1); content.anchorMax = Vector2.one; content.pivot = new Vector2(0.5f, 1);
+            content.offsetMin = content.offsetMax = Vector2.zero;
+            content.gameObject.AddComponent<ContentSizeFitter>().verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+
+            var track = MainMenuBuilder.Child<Image>(root.transform, "Scrollbar");
+            var trt = track.rectTransform;
+            trt.anchorMin = new Vector2(1, 0); trt.anchorMax = Vector2.one; trt.pivot = new Vector2(1, 0.5f);
+            trt.sizeDelta = new Vector2(ScrollbarW, 0); trt.anchoredPosition = Vector2.zero;
+            var ts = Art("ui_scroll_track");
+            track.sprite = ts; track.type = Image.Type.Sliced; track.pixelsPerUnitMultiplier = ts.rect.width / ScrollbarW;
+            var area = MainMenuBuilder.Child<RectTransform>(track.transform, "Sliding Area");
+            MainMenuBuilder.Stretch(area); area.offsetMin = new Vector2(3, 3); area.offsetMax = new Vector2(-3, -3);
+            var handle = MainMenuBuilder.Child<Image>(area, "Handle");
+            MainMenuBuilder.Stretch(handle.rectTransform);
+            var hs = Art("ui_scroll_handle");
+            handle.sprite = hs; handle.type = Image.Type.Sliced; handle.pixelsPerUnitMultiplier = hs.rect.width / (ScrollbarW - 6);
+            var bar = track.gameObject.AddComponent<Scrollbar>();
+            bar.handleRect = handle.rectTransform; bar.targetGraphic = handle;
+            bar.direction = Scrollbar.Direction.BottomToTop;
+            Pressable(bar);
+
+            sr.viewport = viewport.rectTransform; sr.content = content;
+            sr.verticalScrollbar = bar;
+            sr.verticalScrollbarVisibility = ScrollRect.ScrollbarVisibility.AutoHideAndExpandViewport;
+            sr.verticalScrollbarSpacing = ScrollbarGap;
+            track.gameObject.SetActive(false);   // the scroll view shows it once its content is taller (no flash on opening)
+            return root;
         }
 
         // the screen fade: its own overlay canvas above everything, one dark cover that also blocks every touch

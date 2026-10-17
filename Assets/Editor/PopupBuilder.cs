@@ -50,6 +50,8 @@ namespace FlickCurling.EditorTools
             ("Assets/Art/Menu/ui_dropdown_list.png", new Vector4(40, 40, 40, 40)),
             ("Assets/Art/Menu/ui_dropdown_item.png", new Vector4(30, 25, 30, 25)),
             ("Assets/Art/Menu/shop_card.png", ShopCardBorder),
+            ("Assets/Art/Menu/ui_scroll_track.png", new Vector4(0, 36, 0, 36)),
+            ("Assets/Art/Menu/ui_scroll_handle.png", new Vector4(0, 34, 0, 34)),
             ("Assets/Art/Menu/shop_nail.png", Vector4.zero),
             ("Assets/Art/Menu/shop_coin.png", Vector4.zero),
         };
