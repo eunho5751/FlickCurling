@@ -41,7 +41,7 @@ namespace FlickCurling.EditorTools
         const float RefW = 1080, RefH = 1920, ButtonW = 760, ButtonH = 124, ButtonGap = 30, ButtonsBottom = 70;
 
         static readonly string[] Keys =
-            { "mainmenu.offline", "mainmenu.online", "mainmenu.leaderboard", "mainmenu.rules", "mainmenu.settings" };
+            { "mainmenu.offline", "mainmenu.online", "mainmenu.leaderboard", "mainmenu.rules", "mainmenu.shop", "mainmenu.settings" };
 
         [MenuItem("FlickCurling/Build Main Menu Scene")]
         public static void Build()
@@ -155,6 +155,7 @@ namespace FlickCurling.EditorTools
             var popup = (GameObject)PrefabUtility.InstantiatePrefab(popupPrefab, canvasGo.transform);
             popup.SetActive(false);
             var matchSetup = BuildMatchSetup(popupPrefab, canvasGo.transform, buttonFont);
+            var shop = BuildShop(popupPrefab, canvasGo.transform);
             var settingsPrefab = BuildSettingsPrefab(popupPrefab);
             var settingsGo = (GameObject)PrefabUtility.InstantiatePrefab(settingsPrefab, canvasGo.transform);
             settingsGo.SetActive(false);
@@ -166,6 +167,7 @@ namespace FlickCurling.EditorTools
             so.FindProperty("popup").objectReferenceValue = popup.GetComponent<Popup>();
             so.FindProperty("matchSetup").objectReferenceValue = matchSetup;
             so.FindProperty("settings").objectReferenceValue = settingsPanel;
+            so.FindProperty("shop").objectReferenceValue = shop;
             var arr = so.FindProperty("entries");
             arr.arraySize = entries.Length;
             for (int i = 0; i < entries.Length; i++)
@@ -252,6 +254,39 @@ namespace FlickCurling.EditorTools
 
         const float SettingsToMenuW = 460;
         const float SettingsW = 860, SettingsH = 650, SettingsRowH = 92, SettingsLabelW = 230, SettingsValueW = 80;
+
+        // ---- the shop popup: the products as cards hanging from nails, three in a row (three test products for now) ----
+
+        const float ShopW = 860, ShopH = 560, ShopGap = 26;
+
+        static Popup BuildShop(GameObject popupPrefab, Transform parent)
+        {
+            var go = (GameObject)PrefabUtility.InstantiatePrefab(popupPrefab, parent);
+            go.name = "ShopPopup";
+            var title = go.transform.Find("Window/TitleRow/Title").GetComponent<TextMeshProUGUI>();
+            title.text = UiStrings.Entries.First(e => e[0] == "mainmenu.shop")[1];
+            LocalizeEvents.BindText(title, Loc.Table, "mainmenu.shop");
+            var icon = go.transform.Find("Window/TitleRow/Icon").GetComponent<Image>();
+            icon.sprite = AssetDatabase.LoadAssetAtPath<Sprite>(IconPath("mainmenu.shop"));
+            icon.gameObject.SetActive(true);
+            ((RectTransform)go.transform.Find("Window")).sizeDelta = new Vector2(ShopW, ShopH);
+
+            var content = (RectTransform)go.transform.Find("Window/Content");
+            var grid = content.gameObject.AddComponent<GridLayoutGroup>();
+            grid.cellSize = new Vector2(UiPrefabBuilder.ShopCardW, UiPrefabBuilder.ShopCardH);
+            grid.spacing = new Vector2(ShopGap, ShopGap);
+            grid.childAlignment = TextAnchor.UpperCenter;
+            grid.constraint = GridLayoutGroup.Constraint.FixedColumnCount; grid.constraintCount = 3;
+            grid.padding = new RectOffset(0, 0, 8, 0);
+
+            foreach (var (key, art, price) in new[] { ("shop.item.coins", "shop_item_coins", 100), ("shop.item.goldStone", "shop_item_goldstone", 500), ("shop.item.chest", "shop_item_chest", 1200) })
+            {
+                var card = UiPrefabBuilder.Place(UiPrefabBuilder.ShopCardPath, content, "Card_" + art.Substring("shop_item_".Length));
+                UiPrefabBuilder.SetShopCard(card, key, ImportSprite("Assets/Art/Menu/" + art + ".png", Vector4.zero, 512), price);
+            }
+            go.SetActive(false);
+            return go.GetComponent<Popup>();
+        }
 
         public const string SettingsPrefabPath = "Assets/Resources/" + SettingsPanel.ResourcePath + ".prefab";   // the game loads it too
 

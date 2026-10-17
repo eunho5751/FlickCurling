@@ -355,6 +355,22 @@ MonoBehaviour:
     m_Key: matchsetup.map
     m_Metadata:
       m_Items: []
+  - m_Id: 964901604347904
+    m_Key: mainmenu.shop
+    m_Metadata:
+      m_Items: []
+  - m_Id: 964901654679552
+    m_Key: shop.item.coins
+    m_Metadata:
+      m_Items: []
+  - m_Id: 964901654679553
+    m_Key: shop.item.goldStone
+    m_Metadata:
+      m_Items: []
+  - m_Id: 964901654679554
+    m_Key: shop.item.chest
+    m_Metadata:
+      m_Items: []
   m_Metadata:
     m_Items: []
   m_KeyGenerator:

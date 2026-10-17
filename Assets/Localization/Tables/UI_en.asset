@@ -382,6 +382,22 @@ MonoBehaviour:
     m_Localized: Map
     m_Metadata:
       m_Items: []
+  - m_Id: 964901604347904
+    m_Localized: Shop
+    m_Metadata:
+      m_Items: []
+  - m_Id: 964901654679552
+    m_Localized: Handful of Coins
+    m_Metadata:
+      m_Items: []
+  - m_Id: 964901654679553
+    m_Localized: Golden Stone
+    m_Metadata:
+      m_Items: []
+  - m_Id: 964901654679554
+    m_Localized: Treasure Chest
+    m_Metadata:
+      m_Items: []
   references:
     version: 2
     RefIds:

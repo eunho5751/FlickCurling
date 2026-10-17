@@ -45,7 +45,13 @@ namespace FlickCurling.EditorTools
             ("Assets/Art/Menu/ui_dropdown_arrow.png", Vector4.zero),
             ("Assets/Art/Menu/ui_dropdown_list.png", new Vector4(40, 40, 40, 40)),
             ("Assets/Art/Menu/ui_dropdown_item.png", new Vector4(30, 25, 30, 25)),
+            ("Assets/Art/Menu/shop_card.png", ShopCardBorder),
+            ("Assets/Art/Menu/shop_nail.png", Vector4.zero),
+            ("Assets/Art/Menu/shop_coin.png", Vector4.zero),
         };
+
+        // the shop card's rim and its name strip and price band stay unstretched (left, bottom, right, top)
+        public static readonly Vector4 ShopCardBorder = new Vector4(26, 86, 26, 66);
 
         [MenuItem("FlickCurling/Import Popup Controls")]
         public static void ImportControls()

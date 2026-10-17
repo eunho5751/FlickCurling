@@ -25,6 +25,7 @@ namespace FlickCurling.Game
         [SerializeField] Popup popup;
         [SerializeField] MatchSetup matchSetup;
         [SerializeField] SettingsPanel settings;
+        [SerializeField] Popup shop;
 
         /// <summary>The menu's shared popup window (hidden until shown).</summary>
         public Popup Popup => popup;
@@ -35,6 +36,7 @@ namespace FlickCurling.Game
             foreach (var e in entries)
             {
                 if (e.Key == "mainmenu.offline") e.Button.onClick.AddListener(matchSetup.Open);
+                else if (e.Key == "mainmenu.shop") e.Button.onClick.AddListener(() => shop.Show());
                 else if (e.Key == "mainmenu.settings") e.Button.onClick.AddListener(() => settings.Open());
             }
         }

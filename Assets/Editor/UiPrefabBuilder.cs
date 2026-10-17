@@ -19,6 +19,7 @@ namespace FlickCurling.EditorTools
         public const string Dir = "Assets/Prefabs/UI";
         public const string PrimaryPath = Dir + "/Button_Primary.prefab", SecondaryPath = Dir + "/Button_Secondary.prefab";
         public const string TogglePath = Dir + "/ToggleGroup.prefab", SliderPath = Dir + "/Slider.prefab", DropdownPath = Dir + "/Dropdown.prefab";
+        public const string ShopCardPath = Dir + "/ShopCard.prefab";
         public const string FaderPath = "Assets/Resources/" + ScreenFader.ResourcePath + ".prefab";   // loaded at run time
 
         // default sizes in the menu's reference pixels
@@ -39,6 +40,7 @@ namespace FlickCurling.EditorTools
             Save(MakeSlider(), SliderPath);
             Save(MakeDropdown(font), DropdownPath);
             Save(MakeFader(), FaderPath);
+            Save(MakeShopCard(font), ShopCardPath);
             Debug.Log("FlickCurling: built the UI control prefabs in " + Dir);
         }
 
@@ -213,6 +215,86 @@ namespace FlickCurling.EditorTools
             itemLabel.font = font; itemLabel.fontSize = 38; itemLabel.color = Ink; itemLabel.alignment = TextAlignmentOptions.Left;
             itemLabel.rectTransform.offsetMin = new Vector2(24, 2); itemLabel.rectTransform.offsetMax = new Vector2(-16, 0);
             return go;
+        }
+
+        // a shop product: the parchment card hanging from a brass nail, the name across its top strip, the picture in the
+        // middle, the price (a coin and the amount) on the wooden band at the bottom; the card swings about the nail
+        public const float ShopCardW = 220, ShopCardH = 300;
+        const float ShopNameH = 42, ShopPriceH = 56, NailSize = 30;
+        static GameObject MakeShopCard(TMP_FontAsset font)
+        {
+            var root = new GameObject("ShopCard", typeof(RectTransform));
+            ((RectTransform)root.transform).sizeDelta = new Vector2(ShopCardW, ShopCardH);
+            // the whole card takes the press (the art itself does not catch rays)
+            var hit = root.AddComponent<Image>(); hit.color = new Color(1, 1, 1, 0);
+            root.AddComponent<Button>().transition = Selectable.Transition.None;
+
+            var tilt = MainMenuBuilder.Child<RectTransform>(root.transform, "Card");
+            tilt.anchorMin = tilt.anchorMax = tilt.pivot = new Vector2(0.5f, 1);
+            tilt.anchoredPosition = new Vector2(0, -NailSize / 2);   // the nail's middle on the card's top edge
+            tilt.sizeDelta = new Vector2(ShopCardW, ShopCardH - NailSize / 2);
+            var bg = MainMenuBuilder.Child<Image>(tilt, "Background");
+            MainMenuBuilder.Stretch(bg.rectTransform);
+            var art = Art("shop_card");
+            bg.sprite = art; bg.type = Image.Type.Sliced; bg.pixelsPerUnitMultiplier = art.rect.width / ShopCardW; bg.raycastTarget = false;
+
+            var name = MainMenuBuilder.Label(tilt, "Name", font, 30, Ink);
+            var nrt = name.rectTransform;
+            nrt.anchorMin = new Vector2(0, 1); nrt.anchorMax = new Vector2(1, 1); nrt.pivot = new Vector2(0.5f, 1);
+            // under the nail's lower half: the name sits in the strip's lower part
+            nrt.offsetMin = new Vector2(14, -ShopNameH - 2); nrt.offsetMax = new Vector2(-14, -NailSize / 2 + 2);
+            name.enableAutoSizing = true; name.fontSizeMin = 16; name.fontSizeMax = 26;
+            name.text = "Item";
+
+            var pic = MainMenuBuilder.Child<Image>(tilt, "Picture");
+            var prt = pic.rectTransform;
+            prt.anchorMin = Vector2.zero; prt.anchorMax = Vector2.one;
+            prt.offsetMin = new Vector2(24, ShopPriceH + 10); prt.offsetMax = new Vector2(-24, -(ShopNameH + 6));
+            pic.preserveAspect = true; pic.raycastTarget = false;
+
+            var row = MainMenuBuilder.Child<RectTransform>(tilt, "Price");
+            row.anchorMin = Vector2.zero; row.anchorMax = new Vector2(1, 0); row.pivot = new Vector2(0.5f, 0);
+            row.offsetMin = new Vector2(12, 4); row.offsetMax = new Vector2(-12, ShopPriceH - 2);
+            var h = row.gameObject.AddComponent<HorizontalLayoutGroup>();
+            h.spacing = 8; h.childAlignment = TextAnchor.MiddleCenter;
+            h.childControlWidth = h.childControlHeight = true; h.childForceExpandWidth = h.childForceExpandHeight = false;
+            var coin = MainMenuBuilder.Child<Image>(row, "Coin");
+            coin.sprite = Art("shop_coin"); coin.preserveAspect = true; coin.raycastTarget = false;
+            var cle = coin.gameObject.AddComponent<LayoutElement>(); cle.preferredWidth = cle.minWidth = 36; cle.preferredHeight = 36;
+            var price = MainMenuBuilder.Label(row, "Amount", font, 32, Cream);
+            price.text = "0";
+
+            // the nail on top, pinning the card at its top middle
+            var nail = MainMenuBuilder.Child<Image>(root.transform, "Nail");
+            var nlt = nail.rectTransform;
+            nlt.anchorMin = nlt.anchorMax = nlt.pivot = new Vector2(0.5f, 1);
+            nlt.anchoredPosition = new Vector2(0, 0); nlt.sizeDelta = new Vector2(NailSize, NailSize);
+            nail.sprite = Art("shop_nail"); nail.preserveAspect = true; nail.raycastTarget = false;
+
+            var card = root.AddComponent<ShopCard>();
+            var so = new SerializedObject(card);
+            so.FindProperty("tilt").objectReferenceValue = tilt;
+            so.FindProperty("price").objectReferenceValue = price;
+            so.FindProperty("picture").objectReferenceValue = pic;
+            so.ApplyModifiedPropertiesWithoutUndo();
+            return root;
+        }
+
+        /// <summary>Fills a shop card instance in: its localized name, picture and price.</summary>
+        public static ShopCard SetShopCard(GameObject card, string nameKey, Sprite picture, int price)
+        {
+            var name = card.transform.Find("Card/Name").GetComponent<TextMeshProUGUI>();
+            name.text = UiStrings.Entries.First(e => e[0] == nameKey)[1];
+            LocalizeEvents.BindText(name, Loc.Table, nameKey);
+            var c = card.GetComponent<ShopCard>();
+            var so = new SerializedObject(c);
+            // through the instances' own serialized properties, so the overrides stick in the scene
+            var img = (Image)so.FindProperty("picture").objectReferenceValue;
+            var iso = new SerializedObject(img); iso.FindProperty("m_Sprite").objectReferenceValue = picture; iso.ApplyModifiedPropertiesWithoutUndo();
+            var amount = (TextMeshProUGUI)so.FindProperty("price").objectReferenceValue;
+            amount.text = price.ToString("N0");
+            PrefabUtility.RecordPrefabInstancePropertyModifications(amount);
+            return c;
         }
 
         // the screen fade: its own overlay canvas above everything, one dark cover that also blocks every touch

@@ -31,7 +31,13 @@ namespace FlickCurling.EditorTools
             new[] { "mainmenu.online", "온라인 대전", "Online Match", "オンライン対戦" },
             new[] { "mainmenu.leaderboard", "리더보드", "Leaderboard", "ランキング" },
             new[] { "mainmenu.rules", "게임 규칙", "How to Play", "ルール" },
+            new[] { "mainmenu.shop", "상점", "Shop", "ショップ" },
             new[] { "mainmenu.settings", "설정", "Settings", "設定" },
+
+            // ---- main menu: shop (test products for now) ----
+            new[] { "shop.item.coins", "코인 한 줌", "Handful of Coins", "コインひとつかみ" },
+            new[] { "shop.item.goldStone", "황금 알", "Golden Stone", "金の石" },
+            new[] { "shop.item.chest", "보물 상자", "Treasure Chest", "宝箱" },
 
             // ---- main menu: match setup popup ----
             new[] { "matchsetup.mode", "모드", "Mode", "モード" },
