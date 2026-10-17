@@ -15,6 +15,10 @@ namespace FlickCurling.Game.Account
         [SerializeField] Button googleButton;
         [SerializeField] GameObject googleLinked;
 
+        /// <summary>Whether "Sign in with Google" can be pressed: in the main menu yes, in the game it shows grayed out.</summary>
+        public bool LinkAllowed { get => linkAllowed; set { linkAllowed = value; Render(); } }
+        bool linkAllowed = true;
+
         void Awake() => googleButton.onClick.AddListener(LinkGoogle);
 
         void OnEnable()
@@ -28,6 +32,7 @@ namespace FlickCurling.Game.Account
 
         async void LinkGoogle()
         {
+            if (!linkAllowed) return;
             if (!AccountService.Google.IsSupported)
             {
 #if UNITY_EDITOR
@@ -48,7 +53,9 @@ namespace FlickCurling.Game.Account
             bool linked = AccountService.IsLinked(AccountService.Google);
             googleLinked.SetActive(linked);
             googleButton.gameObject.SetActive(!linked);
-            googleButton.interactable = ready && !AccountService.Busy;
+            googleButton.interactable = ready && !AccountService.Busy && linkAllowed;
+            var fade = googleButton.GetComponent<CanvasGroup>();
+            if (fade) fade.alpha = googleButton.interactable ? 1 : 0.55f;
             status.text = AccountService.Status == AccountService.State.SigningIn || AccountService.Busy ? Loc.T("account.signingIn")
                 : AccountService.Status == AccountService.State.Failed ? Loc.T("account.offline") : "";
         }

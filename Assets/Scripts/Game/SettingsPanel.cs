@@ -57,6 +57,9 @@ namespace FlickCurling.Game
             sens.SetValueWithoutNotify(GameSettings.SensLevel + 1);
             language.SetValueWithoutNotify(Mathf.Max(0, Array.IndexOf(Loc.Codes, Loc.Code)));
             toMenuRow.SetActive(inGame);
+            // signing in (linking an account, maybe switching players) only from the main menu, never mid-game
+            var account = GetComponentInChildren<Account.AccountPanel>(true);
+            if (account) account.LinkAllowed = !inGame;
             var size = inGame ? sizeGame : sizeMenu;
             popup.SetSize(size.x, size.y);
             Show();

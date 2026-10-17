@@ -224,6 +224,7 @@ GameObject:
   - component: {fileID: 6524809079609733260}
   - component: {fileID: 3866299065612433103}
   - component: {fileID: 4452598924558728644}
+  - component: {fileID: 7508972182177146469}
   m_Layer: 0
   m_Name: Button_Google
   m_TagString: Untagged
@@ -315,7 +316,7 @@ MonoBehaviour:
     m_HighlightedColor: {r: 0.97, g: 0.97, b: 0.97, a: 1}
     m_PressedColor: {r: 0.88, g: 0.88, b: 0.88, a: 1}
     m_SelectedColor: {r: 0.9607843, g: 0.9607843, b: 0.9607843, a: 1}
-    m_DisabledColor: {r: 1, g: 1, b: 1, a: 0.6}
+    m_DisabledColor: {r: 0.78, g: 0.78, b: 0.78, a: 1}
     m_ColorMultiplier: 1
     m_FadeDuration: 0.1
   m_SpriteState:
@@ -334,3 +335,15 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls: []
+--- !u!225 &7508972182177146469
+CanvasGroup:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2811078120513815270}
+  m_Enabled: 1
+  m_Alpha: 1
+  m_Interactable: 1
+  m_BlocksRaycasts: 1
+  m_IgnoreParentGroups: 0

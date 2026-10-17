@@ -85,7 +85,8 @@ namespace FlickCurling.EditorTools
             img.sprite = Art("google_button"); img.type = Image.Type.Sliced; img.pixelsPerUnitMultiplier = 0.9f;
             var b = img.gameObject.AddComponent<Button>();
             var cb = b.colors; cb.highlightedColor = new Color(.97f, .97f, .97f); cb.pressedColor = new Color(.88f, .88f, .88f);
-            cb.disabledColor = new Color(1, 1, 1, .6f); b.colors = cb;
+            cb.disabledColor = new Color(.78f, .78f, .78f); b.colors = cb;
+            img.gameObject.AddComponent<CanvasGroup>();   // the logo and label fade with it when it can't be pressed (AccountPanel)
             var logo = MainMenuBuilder.Child<Image>(img.transform, "Logo");
             logo.sprite = Art("google_g"); logo.preserveAspect = true; logo.raycastTarget = false;
             logo.rectTransform.anchorMin = logo.rectTransform.anchorMax = new Vector2(0, 0.5f);
