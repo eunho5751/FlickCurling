@@ -28,7 +28,13 @@ namespace FlickCurling.Game.Account
 
         async void LinkGoogle()
         {
-            if (!AccountService.Google.IsSupported) { ShowStatus("account.googleUnavailable"); return; }
+            if (!AccountService.Google.IsSupported)
+            {
+#if UNITY_EDITOR
+                Debug.Log("FlickCurling: to test Google sign-in in the editor, set the Web client ID and secret in FlickCurling > Google Sign-In (Editor) Setup");
+#endif
+                ShowStatus("account.googleUnavailable"); return;
+            }
             bool ok = await AccountService.LinkAsync(AccountService.Google);
             if (this && !ok && !string.IsNullOrEmpty(AccountService.LastError)) ShowStatus("account.linkFailed");
         }

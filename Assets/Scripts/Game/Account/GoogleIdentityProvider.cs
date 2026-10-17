@@ -9,19 +9,21 @@ namespace FlickCurling.Game.Account
     /// Google: on Android, Credential Manager's "Sign in with Google" sheet (pick an account) through the Java bridge in
     /// Assets/Plugins/Android/GoogleSignIn.androidlib, which returns an OpenID ID token for the Web client ID in
     /// <see cref="AccountConfig"/>; UGS links or signs in with it (Google must be set up as an identity provider in the
-    /// UGS dashboard with the same client ID). Not available in the editor or on other platforms.
+    /// UGS dashboard with the same client ID). In the editor, the browser's Google sign-in instead
+    /// (<see cref="EditorGoogleSignIn"/>, once its client secret is set up). Not available on other platforms.
     /// </summary>
     public sealed class GoogleIdentityProvider : IIdentityProvider
     {
         public string TypeId => "google.com";
 
-        readonly string webClientId;
-
-        public GoogleIdentityProvider(string webClientId) => this.webClientId = webClientId;
+        // read each time, so a client ID set while the editor runs counts at the next press
+        static string WebClientId => AccountConfig.Load().googleWebClientId?.Trim() ?? "";
 
         public bool IsSupported =>
-#if UNITY_ANDROID && !UNITY_EDITOR
-            !string.IsNullOrEmpty(webClientId);
+#if UNITY_EDITOR
+            !string.IsNullOrEmpty(WebClientId) && EditorGoogleSignIn.HasSecret;
+#elif UNITY_ANDROID
+            !string.IsNullOrEmpty(WebClientId);
 #else
             false;
 #endif
@@ -31,13 +33,15 @@ namespace FlickCurling.Game.Account
 
         public Task<string> GetIdTokenAsync()
         {
-#if UNITY_ANDROID && !UNITY_EDITOR
+#if UNITY_EDITOR
+            return EditorGoogleSignIn.GetIdTokenAsync(WebClientId);
+#elif UNITY_ANDROID
             var done = new TaskCompletionSource<string>();
             using (var player = new AndroidJavaClass("com.unity3d.player.UnityPlayer"))
             using (var bridge = new AndroidJavaClass("com.flickcurling.auth.GoogleSignInBridge"))
             {
                 var activity = player.GetStatic<AndroidJavaObject>("currentActivity");
-                bridge.CallStatic("signIn", activity, webClientId, new Listener(done));
+                bridge.CallStatic("signIn", activity, WebClientId, new Listener(done));
             }
             return done.Task;
 #else

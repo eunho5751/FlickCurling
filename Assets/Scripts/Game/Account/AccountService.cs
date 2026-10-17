@@ -26,7 +26,7 @@ namespace FlickCurling.Game.Account
         public static string PlayerName { get; private set; } = "";
         public static string LastError { get; private set; } = "";
 
-        public static readonly IIdentityProvider Google = new GoogleIdentityProvider(AccountConfig.Load().googleWebClientId);
+        public static readonly IIdentityProvider Google = new GoogleIdentityProvider();
         public static readonly IIdentityProvider Apple = new AppleIdentityProvider();
 
         static Task starting;

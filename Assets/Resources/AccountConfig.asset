@@ -12,4 +12,4 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9a68becbd7e339e4884d4ba82513db59, type: 3}
   m_Name: AccountConfig
   m_EditorClassIdentifier: FlickCurling.Game::FlickCurling.Game.Account.AccountConfig
-  googleWebClientId: 
+  googleWebClientId: 8555008021-3cdqkmjm9eh6o4m7bnq3vqhr83dlo99d.apps.googleusercontent.com
