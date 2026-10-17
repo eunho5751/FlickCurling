@@ -253,7 +253,7 @@ namespace FlickCurling.EditorTools
         // dropdown, one row each, from the shared prefabs (Popup, Slider, Dropdown) ----
 
         const float SettingsToMenuW = 460;
-        const float SettingsW = 860, SettingsH = 820, SettingsRowH = 92, SettingsLabelW = 230, SettingsValueW = 80;
+        const float SettingsW = 860, SettingsH = 1000, SettingsRowH = 92, SettingsLabelW = 230, SettingsValueW = 80;
 
         // ---- the shop popup: the products as cards hanging from nails, three in a row (three test products for now) ----
 
@@ -357,41 +357,43 @@ namespace FlickCurling.EditorTools
             return prefab;
         }
 
-        const float AccountRowH = 150, GoogleButtonW = 330, GoogleButtonH = 92;
+        const float AccountBoxH = 290, AccountStatusH = 30, GoogleButtonW = 520, GoogleButtonH = 96;
+        const float AccountH = AccountBoxH + 6 + AccountStatusH;   // the account section's height in the settings
 
+        // the account, boxed so it reads as one thing: the PID, the nickname, then "Sign in with Google" (or, in its
+        // place, that the account is linked); under the box a status line while connecting or after a failure
         static void BuildAccountRow(RectTransform parent, TMP_FontAsset font)
         {
             var row = Child<RectTransform>(parent, "Account");
-            row.gameObject.AddComponent<LayoutElement>().preferredHeight = AccountRowH;
-            var h = row.gameObject.AddComponent<HorizontalLayoutGroup>();
-            h.spacing = 16; h.childAlignment = TextAnchor.MiddleLeft;
-            h.childControlWidth = h.childControlHeight = true; h.childForceExpandWidth = h.childForceExpandHeight = false;
+            row.gameObject.AddComponent<LayoutElement>().preferredHeight = AccountH;
+            var rv = row.gameObject.AddComponent<VerticalLayoutGroup>();
+            rv.spacing = 6; rv.childAlignment = TextAnchor.UpperCenter;
+            rv.childControlWidth = rv.childControlHeight = true; rv.childForceExpandWidth = true; rv.childForceExpandHeight = false;
 
-            // PID and nickname, one above the other, with the status line under them
-            var info = Child<RectTransform>(row, "Info");
-            info.gameObject.AddComponent<LayoutElement>().flexibleWidth = 1;
-            var v = info.gameObject.AddComponent<VerticalLayoutGroup>();
-            v.spacing = 4; v.childAlignment = TextAnchor.MiddleLeft;
+            var box = Child<Image>(row, "Box");
+            box.sprite = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Art/Menu/account_box.png");
+            box.type = Image.Type.Sliced; box.pixelsPerUnitMultiplier = 1.25f;
+            box.gameObject.AddComponent<LayoutElement>().preferredHeight = AccountBoxH;
+            var v = box.gameObject.AddComponent<VerticalLayoutGroup>();
+            v.padding = new RectOffset(44, 44, 30, 34); v.spacing = 8; v.childAlignment = TextAnchor.UpperCenter;
             v.childControlWidth = v.childControlHeight = true; v.childForceExpandWidth = true; v.childForceExpandHeight = false;
             TextMeshProUGUI Line(string name, float size, float height, Color32 color)
             {
-                var t = Label(info, name, font, size, color);
+                var t = Label(box.transform, name, font, size, color);
                 t.alignment = TextAlignmentOptions.Left;
                 t.enableAutoSizing = true; t.fontSizeMin = 18; t.fontSizeMax = size;
                 t.gameObject.AddComponent<LayoutElement>().preferredHeight = height;
                 return t;
             }
-            var nickname = Line("Nickname", 38, 48, Ink);
-            var pid = Line("Pid", 26, 34, new Color32(0x7a, 0x5a, 0x3a, 0xff));
-            var status = Line("Status", 24, 30, new Color32(0xa3, 0x4a, 0x2a, 0xff));
-            nickname.text = UiStrings.Entries.First(e => e[0] == "account.nickname")[1];
-            pid.text = "PID"; status.text = "";
+            var pid = Line("Pid", 28, 40, new Color32(0x7a, 0x5a, 0x3a, 0xff));
+            var nickname = Line("Nickname", 36, 52, Ink);
+            pid.text = "PID"; nickname.text = UiStrings.Entries.First(e => e[0] == "account.nickname")[1];
 
             // Google: the sign-in button, or in its place that the account is linked
-            var slot = Child<RectTransform>(row, "Google");
-            var sle = slot.gameObject.AddComponent<LayoutElement>(); sle.preferredWidth = sle.minWidth = GoogleButtonW; sle.preferredHeight = GoogleButtonH;
-            var button = UiPrefabBuilder.Place(UiPrefabBuilder.SecondaryPath, slot, "SignIn");
-            Stretch((RectTransform)button.transform);
+            var slot = Child<RectTransform>(box.transform, "Google");
+            var sle = slot.gameObject.AddComponent<LayoutElement>(); sle.preferredHeight = sle.minHeight = GoogleButtonH + 12;
+            var button = UiPrefabBuilder.Place(UiPrefabBuilder.GooglePath, slot, "SignIn");
+            Place((RectTransform)button.transform, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(GoogleButtonW, GoogleButtonH));
             var signIn = UiPrefabBuilder.SetLabel(button, "account.googleLogin");
             var linked = Label(slot, "Linked", font, 34, new Color32(0x3f, 0x6e, 0x2a, 0xff));
             Stretch(linked.rectTransform);
@@ -399,6 +401,11 @@ namespace FlickCurling.EditorTools
             linked.text = UiStrings.Entries.First(e => e[0] == "account.googleLinked")[1];
             LocalizeEvents.BindText(linked, Loc.Table, "account.googleLinked");
             linked.gameObject.SetActive(false);
+
+            var status = Label(row, "Status", font, 24, new Color32(0xa3, 0x4a, 0x2a, 0xff));
+            status.enableAutoSizing = true; status.fontSizeMin = 18; status.fontSizeMax = 24;
+            status.gameObject.AddComponent<LayoutElement>().preferredHeight = AccountStatusH;
+            status.text = "";
 
             var panel = row.gameObject.AddComponent<FlickCurling.Game.Account.AccountPanel>();
             var so = new SerializedObject(panel);

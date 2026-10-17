@@ -54,6 +54,10 @@ namespace FlickCurling.EditorTools
             ("Assets/Art/Menu/ui_scroll_handle.png", new Vector4(0, 34, 0, 34)),
             ("Assets/Art/Menu/shop_nail.png", Vector4.zero),
             ("Assets/Art/Menu/shop_coin.png", Vector4.zero),
+            ("Assets/Art/Menu/account_box.png", new Vector4(34, 34, 34, 34)),   // the settings' account box
+            // Sign in with Google (Google's branding guidelines): the white, gray-edged rounded button and the G logo
+            ("Assets/Art/Menu/google_button.png", new Vector4(14, 14, 14, 14)),
+            ("Assets/Art/Menu/google_g.png", Vector4.zero),
         };
 
         [MenuItem("FlickCurling/Import Popup Controls")]

@@ -20,6 +20,7 @@ namespace FlickCurling.EditorTools
         public const string PrimaryPath = Dir + "/Button_Primary.prefab", SecondaryPath = Dir + "/Button_Secondary.prefab";
         public const string TogglePath = Dir + "/ToggleGroup.prefab", SliderPath = Dir + "/Slider.prefab", DropdownPath = Dir + "/Dropdown.prefab";
         public const string ShopCardPath = Dir + "/ShopCard.prefab", ScrollViewPath = Dir + "/ScrollView.prefab";
+        public const string GooglePath = Dir + "/Button_Google.prefab";
         public const string FaderPath = "Assets/Resources/" + ScreenFader.ResourcePath + ".prefab";   // loaded at run time
 
         // default sizes in the menu's reference pixels
@@ -42,6 +43,7 @@ namespace FlickCurling.EditorTools
             Save(MakeFader(), FaderPath);
             Save(MakeShopCard(font), ShopCardPath);
             Save(MakeScrollView(), ScrollViewPath);
+            Save(MakeGoogleButton(), GooglePath);
             Debug.Log("FlickCurling: built the UI control prefabs in " + Dir);
         }
 
@@ -68,6 +70,34 @@ namespace FlickCurling.EditorTools
             MainMenuBuilder.Stretch(label.rectTransform); label.rectTransform.offsetMin = new Vector2(0, 8);
             label.enableAutoSizing = true; label.fontSizeMin = 28; label.fontSizeMax = 48;
             label.text = "Button";
+            return img.gameObject;
+        }
+
+        const float GoogleW = 520, GoogleH = 96, GoogleLogo = 44, GooglePad = 26;
+        static readonly Color32 GoogleText = new Color32(0x1f, 0x1f, 0x1f, 0xff);   // the guidelines' light theme
+
+        // "Sign in with Google" as Google's branding guidelines draw it: white with a thin gray edge and round corners,
+        // the G logo on the left and the label (SetLabel, account.googleLogin) centred in dark gray
+        static GameObject MakeGoogleButton()
+        {
+            var img = new GameObject("Button_Google", typeof(RectTransform)).AddComponent<Image>();
+            img.rectTransform.sizeDelta = new Vector2(GoogleW, GoogleH);
+            img.sprite = Art("google_button"); img.type = Image.Type.Sliced; img.pixelsPerUnitMultiplier = 0.9f;
+            var b = img.gameObject.AddComponent<Button>();
+            var cb = b.colors; cb.highlightedColor = new Color(.97f, .97f, .97f); cb.pressedColor = new Color(.88f, .88f, .88f);
+            cb.disabledColor = new Color(1, 1, 1, .6f); b.colors = cb;
+            var logo = MainMenuBuilder.Child<Image>(img.transform, "Logo");
+            logo.sprite = Art("google_g"); logo.preserveAspect = true; logo.raycastTarget = false;
+            logo.rectTransform.anchorMin = logo.rectTransform.anchorMax = new Vector2(0, 0.5f);
+            logo.rectTransform.pivot = new Vector2(0, 0.5f);
+            logo.rectTransform.anchoredPosition = new Vector2(GooglePad, 0); logo.rectTransform.sizeDelta = new Vector2(GoogleLogo, GoogleLogo);
+            var font = AssetDatabase.LoadAssetAtPath<TMP_FontAsset>(FontBuilder.DisplayPath);   // Noto Sans, near the guidelines' Roboto
+            var label = MainMenuBuilder.Label(img.transform, "Label", font, 34, GoogleText);
+            MainMenuBuilder.Stretch(label.rectTransform);
+            float side = GooglePad + GoogleLogo + 12;   // clear of the logo, the same on the right so the label stays centred
+            label.rectTransform.offsetMin = new Vector2(side, 0); label.rectTransform.offsetMax = new Vector2(-side, 0);
+            label.enableAutoSizing = true; label.fontSizeMin = 22; label.fontSizeMax = 34;
+            label.text = "Sign in with Google";
             return img.gameObject;
         }
 
