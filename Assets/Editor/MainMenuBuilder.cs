@@ -46,14 +46,16 @@ namespace FlickCurling.EditorTools
         [MenuItem("FlickCurling/Build Main Menu Scene")]
         public static void Build()
         {
+            // the new scene first: opening it unloads the assets nothing holds yet, and right after a script reload that
+            // includes what was just loaded here (TMP's caches are empty then), which left the labels without their font
+            var scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
+
             var bg = ImportSprite(BgPath, Vector4.zero);
             var woodTop = ImportSprite(TopPath, Vector4.zero);
             var woodBottom = ImportSprite(BottomPath, Vector4.zero);
             var styleSprites = System.Array.ConvertAll(Styles, st => ImportSprite(st.path, st.border));
             var logo = ImportSprite(LogoPath, Vector4.zero);
             var buttonFont = AssetDatabase.LoadAssetAtPath<TMP_FontAsset>(FontBuilder.ButtonPath);   // Jua, Mochiy Pop One for Japanese
-
-            var scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
 
             var camGo = new GameObject("Main Camera") { tag = "MainCamera" };
             var cam = camGo.AddComponent<Camera>();
