@@ -61,6 +61,7 @@ namespace FlickCurling.EditorTools
             cam.clearFlags = CameraClearFlags.SolidColor;
             cam.backgroundColor = new Color32(0x1a, 0x11, 0x0b, 0xff);
             camGo.transform.position = new Vector3(0, 0, -10);
+            camGo.AddComponent<AudioListener>();   // the menu's sounds (button clicks) need ears
 
             var es = new GameObject("EventSystem");
             es.AddComponent<EventSystem>();
