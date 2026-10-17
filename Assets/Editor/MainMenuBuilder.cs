@@ -357,15 +357,19 @@ namespace FlickCurling.EditorTools
             return prefab;
         }
 
-        const float AccountBoxH = 290, AccountStatusH = 30, GoogleButtonW = 520, GoogleButtonH = 96;
-        const float AccountH = AccountBoxH + 6 + AccountStatusH;   // the account section's height in the settings
+        const float AccountStatusH = 30, GoogleButtonW = 520, GoogleButtonH = 96;
+        const float AccountLabelSize = 30, AccountValueSize = 26;
+        const int AccountTextGap = 12;   // the empty line space under the nickname's letters, counted in the gap above the button
+        // the box's padding (left, right, top, bottom), the right one wider so long values wrap clear of the rim, and the
+        // gap above the button, which matches the one under it to the rim's inner edge (the rim is about AccountRim thick)
+        const int AccountPadL = 44, AccountPadR = 76, AccountPadT = 30, AccountPadB = 40, AccountRim = 10;
 
         // the account, boxed so it reads as one thing: the PID, the nickname, then "Sign in with Google" (or, in its
-        // place, that the account is linked); under the box a status line while connecting or after a failure
+        // place, that the account is linked); under the box a status line while connecting or after a failure. The box
+        // takes the height of what is in it, so a value that wraps makes it taller.
         static void BuildAccountRow(RectTransform parent, TMP_FontAsset font)
         {
             var row = Child<RectTransform>(parent, "Account");
-            row.gameObject.AddComponent<LayoutElement>().preferredHeight = AccountH;
             var rv = row.gameObject.AddComponent<VerticalLayoutGroup>();
             rv.spacing = 6; rv.childAlignment = TextAnchor.UpperCenter;
             rv.childControlWidth = rv.childControlHeight = true; rv.childForceExpandWidth = true; rv.childForceExpandHeight = false;
@@ -373,25 +377,41 @@ namespace FlickCurling.EditorTools
             var box = Child<Image>(row, "Box");
             box.sprite = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Art/Menu/account_box.png");
             box.type = Image.Type.Sliced; box.pixelsPerUnitMultiplier = 1.25f;
-            box.gameObject.AddComponent<LayoutElement>().preferredHeight = AccountBoxH;
             var v = box.gameObject.AddComponent<VerticalLayoutGroup>();
-            v.padding = new RectOffset(44, 44, 30, 34); v.spacing = 8; v.childAlignment = TextAnchor.UpperCenter;
+            v.padding = new RectOffset(AccountPadL, AccountPadR, AccountPadT, AccountPadB);
+            v.spacing = AccountPadB - AccountRim - AccountTextGap; v.childAlignment = TextAnchor.UpperCenter;
             v.childControlWidth = v.childControlHeight = true; v.childForceExpandWidth = true; v.childForceExpandHeight = false;
-            TextMeshProUGUI Line(string name, float size, float height, Color32 color)
+
+            // PID and nickname, set the same way: the label in bold Noto Sans, a little larger, then the value in Jua,
+            // wrapping when long, centred on the label's height
+            var info = Child<RectTransform>(box.transform, "Info");
+            var iv = info.gameObject.AddComponent<VerticalLayoutGroup>();
+            iv.spacing = 8; iv.childControlWidth = iv.childControlHeight = true; iv.childForceExpandWidth = true; iv.childForceExpandHeight = false;
+            var valueFont = AssetDatabase.LoadAssetAtPath<TMP_FontAsset>(FontBuilder.ButtonPath);
+            TextMeshProUGUI Line(string name, string key)
             {
-                var t = Label(box.transform, name, font, size, color);
-                t.alignment = TextAlignmentOptions.Left;
-                t.enableAutoSizing = true; t.fontSizeMin = 18; t.fontSizeMax = size;
-                t.gameObject.AddComponent<LayoutElement>().preferredHeight = height;
-                return t;
+                var line = Child<RectTransform>(info, name);
+                var h = line.gameObject.AddComponent<HorizontalLayoutGroup>();
+                h.spacing = 14; h.childAlignment = TextAnchor.MiddleLeft;
+                h.childControlWidth = h.childControlHeight = true; h.childForceExpandWidth = h.childForceExpandHeight = false;
+                var label = Label(line, "Label", font, AccountLabelSize, Ink);
+                label.alignment = TextAlignmentOptions.MidlineLeft;
+                label.text = UiStrings.Entries.First(e => e[0] == key)[1];
+                LocalizeEvents.BindText(label, Loc.Table, key);
+                var value = Label(line, "Value", valueFont, AccountValueSize, Ink);
+                value.alignment = TextAlignmentOptions.MidlineLeft;
+                value.textWrappingMode = TextWrappingModes.Normal;
+                // asks for no width of its own, only the rest of the line, so the label always keeps its full width
+                var vle = value.gameObject.AddComponent<LayoutElement>(); vle.preferredWidth = 0; vle.flexibleWidth = 1;
+                value.text = "-";
+                return value;
             }
-            var pid = Line("Pid", 28, 40, new Color32(0x7a, 0x5a, 0x3a, 0xff));
-            var nickname = Line("Nickname", 36, 52, Ink);
-            pid.text = "PID"; nickname.text = UiStrings.Entries.First(e => e[0] == "account.nickname")[1];
+            var pid = Line("Pid", "account.pid");
+            var nickname = Line("Nickname", "account.nickname");
 
             // Google: the sign-in button, or in its place that the account is linked
             var slot = Child<RectTransform>(box.transform, "Google");
-            var sle = slot.gameObject.AddComponent<LayoutElement>(); sle.preferredHeight = sle.minHeight = GoogleButtonH + 12;
+            var sle = slot.gameObject.AddComponent<LayoutElement>(); sle.preferredHeight = sle.minHeight = GoogleButtonH;
             var button = UiPrefabBuilder.Place(UiPrefabBuilder.GooglePath, slot, "SignIn");
             Place((RectTransform)button.transform, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(GoogleButtonW, GoogleButtonH));
             var signIn = UiPrefabBuilder.SetLabel(button, "account.googleLogin");

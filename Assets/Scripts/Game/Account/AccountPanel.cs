@@ -37,8 +37,8 @@ namespace FlickCurling.Game.Account
         {
             if (!this) return;
             bool ready = AccountService.Status == AccountService.State.Ready;
-            pid.text = Loc.T("account.pid") + "  " + (ready ? AccountService.PlayerId : "-");
-            nickname.text = Loc.T("account.nickname") + "  " + (ready ? AccountService.PlayerName : "-");
+            pid.text = ready ? AccountService.PlayerId : "-";   // the values; their labels are localized on their own
+            nickname.text = ready ? AccountService.PlayerName : "-";
             bool linked = AccountService.IsLinked(AccountService.Google);
             googleLinked.SetActive(linked);
             googleButton.gameObject.SetActive(!linked);
