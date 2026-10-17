@@ -20,7 +20,7 @@ namespace FlickCurling.EditorTools
         public const string PrimaryPath = Dir + "/Button_Primary.prefab", SecondaryPath = Dir + "/Button_Secondary.prefab";
         public const string TogglePath = Dir + "/ToggleGroup.prefab", SliderPath = Dir + "/Slider.prefab", DropdownPath = Dir + "/Dropdown.prefab";
         public const string ShopCardPath = Dir + "/ShopCard.prefab", ScrollViewPath = Dir + "/ScrollView.prefab";
-        public const string GooglePath = Dir + "/Button_Google.prefab";
+        public const string GooglePath = Dir + "/Button_Google.prefab", InputPath = Dir + "/InputField.prefab";
         public const string FaderPath = "Assets/Resources/" + ScreenFader.ResourcePath + ".prefab";   // loaded at run time
 
         // default sizes in the menu's reference pixels
@@ -44,6 +44,7 @@ namespace FlickCurling.EditorTools
             Save(MakeShopCard(font), ShopCardPath);
             Save(MakeScrollView(), ScrollViewPath);
             Save(MakeGoogleButton(), GooglePath);
+            Save(MakeInputField(), InputPath);
             Debug.Log("FlickCurling: built the UI control prefabs in " + Dir);
         }
 
@@ -71,6 +72,50 @@ namespace FlickCurling.EditorTools
             label.enableAutoSizing = true; label.fontSizeMin = 28; label.fontSizeMax = 48;
             label.text = "Button";
             return img.gameObject;
+        }
+
+        const float InputW = 720, InputH = 104, InputPadX = 34;
+
+        // a one-line text field on the cream field art: the typed text and a faded placeholder (SetPlaceholder), clipped
+        // to the field inside its rim
+        static GameObject MakeInputField()
+        {
+            var img = new GameObject("InputField", typeof(RectTransform)).AddComponent<Image>();
+            img.rectTransform.sizeDelta = new Vector2(InputW, InputH);
+            var art = Art("ui_input");
+            img.sprite = art; img.type = Image.Type.Sliced; img.pixelsPerUnitMultiplier = 0.8f;
+            var field = img.gameObject.AddComponent<TMP_InputField>();
+            Pressable(field);
+            var area = MainMenuBuilder.Child<RectTransform>(img.transform, "Text Area");
+            MainMenuBuilder.Stretch(area); area.offsetMin = new Vector2(InputPadX, 10); area.offsetMax = new Vector2(-InputPadX, -10);
+            area.gameObject.AddComponent<RectMask2D>();
+            var font = AssetDatabase.LoadAssetAtPath<TMP_FontAsset>(FontBuilder.DisplayPath);
+            TextMeshProUGUI Line(string name, Color color)
+            {
+                var t = MainMenuBuilder.Label(area, name, font, 40, color);
+                MainMenuBuilder.Stretch(t.rectTransform);
+                t.alignment = TextAlignmentOptions.MidlineLeft;
+                return t;
+            }
+            var placeholder = Line("Placeholder", new Color32(0x4a, 0x2a, 0x12, 0x70));
+            placeholder.text = "";
+            var text = Line("Text", Ink);
+            text.text = "";
+            field.textViewport = area; field.textComponent = text; field.placeholder = placeholder;
+            field.fontAsset = font; field.pointSize = 40;
+            field.lineType = TMP_InputField.LineType.SingleLine;
+            field.caretColor = Ink; field.customCaretColor = true; field.caretWidth = 3;
+            field.selectionColor = new Color32(0xe8, 0x9a, 0x4a, 0x80);
+            return img.gameObject;
+        }
+
+        /// <summary>The input field's placeholder, localized by <paramref name="key"/> of the UI table.</summary>
+        public static TMP_InputField SetPlaceholder(GameObject inputGo, string key)
+        {
+            var placeholder = inputGo.transform.Find("Text Area/Placeholder").GetComponent<TextMeshProUGUI>();
+            placeholder.text = UiStrings.Entries.First(e => e[0] == key)[1];
+            LocalizeEvents.BindText(placeholder, Loc.Table, key);   // Editor And Runtime
+            return inputGo.GetComponent<TMP_InputField>();
         }
 
         const float GoogleW = 520, GoogleH = 96, GoogleLogo = 44, GooglePad = 26;

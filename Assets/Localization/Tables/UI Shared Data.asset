@@ -431,6 +431,30 @@ MonoBehaviour:
     m_Key: link.keep
     m_Metadata:
       m_Items: []
+  - m_Id: 1152180562087936
+    m_Key: nickname.title
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1152180608225280
+    m_Key: nickname.message
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1152180608225281
+    m_Key: nickname.placeholder
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1152180608225282
+    m_Key: nickname.guide
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1152180608225283
+    m_Key: nickname.ok
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1152180608225284
+    m_Key: nickname.failed
+    m_Metadata:
+      m_Items: []
   m_Metadata:
     m_Items: []
   m_KeyGenerator:

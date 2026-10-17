@@ -66,6 +66,14 @@ namespace FlickCurling.EditorTools
             new[] { "account.linkFailed", "Google 연동에 실패했어요", "Couldn't link with Google", "Google連携に失敗しました" },
 
             // ---- account: linking an account that already has a record ----
+            // ---- account: the nickname asked on the first start ----
+            new[] { "nickname.title", "닉네임 설정", "Your nickname", "ニックネーム設定" },
+            new[] { "nickname.message", "게임에서 사용할 닉네임을 정해 주세요.", "Choose the name you'll play under.", "ゲームで使うニックネームを決めてください。" },
+            new[] { "nickname.placeholder", "닉네임 입력", "Nickname", "ニックネームを入力" },
+            new[] { "nickname.guide", "3~12자, 한글·영문·숫자만 쓸 수 있어요\n(특수문자, 이모지, 공백 불가)", "3 to 12 characters, letters and numbers only\n(no symbols, emoji or spaces)", "3〜12文字、文字と数字のみ\n（記号・絵文字・スペース不可）" },
+            new[] { "nickname.ok", "확인", "OK", "OK" },
+            new[] { "nickname.failed", "닉네임을 저장하지 못했어요. 다시 시도해 주세요.", "Couldn't save the nickname. Please try again.", "ニックネームを保存できませんでした。もう一度お試しください。" },
+
             new[] { "link.title", "기록 선택", "Choose a record", "記録の選択" },
             new[] { "link.message", "이 Google 계정에는 이미 게임 기록이 있어요.\n어느 기록으로 플레이할까요?", "This Google account already has a game record.\nWhich one do you want to play with?", "このGoogleアカウントにはすでにゲーム記録があります。\nどちらの記録で遊びますか？" },
             new[] { "link.existing", "Google 계정의 기록", "The Google account's record", "Googleアカウントの記録" },

@@ -462,6 +462,33 @@ MonoBehaviour:
     m_Localized: Overwrite
     m_Metadata:
       m_Items: []
+  - m_Id: 1152180562087936
+    m_Localized: Your nickname
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1152180608225280
+    m_Localized: Choose the name you'll play under.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1152180608225281
+    m_Localized: Nickname
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1152180608225282
+    m_Localized: '3 to 12 characters, letters and numbers only
+
+      (no symbols,
+      emoji or spaces)'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1152180608225283
+    m_Localized: OK
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1152180608225284
+    m_Localized: Couldn't save the nickname. Please try again.
+    m_Metadata:
+      m_Items: []
   references:
     version: 2
     RefIds:

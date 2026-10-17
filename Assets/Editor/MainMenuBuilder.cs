@@ -163,6 +163,7 @@ namespace FlickCurling.EditorTools
             settingsGo.SetActive(false);
             var settingsPanel = settingsGo.GetComponent<SettingsPanel>();
             BuildLinkConflictPrefab(popupPrefab);   // loaded when needed, over the settings
+            BuildNicknamePrefab(popupPrefab);   // loaded when a new player needs a nickname
 
             var menu = canvasGo.AddComponent<MainMenu>();
             var so = new SerializedObject(menu);
@@ -363,6 +364,69 @@ namespace FlickCurling.EditorTools
             var prefab = PrefabUtility.SaveAsPrefabAsset(go, SettingsPrefabPath);
             Object.DestroyImmediate(go);
             return prefab;
+        }
+
+        public const string NicknamePrefabPath = "Assets/Resources/" + FlickCurling.Game.Account.NicknamePopup.ResourcePath + ".prefab";
+        const float NickW = 860, NickH = 640;
+
+        // the nickname a new player must choose: a message, the input field, the rules (and the count) under it, and OK;
+        // no close button
+        static void BuildNicknamePrefab(GameObject popupPrefab)
+        {
+            var go = (GameObject)PrefabUtility.InstantiatePrefab(popupPrefab);
+            go.name = "NicknamePopup";
+            var font = AssetDatabase.LoadAssetAtPath<TMP_FontAsset>(FontBuilder.DisplayPath);
+            var title = go.transform.Find("Window/TitleRow/Title").GetComponent<TextMeshProUGUI>();
+            title.text = UiStrings.Entries.First(e => e[0] == "nickname.title")[1];
+            LocalizeEvents.BindText(title, Loc.Table, "nickname.title");
+            ((RectTransform)go.transform.Find("Window")).sizeDelta = new Vector2(NickW, NickH);
+            go.transform.Find("Window/Close").gameObject.SetActive(false);
+            var content = (RectTransform)go.transform.Find("Window/Content");
+            var v = content.gameObject.AddComponent<VerticalLayoutGroup>();
+            v.spacing = 22; v.childAlignment = TextAnchor.UpperCenter; v.padding = new RectOffset(0, 0, 10, 0);
+            v.childControlWidth = v.childControlHeight = true; v.childForceExpandWidth = true; v.childForceExpandHeight = false;
+
+            var message = Label(content, "Prompt", font, 36, Ink);
+            message.textWrappingMode = TextWrappingModes.Normal;
+            message.text = UiStrings.Entries.First(e => e[0] == "nickname.message")[1];
+            LocalizeEvents.BindText(message, Loc.Table, "nickname.message");
+
+            var inputGo = UiPrefabBuilder.Place(UiPrefabBuilder.InputPath, content, "Input");
+            inputGo.AddComponent<LayoutElement>().preferredHeight = 104;
+            var input = UiPrefabBuilder.SetPlaceholder(inputGo, "nickname.placeholder");
+
+            // the rules on the left, the count on the right
+            var row = Child<RectTransform>(content, "Rules");
+            var h = row.gameObject.AddComponent<HorizontalLayoutGroup>();
+            h.spacing = 16; h.childAlignment = TextAnchor.UpperLeft; h.padding = new RectOffset(12, 12, 0, 0);
+            h.childControlWidth = h.childControlHeight = true; h.childForceExpandWidth = h.childForceExpandHeight = false;
+            var guide = Label(row, "Guide", font, 26, AccountValueInk);
+            guide.alignment = TextAlignmentOptions.TopLeft; guide.textWrappingMode = TextWrappingModes.Normal;
+            guide.text = UiStrings.Entries.First(e => e[0] == "nickname.guide")[1];
+            var gle = guide.gameObject.AddComponent<LayoutElement>(); gle.flexibleWidth = 1; gle.preferredWidth = 0;
+            var counter = Label(row, "Count", font, 26, AccountValueInk);
+            counter.alignment = TextAlignmentOptions.TopRight;
+            counter.text = "0/" + FlickCurling.Game.Account.Nickname.MaxLength;
+
+            var spacer = Child<RectTransform>(content, "Spacer");
+            spacer.gameObject.AddComponent<LayoutElement>().flexibleHeight = 1;
+            var okRow = Child<RectTransform>(content, "OkRow");
+            okRow.gameObject.AddComponent<LayoutElement>().preferredHeight = SetupOkH;
+            var okGo = UiPrefabBuilder.Place(UiPrefabBuilder.PrimaryPath, okRow, "Ok");
+            Place((RectTransform)okGo.transform, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(SetupOkW, SetupOkH));
+            var ok = UiPrefabBuilder.SetLabel(okGo, "nickname.ok");
+
+            var panel = go.AddComponent<FlickCurling.Game.Account.NicknamePopup>();
+            var so = new SerializedObject(panel);
+            so.FindProperty("popup").objectReferenceValue = go.GetComponent<Popup>();
+            so.FindProperty("input").objectReferenceValue = input;
+            so.FindProperty("guide").objectReferenceValue = guide;
+            so.FindProperty("counter").objectReferenceValue = counter;
+            so.FindProperty("ok").objectReferenceValue = ok;
+            so.ApplyModifiedPropertiesWithoutUndo();
+            go.SetActive(false);
+            PrefabUtility.SaveAsPrefabAsset(go, NicknamePrefabPath);
+            Object.DestroyImmediate(go);
         }
 
         public const string LinkConflictPrefabPath = "Assets/Resources/" + FlickCurling.Game.Account.LinkConflictPopup.ResourcePath + ".prefab";

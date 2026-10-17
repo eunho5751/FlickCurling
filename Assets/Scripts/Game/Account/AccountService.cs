@@ -120,6 +120,45 @@ namespace FlickCurling.Game.Account
 
         const string PeekProfile = "linkpeek";
 
+        /// <summary>
+        /// Whether to ask for a nickname: a player with no linked account (a guest, as on the first start) who has not set
+        /// one yet. A linked player keeps the name they set (it is the UGS player name, so it comes back with the account).
+        /// </summary>
+        public static bool NeedsNickname
+        {
+            get
+            {
+                if (Status != State.Ready || UnityServices.State != ServicesInitializationState.Initialized) return false;
+                var ids = AuthenticationService.Instance.PlayerInfo?.Identities;
+                if (ids != null && ids.Count > 0) return false;
+                return PlayerPrefs.GetInt(NicknameSetKey + PlayerId, 0) == 0;
+            }
+        }
+
+        const string NicknameSetKey = "account.nicknameSet.";
+
+        /// <summary>Sets the player's nickname (their UGS player name; UGS adds a "#1234" tag, see Nickname.Display).
+        /// Returns false (with <see cref="LastError"/>) if it did not.</summary>
+        public static async Task<bool> SetNicknameAsync(string nickname)
+        {
+            if (Busy || Status != State.Ready || !Nickname.IsValid(nickname)) return false;
+            Busy = true; LastError = ""; Notify();
+            try
+            {
+                PlayerName = await AuthenticationService.Instance.UpdatePlayerNameAsync(nickname);
+                PlayerPrefs.SetInt(NicknameSetKey + PlayerId, 1);
+                PlayerPrefs.Save();
+                return true;
+            }
+            catch (Exception e)
+            {
+                Debug.LogWarning("FlickCurling: setting the nickname failed: " + e.Message);
+                LastError = e.Message;
+                return false;
+            }
+            finally { Busy = false; Notify(); }
+        }
+
         /// <summary>Whether the signed-in player is linked to <paramref name="provider"/>'s account.</summary>
         public static bool IsLinked(IIdentityProvider provider)
         {

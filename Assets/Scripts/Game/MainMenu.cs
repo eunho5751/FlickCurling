@@ -41,6 +41,16 @@ namespace FlickCurling.Game
             }
         }
 
+        // a new player chooses their nickname first (once signed in, and once the screen fade is done)
+        void OnEnable() { Account.AccountService.Changed += AskNickname; AskNickname(); }
+        void OnDisable() => Account.AccountService.Changed -= AskNickname;
+
+        void AskNickname()
+        {
+            if (this && Account.AccountService.NeedsNickname)
+                ScreenFader.WhenClear(() => { if (this && Account.AccountService.NeedsNickname) Account.NicknamePopup.Open(this); });
+        }
+
         Rect lastSafe;
         Vector2Int lastScreen;
 

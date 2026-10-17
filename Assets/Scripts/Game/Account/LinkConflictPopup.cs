@@ -52,7 +52,7 @@ namespace FlickCurling.Game.Account
 
         static void Fill(TextMeshProUGUI name, TextMeshProUGUI pid, TextMeshProUGUI date, AccountService.PlayerSummary p)
         {
-            name.text = p != null && !string.IsNullOrEmpty(p.Name) ? p.Name : "-";
+            name.text = p != null && !string.IsNullOrEmpty(p.Name) ? Nickname.Display(p.Name) : "-";
             pid.text = Loc.T("account.pid") + "  " + (p != null && !string.IsNullOrEmpty(p.Id) ? p.Id : "-");
             date.text = p?.CreatedAt is DateTime d ? Loc.T("link.created", ("date", d.ToLocalTime().ToString("yyyy-MM-dd"))) : "";
         }
