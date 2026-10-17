@@ -71,8 +71,8 @@ namespace FlickCurling.EditorTools
             new[] { "link.existing", "Google 계정의 기록", "The Google account's record", "Googleアカウントの記録" },
             new[] { "link.current", "지금 기록", "This record", "現在の記録" },
             new[] { "link.created", "시작한 날 {date}", "Started {date}", "開始日 {date}" },
-            new[] { "link.load", "기존 기록 불러오기", "Load that record", "その記録を読み込む" },
-            new[] { "link.keep", "지금 기록으로 덮어쓰기", "Keep this record", "現在の記録で上書き" },
+            new[] { "link.load", "불러오기", "Load", "読み込む" },
+            new[] { "link.keep", "덮어쓰기", "Overwrite", "上書き" },
 
             // ---- HUD ----
             new[] { "hud.hammer", "후공", "Last", "後攻" },

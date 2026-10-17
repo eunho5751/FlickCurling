@@ -455,11 +455,11 @@ MonoBehaviour:
       m_Items:
       - rid: 4297768082125881571
   - m_Id: 1099965122138117
-    m_Localized: Load that record
+    m_Localized: Load
     m_Metadata:
       m_Items: []
   - m_Id: 1099965122138118
-    m_Localized: Keep this record
+    m_Localized: Overwrite
     m_Metadata:
       m_Items: []
   references:

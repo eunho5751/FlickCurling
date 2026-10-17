@@ -359,7 +359,7 @@ namespace FlickCurling.EditorTools
         }
 
         public const string LinkConflictPrefabPath = "Assets/Resources/" + FlickCurling.Game.Account.LinkConflictPopup.ResourcePath + ".prefab";
-        const float LinkW = 860, LinkH = 1010, LinkCardH = 196, LinkButtonW = 560;
+        const float LinkW = 860, LinkH = 900, LinkCardH = 196, LinkButtonW = 340;
 
         // the account conflict choice: a message, the account's record and this one in account boxes, and the two ways out
         static void BuildLinkConflictPrefab(GameObject popupPrefab)
@@ -391,14 +391,6 @@ namespace FlickCurling.EditorTools
                 else t.text = "-";
                 return t;
             }
-            Button Wide(Transform parent, string prefabPath, string name, string key)
-            {
-                var row = Child<RectTransform>(parent, name + "Row");
-                row.gameObject.AddComponent<LayoutElement>().preferredHeight = SetupOkH;
-                var b = UiPrefabBuilder.Place(prefabPath, row, name);
-                Place((RectTransform)b.transform, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(LinkButtonW, SetupOkH));
-                return UiPrefabBuilder.SetLabel(b, key);
-            }
 
             // the choice
             var choice = Page("Choice", 18);
@@ -412,7 +404,8 @@ namespace FlickCurling.EditorTools
                 var v = box.gameObject.AddComponent<VerticalLayoutGroup>();
                 v.padding = new RectOffset(AccountPadL, AccountPadR - 20, 28, 24); v.spacing = 2; v.childAlignment = TextAnchor.MiddleLeft;
                 v.childControlWidth = v.childControlHeight = true; v.childForceExpandWidth = true; v.childForceExpandHeight = false;
-                var header = Text(box.transform, "Header", font, 28, Ink, headerKey); header.alignment = TextAlignmentOptions.MidlineLeft;
+                var header = Text(box.transform, "Header", font, 28, Ink, headerKey);
+                header.alignment = TextAlignmentOptions.MidlineLeft; header.fontStyle = FontStyles.Bold;
                 var n = Text(box.transform, "Name", valueFont, 34, Ink); n.alignment = TextAlignmentOptions.MidlineLeft;
                 var p = Text(box.transform, "Pid", valueFont, 22, AccountValueInk); p.alignment = TextAlignmentOptions.MidlineLeft;
                 var d = Text(box.transform, "Date", valueFont, 22, AccountValueInk); d.alignment = TextAlignmentOptions.MidlineLeft;
@@ -421,8 +414,20 @@ namespace FlickCurling.EditorTools
             var existing = Card("Existing", "link.existing");
             var current = Card("Current", "link.current");
             Child<RectTransform>(choice, "Gap").gameObject.AddComponent<LayoutElement>().preferredHeight = 6;
-            var load = Wide(choice, UiPrefabBuilder.PrimaryPath, "Load", "link.load");
-            var keep = Wide(choice, UiPrefabBuilder.SecondaryPath, "Keep", "link.keep");
+            // side by side: load (the account's record) on the left, overwrite (keep this one) on the right
+            var buttons = Child<RectTransform>(choice, "Buttons");
+            buttons.gameObject.AddComponent<LayoutElement>().preferredHeight = SetupOkH;
+            var bh = buttons.gameObject.AddComponent<HorizontalLayoutGroup>();
+            bh.spacing = 24; bh.childAlignment = TextAnchor.MiddleCenter;
+            bh.childControlWidth = bh.childControlHeight = true; bh.childForceExpandWidth = bh.childForceExpandHeight = false;
+            Button Side(string prefabPath, string name, string key)
+            {
+                var b = UiPrefabBuilder.Place(prefabPath, buttons, name);
+                var le = b.AddComponent<LayoutElement>(); le.preferredWidth = LinkButtonW; le.preferredHeight = SetupOkH;
+                return UiPrefabBuilder.SetLabel(b, key);
+            }
+            var load = Side(UiPrefabBuilder.PrimaryPath, "Load", "link.load");
+            var keep = Side(UiPrefabBuilder.SecondaryPath, "Keep", "link.keep");
 
             var panel = go.AddComponent<FlickCurling.Game.Account.LinkConflictPopup>();
             var so = new SerializedObject(panel);

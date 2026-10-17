@@ -13,10 +13,10 @@ MonoBehaviour:
   m_Name: LocalizationSettings
   m_EditorClassIdentifier: Unity.Localization::UnityEngine.Localization.Settings.LocalizationSettings
   m_StartupSelectors:
-  - rid: 4297768085563900525
-  - rid: 4297768085563900526
-  - rid: 4297768085563900527
-  - rid: 4297768085563900528
+  - rid: 4297768085563900531
+  - rid: 4297768085563900532
+  - rid: 4297768085563900533
+  - rid: 4297768085563900534
   m_AvailableLocales:
     rid: 4297768082125881545
   m_AssetDatabase:
@@ -194,18 +194,18 @@ MonoBehaviour:
         - default
         - d
         - 
-    - rid: 4297768085563900525
+    - rid: 4297768085563900531
       type: {class: PlayerPrefLocaleSelector, ns: UnityEngine.Localization.Settings, asm: Unity.Localization}
       data:
         m_PlayerPreferenceKey: flickcurling-locale
-    - rid: 4297768085563900526
+    - rid: 4297768085563900532
       type: {class: CommandLineLocaleSelector, ns: UnityEngine.Localization.Settings, asm: Unity.Localization}
       data:
         m_CommandLineArgument: -language=
-    - rid: 4297768085563900527
+    - rid: 4297768085563900533
       type: {class: SystemLocaleSelector, ns: UnityEngine.Localization.Settings, asm: Unity.Localization}
       data: 
-    - rid: 4297768085563900528
+    - rid: 4297768085563900534
       type: {class: SpecificLocaleSelector, ns: UnityEngine.Localization.Settings, asm: Unity.Localization}
       data:
         m_LocaleId:
