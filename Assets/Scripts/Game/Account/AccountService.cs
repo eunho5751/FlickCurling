@@ -31,6 +31,14 @@ namespace FlickCurling.Game.Account
 
         static Task starting;
 
+        // a fresh start each play: with domain reload off in the editor, statics would otherwise carry the last play's
+        // "signed in" over a services instance that is no longer there
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        static void ResetStatics()
+        {
+            Status = State.Offline; Busy = false; PlayerId = PlayerName = LastError = ""; starting = null; Changed = null;
+        }
+
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
         static void Boot() => _ = StartAsync();
 
@@ -70,7 +78,7 @@ namespace FlickCurling.Game.Account
         /// <summary>Whether the signed-in player is linked to <paramref name="provider"/>'s account.</summary>
         public static bool IsLinked(IIdentityProvider provider)
         {
-            if (Status != State.Ready) return false;
+            if (Status != State.Ready || UnityServices.State != ServicesInitializationState.Initialized) return false;
             var ids = AuthenticationService.Instance.PlayerInfo?.Identities;
             return ids != null && ids.Any(i => i.TypeId == provider.TypeId);
         }
