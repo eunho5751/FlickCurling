@@ -359,10 +359,11 @@ namespace FlickCurling.EditorTools
 
         const float AccountStatusH = 30, GoogleButtonW = 520, GoogleButtonH = 96;
         const float AccountLabelSize = 30, AccountValueSize = 26;
+        static readonly Color32 AccountValueInk = new Color32(0x86, 0x61, 0x3d, 0xff);   // lighter than the labels
         const int AccountTextGap = 12;   // the empty line space under the nickname's letters, counted in the gap above the button
         // the box's padding (left, right, top, bottom), the right one wider so long values wrap clear of the rim, and the
         // gap above the button, which matches the one under it to the rim's inner edge (the rim is about AccountRim thick)
-        const int AccountPadL = 44, AccountPadR = 76, AccountPadT = 30, AccountPadB = 40, AccountRim = 10;
+        const int AccountPadL = 66, AccountPadR = 84, AccountPadT = 46, AccountPadB = 44, AccountRim = 12;
 
         // the account, boxed so it reads as one thing: the PID, the nickname, then "Sign in with Google" (or, in its
         // place, that the account is linked); under the box a status line while connecting or after a failure. The box
@@ -376,7 +377,7 @@ namespace FlickCurling.EditorTools
 
             var box = Child<Image>(row, "Box");
             box.sprite = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Art/Menu/account_box.png");
-            box.type = Image.Type.Sliced; box.pixelsPerUnitMultiplier = 1.25f;
+            box.type = Image.Type.Sliced; box.pixelsPerUnitMultiplier = 0.75f;
             var v = box.gameObject.AddComponent<VerticalLayoutGroup>();
             v.padding = new RectOffset(AccountPadL, AccountPadR, AccountPadT, AccountPadB);
             v.spacing = AccountPadB - AccountRim - AccountTextGap; v.childAlignment = TextAnchor.UpperCenter;
@@ -398,7 +399,7 @@ namespace FlickCurling.EditorTools
                 label.alignment = TextAlignmentOptions.MidlineLeft;
                 label.text = UiStrings.Entries.First(e => e[0] == key)[1];
                 LocalizeEvents.BindText(label, Loc.Table, key);
-                var value = Label(line, "Value", valueFont, AccountValueSize, Ink);
+                var value = Label(line, "Value", valueFont, AccountValueSize, AccountValueInk);
                 value.alignment = TextAlignmentOptions.MidlineLeft;
                 value.textWrappingMode = TextWrappingModes.Normal;
                 // asks for no width of its own, only the rest of the line, so the label always keeps its full width
