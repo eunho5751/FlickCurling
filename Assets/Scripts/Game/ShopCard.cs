@@ -7,14 +7,14 @@ namespace FlickCurling.Game
     /// <summary>
     /// One product in the shop (the prefab Assets/Prefabs/UI/ShopCard.prefab, built by UiPrefabBuilder): a parchment card
     /// pinned to the wall by a brass nail at its top, the name across the top, the picture in the middle and the price on
-    /// the wooden band at the bottom. Each card hangs a little crooked, tilted at random, a few degrees either way.
+    /// the wooden band at the bottom. Each card hangs a little crooked, tilted at random, up to about three degrees either way.
     /// </summary>
     public sealed class ShopCard : MonoBehaviour
     {
         [SerializeField] RectTransform tilt;   // the card under the nail; it swings about the nail
         [SerializeField] TextMeshProUGUI price;
         [SerializeField] Image picture;
-        [SerializeField] float maxTilt = 3;
+        [SerializeField] float maxTilt = 2.8f;   // the shop's gap between cards is sized to this
 
         public Button Button => GetComponent<Button>();
 

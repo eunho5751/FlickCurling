@@ -187,7 +187,7 @@ RectTransform:
   m_AnchorMin: {x: 0.5, y: 1}
   m_AnchorMax: {x: 0.5, y: 1}
   m_AnchoredPosition: {x: 0, y: -15}
-  m_SizeDelta: {x: 236, y: 323}
+  m_SizeDelta: {x: 224, y: 307}
   m_Pivot: {x: 0.5, y: 1}
 --- !u!1 &1954632958038286798
 GameObject:
@@ -289,7 +289,7 @@ MonoBehaviour:
   m_fontSizeMax: 72
   m_fontStyle: 0
   m_HorizontalAlignment: 2
-  m_VerticalAlignment: 512
+  m_VerticalAlignment: 4096
   m_textAlignment: 65535
   m_characterSpacing: 0
   m_characterHorizontalScale: 1
@@ -522,7 +522,7 @@ MonoBehaviour:
   m_fontSizeMax: 28
   m_fontStyle: 0
   m_HorizontalAlignment: 2
-  m_VerticalAlignment: 512
+  m_VerticalAlignment: 4096
   m_textAlignment: 65535
   m_characterSpacing: 0
   m_characterHorizontalScale: 1
@@ -669,8 +669,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 1, y: 0}
-  m_AnchoredPosition: {x: 0, y: 28.52174}
-  m_SizeDelta: {x: -52.17392, y: 54.782608}
+  m_AnchoredPosition: {x: 0, y: 36.52174}
+  m_SizeDelta: {x: -52.17392, y: 54.78261}
   m_Pivot: {x: 0.5, y: 0}
 --- !u!114 &7409725672753180696
 MonoBehaviour:
@@ -737,7 +737,7 @@ RectTransform:
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
   m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 236, y: 338}
+  m_SizeDelta: {x: 224, y: 322}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &5113519828932080540
 CanvasRenderer:
@@ -836,4 +836,4 @@ MonoBehaviour:
   tilt: {fileID: 4421529808823502452}
   price: {fileID: 5757609279192219966}
   picture: {fileID: 2767975297675014395}
-  maxTilt: 3
+  maxTilt: 2.8

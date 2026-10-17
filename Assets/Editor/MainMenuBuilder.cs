@@ -257,7 +257,8 @@ namespace FlickCurling.EditorTools
 
         // ---- the shop popup: the products as cards hanging from nails, three in a row (three test products for now) ----
 
-        const float ShopW = 880, ShopH = 590, ShopGap = 16;
+        // the gap leaves room for the cards' tilt: two neighbours leaning toward each other never touch
+        const float ShopW = 880, ShopH = 580, ShopGap = 34;
 
         static Popup BuildShop(GameObject popupPrefab, Transform parent)
         {
@@ -274,7 +275,7 @@ namespace FlickCurling.EditorTools
             var content = (RectTransform)go.transform.Find("Window/Content");
             var grid = content.gameObject.AddComponent<GridLayoutGroup>();
             grid.cellSize = new Vector2(UiPrefabBuilder.ShopCardW, UiPrefabBuilder.ShopCardH);
-            grid.spacing = new Vector2(ShopGap, ShopGap);
+            grid.spacing = new Vector2(ShopGap, 16);
             grid.childAlignment = TextAnchor.UpperCenter;
             grid.constraint = GridLayoutGroup.Constraint.FixedColumnCount; grid.constraintCount = 3;
             grid.padding = new RectOffset(0, 0, 8, 0);

@@ -219,7 +219,7 @@ namespace FlickCurling.EditorTools
 
         // a shop product: the parchment card hanging from a brass nail, the name across its top strip, the picture in the
         // middle, the price (a coin and the amount) on the wooden band at the bottom; the card swings about the nail
-        public const float ShopCardW = 236, ShopCardH = 338;   // the art (330 x 452) at 236 wide, plus the nail's upper half
+        public const float ShopCardW = 224, ShopCardH = 322;   // the art (330 x 452) at 224 wide, plus the nail's upper half
         const float NailSize = 30;
         // the card art's edges (frame, name plate, price plate) are drawn this many art pixels per reference pixel: a little
         // larger than the card's width alone would give (330 / 236), so the name plate reads taller
@@ -251,6 +251,7 @@ namespace FlickCurling.EditorTools
             // inside the name plate (art rows 28..79 of 452, columns 30..300 of 330), clear of the frame and the nail
             nrt.offsetMin = new Vector2(ArtX(36), -ArtY(79)); nrt.offsetMax = new Vector2(-ArtX(36), -ArtY(30));
             name.enableAutoSizing = true; name.fontSizeMin = 16; name.fontSizeMax = 28;
+            name.alignment = TextAlignmentOptions.Midline;   // centred on the letters themselves, not the font's line box
             name.text = "Item";
 
             var pic = MainMenuBuilder.Child<Image>(tilt, "Picture");
@@ -262,7 +263,7 @@ namespace FlickCurling.EditorTools
             var row = MainMenuBuilder.Child<RectTransform>(tilt, "Price");
             row.anchorMin = Vector2.zero; row.anchorMax = new Vector2(1, 0); row.pivot = new Vector2(0.5f, 0);
             // inside the price plate (art rows 347..410)
-            row.offsetMin = new Vector2(ArtX(30), ArtY(452 - 410) - 8); row.offsetMax = new Vector2(-ArtX(30), ArtY(452 - 347) - 8);   // as drawn, a touch lower than measured
+            row.offsetMin = new Vector2(ArtX(30), ArtY(452 - 410)); row.offsetMax = new Vector2(-ArtX(30), ArtY(452 - 347));
             var h = row.gameObject.AddComponent<HorizontalLayoutGroup>();
             h.spacing = 8; h.childAlignment = TextAnchor.MiddleCenter;
             h.childControlWidth = h.childControlHeight = true; h.childForceExpandWidth = h.childForceExpandHeight = false;
@@ -270,6 +271,7 @@ namespace FlickCurling.EditorTools
             coin.sprite = Art("shop_coin"); coin.preserveAspect = true; coin.raycastTarget = false;
             var cle = coin.gameObject.AddComponent<LayoutElement>(); cle.preferredWidth = cle.minWidth = 36; cle.preferredHeight = 36;
             var price = MainMenuBuilder.Label(row, "Amount", font, 32, Cream);
+            price.alignment = TextAlignmentOptions.Midline;
             price.text = "0";
 
             // the nail on top, pinning the card at its top middle

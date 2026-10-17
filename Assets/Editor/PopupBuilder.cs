@@ -29,6 +29,10 @@ namespace FlickCurling.EditorTools
         const float WindowW = 860, WindowH = 785, HeaderH = 101, SideW = 38, CloseSize = 64, TitleIconSize = 64;
         static readonly Color32 Ink = new Color32(0x4a, 0x2a, 0x12, 0xff);
 
+        // the shop card's frame and its name and price plates stay unstretched (left, bottom, right, top); declared before
+        // Controls, which reads it while static fields are set up in order
+        public static readonly Vector4 ShopCardBorder = new Vector4(60, 112, 60, 90);
+
         // the controls that go on the popup (Codex, same plain style), each with its 9-slice border in source pixels (left,
         // bottom, right, top): a segmented toggle group (groove and the sliding selected segment), primary and secondary
         // buttons, and a slider (groove, fill, a go-stone handle)
@@ -49,9 +53,6 @@ namespace FlickCurling.EditorTools
             ("Assets/Art/Menu/shop_nail.png", Vector4.zero),
             ("Assets/Art/Menu/shop_coin.png", Vector4.zero),
         };
-
-        // the shop card's rim and its name strip and price band stay unstretched (left, bottom, right, top)
-        public static readonly Vector4 ShopCardBorder = new Vector4(60, 112, 60, 90);
 
         [MenuItem("FlickCurling/Import Popup Controls")]
         public static void ImportControls()
