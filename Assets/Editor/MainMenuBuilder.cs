@@ -263,6 +263,8 @@ namespace FlickCurling.EditorTools
         const float ShopGap = 34, ShopRowGap = 16, ShopPeek = 46;
         const float ShopW = 880, ShopH = 135 + 70 + 8 + 2 * UiPrefabBuilder.ShopCardH + ShopRowGap + ShopPeek;
 
+        const float ShopTiltRoom = 16;   // a card tilted 2.8° reaches about 9 px past its cell
+
         static Popup BuildShop(GameObject popupPrefab, Transform parent)
         {
             var go = (GameObject)PrefabUtility.InstantiatePrefab(popupPrefab, parent);
@@ -279,6 +281,9 @@ namespace FlickCurling.EditorTools
             var area = (RectTransform)go.transform.Find("Window/Content");
             var scroll = UiPrefabBuilder.Place(UiPrefabBuilder.ScrollViewPath, area, "Products");
             Stretch((RectTransform)scroll.transform);
+            // a little wider than the cards, so a tilted card's corners are not clipped at the sides
+            ((RectTransform)scroll.transform).offsetMin = new Vector2(-ShopTiltRoom, 0);
+            ((RectTransform)scroll.transform).offsetMax = new Vector2(ShopTiltRoom, 0);
             // no scrollbar here: the cut-off row below says there is more
             var sr = scroll.GetComponent<ScrollRect>();
             sr.verticalScrollbar = null;
