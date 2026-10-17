@@ -28,7 +28,8 @@ namespace FlickCurling.Game.Account
             false;
 #endif
 
-        public Task LinkAsync(string idToken) => AuthenticationService.Instance.LinkWithGoogleAsync(idToken);
+        public Task LinkAsync(string idToken, bool force = false) =>
+            AuthenticationService.Instance.LinkWithGoogleAsync(idToken, new LinkOptions { ForceLink = force });
         public Task SignInAsync(string idToken) => AuthenticationService.Instance.SignInWithGoogleAsync(idToken);
         public Task UnlinkAsync() => AuthenticationService.Instance.UnlinkGoogleAsync();
 

@@ -18,8 +18,9 @@ namespace FlickCurling.Game.Account
         /// <summary>Shows the platform's sign-in (an account chooser) and returns the ID token. Throws when cancelled or failed.</summary>
         Task<string> GetIdTokenAsync();
 
-        /// <summary>Links the token's account to the signed-in UGS player.</summary>
-        Task LinkAsync(string idToken);
+        /// <summary>Links the token's account to the signed-in UGS player; <paramref name="force"/> moves the link over from
+        /// another player that has it.</summary>
+        Task LinkAsync(string idToken, bool force = false);
 
         /// <summary>Signs in as the UGS player already linked to the token's account.</summary>
         Task SignInAsync(string idToken);

@@ -160,6 +160,7 @@ namespace FlickCurling.EditorTools
             var settingsGo = (GameObject)PrefabUtility.InstantiatePrefab(settingsPrefab, canvasGo.transform);
             settingsGo.SetActive(false);
             var settingsPanel = settingsGo.GetComponent<SettingsPanel>();
+            BuildLinkConflictPrefab(popupPrefab);   // loaded when needed, over the settings
 
             var menu = canvasGo.AddComponent<MainMenu>();
             var so = new SerializedObject(menu);
@@ -355,6 +356,104 @@ namespace FlickCurling.EditorTools
             var prefab = PrefabUtility.SaveAsPrefabAsset(go, SettingsPrefabPath);
             Object.DestroyImmediate(go);
             return prefab;
+        }
+
+        public const string LinkConflictPrefabPath = "Assets/Resources/" + FlickCurling.Game.Account.LinkConflictPopup.ResourcePath + ".prefab";
+        const float LinkW = 860, LinkH = 1010, LinkCardH = 196, LinkButtonW = 560;
+
+        // the account conflict choice: a message, the account's record and this one in account boxes, and the two ways
+        // out; then a confirmation page (its message filled at run time) with confirm and back
+        static void BuildLinkConflictPrefab(GameObject popupPrefab)
+        {
+            var go = (GameObject)PrefabUtility.InstantiatePrefab(popupPrefab);
+            go.name = "LinkConflictPopup";
+            var font = AssetDatabase.LoadAssetAtPath<TMP_FontAsset>(FontBuilder.DisplayPath);
+            var valueFont = AssetDatabase.LoadAssetAtPath<TMP_FontAsset>(FontBuilder.ButtonPath);
+            var title = go.transform.Find("Window/TitleRow/Title").GetComponent<TextMeshProUGUI>();
+            title.text = UiStrings.Entries.First(e => e[0] == "link.title")[1];
+            LocalizeEvents.BindText(title, Loc.Table, "link.title");
+            ((RectTransform)go.transform.Find("Window")).sizeDelta = new Vector2(LinkW, LinkH);
+            var content = (RectTransform)go.transform.Find("Window/Content");
+
+            RectTransform Page(string name, float spacing)
+            {
+                var page = Child<RectTransform>(content, name);
+                Stretch(page);
+                var v = page.gameObject.AddComponent<VerticalLayoutGroup>();
+                v.spacing = spacing; v.childAlignment = TextAnchor.UpperCenter;
+                v.childControlWidth = v.childControlHeight = true; v.childForceExpandWidth = true; v.childForceExpandHeight = false;
+                return page;
+            }
+            TextMeshProUGUI Text(Transform parent, string name, TMP_FontAsset f, float size, Color32 color, string key = null)
+            {
+                var t = Label(parent, name, f, size, color);
+                t.textWrappingMode = TextWrappingModes.Normal;
+                if (key != null) { t.text = UiStrings.Entries.First(e => e[0] == key)[1]; LocalizeEvents.BindText(t, Loc.Table, key); }
+                else t.text = "-";
+                return t;
+            }
+            Button Wide(Transform parent, string prefabPath, string name, string key)
+            {
+                var row = Child<RectTransform>(parent, name + "Row");
+                row.gameObject.AddComponent<LayoutElement>().preferredHeight = SetupOkH;
+                var b = UiPrefabBuilder.Place(prefabPath, row, name);
+                Place((RectTransform)b.transform, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(LinkButtonW, SetupOkH));
+                return UiPrefabBuilder.SetLabel(b, key);
+            }
+
+            // the choice
+            var choice = Page("Choice", 18);
+            Text(choice, "Message", font, 34, Ink, "link.message");
+            (TextMeshProUGUI name, TextMeshProUGUI pid, TextMeshProUGUI date) Card(string name, string headerKey)
+            {
+                var box = Child<Image>(choice, name);
+                box.sprite = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Art/Menu/account_box.png");
+                box.type = Image.Type.Sliced; box.pixelsPerUnitMultiplier = 0.75f;
+                box.gameObject.AddComponent<LayoutElement>().preferredHeight = LinkCardH;
+                var v = box.gameObject.AddComponent<VerticalLayoutGroup>();
+                v.padding = new RectOffset(AccountPadL, AccountPadR - 20, 28, 24); v.spacing = 2; v.childAlignment = TextAnchor.MiddleLeft;
+                v.childControlWidth = v.childControlHeight = true; v.childForceExpandWidth = true; v.childForceExpandHeight = false;
+                var header = Text(box.transform, "Header", font, 28, Ink, headerKey); header.alignment = TextAlignmentOptions.MidlineLeft;
+                var n = Text(box.transform, "Name", valueFont, 34, Ink); n.alignment = TextAlignmentOptions.MidlineLeft;
+                var p = Text(box.transform, "Pid", valueFont, 22, AccountValueInk); p.alignment = TextAlignmentOptions.MidlineLeft;
+                var d = Text(box.transform, "Date", valueFont, 22, AccountValueInk); d.alignment = TextAlignmentOptions.MidlineLeft;
+                return (n, p, d);
+            }
+            var existing = Card("Existing", "link.existing");
+            var current = Card("Current", "link.current");
+            Child<RectTransform>(choice, "Gap").gameObject.AddComponent<LayoutElement>().preferredHeight = 6;
+            var load = Wide(choice, UiPrefabBuilder.PrimaryPath, "Load", "link.load");
+            var keep = Wide(choice, UiPrefabBuilder.SecondaryPath, "Keep", "link.keep");
+
+            // are you sure
+            var confirmPage = Page("Confirm", 22);
+            var spacer = Child<RectTransform>(confirmPage, "Top"); spacer.gameObject.AddComponent<LayoutElement>().preferredHeight = 30;
+            var message = Text(confirmPage, "Message", font, 34, Ink);
+            message.gameObject.AddComponent<LayoutElement>().minHeight = 300;
+            var confirm = Wide(confirmPage, UiPrefabBuilder.PrimaryPath, "Confirm", "link.confirm");
+            var back = Wide(confirmPage, UiPrefabBuilder.SecondaryPath, "Back", "link.back");
+            confirmPage.gameObject.SetActive(false);
+
+            var panel = go.AddComponent<FlickCurling.Game.Account.LinkConflictPopup>();
+            var so = new SerializedObject(panel);
+            so.FindProperty("popup").objectReferenceValue = go.GetComponent<Popup>();
+            so.FindProperty("choicePage").objectReferenceValue = choice.gameObject;
+            so.FindProperty("confirmPage").objectReferenceValue = confirmPage.gameObject;
+            so.FindProperty("existingName").objectReferenceValue = existing.name;
+            so.FindProperty("existingPid").objectReferenceValue = existing.pid;
+            so.FindProperty("existingDate").objectReferenceValue = existing.date;
+            so.FindProperty("currentName").objectReferenceValue = current.name;
+            so.FindProperty("currentPid").objectReferenceValue = current.pid;
+            so.FindProperty("currentDate").objectReferenceValue = current.date;
+            so.FindProperty("confirmMessage").objectReferenceValue = message;
+            so.FindProperty("load").objectReferenceValue = load;
+            so.FindProperty("keep").objectReferenceValue = keep;
+            so.FindProperty("confirm").objectReferenceValue = confirm;
+            so.FindProperty("back").objectReferenceValue = back;
+            so.ApplyModifiedPropertiesWithoutUndo();
+            go.SetActive(false);
+            PrefabUtility.SaveAsPrefabAsset(go, LinkConflictPrefabPath);
+            Object.DestroyImmediate(go);
         }
 
         const float AccountStatusH = 30, GoogleButtonW = 520, GoogleButtonH = 96;

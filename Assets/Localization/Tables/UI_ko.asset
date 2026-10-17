@@ -431,6 +431,58 @@ MonoBehaviour:
     m_Localized: "Google \uC5F0\uB3D9\uC5D0 \uC2E4\uD328\uD588\uC5B4\uC694"
     m_Metadata:
       m_Items: []
+  - m_Id: 1099965122138112
+    m_Localized: "\uAE30\uB85D \uC120\uD0DD"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1099965122138113
+    m_Localized: "\uC774 Google \uACC4\uC815\uC5D0\uB294 \uC774\uBBF8 \uAC8C\uC784
+      \uAE30\uB85D\uC774 \uC788\uC5B4\uC694.\n\uC5B4\uB290 \uAE30\uB85D\uC73C\uB85C
+      \uD50C\uB808\uC774\uD560\uAE4C\uC694?"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1099965122138114
+    m_Localized: "Google \uACC4\uC815\uC758 \uAE30\uB85D"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1099965122138115
+    m_Localized: "\uC9C0\uAE08 \uAE30\uB85D"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1099965122138116
+    m_Localized: "\uC2DC\uC791\uD55C \uB0A0 {date}"
+    m_Metadata:
+      m_Items:
+      - rid: 4297768082125881572
+  - m_Id: 1099965122138117
+    m_Localized: "\uAE30\uC874 \uAE30\uB85D \uBD88\uB7EC\uC624\uAE30"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1099965122138118
+    m_Localized: "\uC9C0\uAE08 \uAE30\uB85D\uC73C\uB85C \uB36E\uC5B4\uC4F0\uAE30"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1099965122138119
+    m_Localized: "Google \uACC4\uC815\uC758 \uAE30\uB85D\uC744 \uBD88\uB7EC\uC62C\uAE4C\uC694?\n<color=#86613d>{existing}</color>\n\n\uC9C0\uAE08
+      \uAE30\uB85D\uC740 \uB2E4\uC2DC \uBD88\uB7EC\uC62C \uC218 \uC5C6\uC5B4\uC694.\n<color=#86613d>{current}</color>"
+    m_Metadata:
+      m_Items:
+      - rid: 4297768082125881572
+  - m_Id: 1099965122138120
+    m_Localized: "\uC9C0\uAE08 \uAE30\uB85D\uC744 \uC774 Google \uACC4\uC815\uC5D0
+      \uC5F0\uB3D9\uD560\uAE4C\uC694?\n<color=#86613d>{current}</color>\n\n\uAE30\uC874
+      \uAE30\uB85D\uC740 \uB2E4\uC2DC \uBD88\uB7EC\uC62C \uC218 \uC5C6\uC5B4\uC694.\n<color=#86613d>{existing}</color>"
+    m_Metadata:
+      m_Items:
+      - rid: 4297768082125881572
+  - m_Id: 1099965122138121
+    m_Localized: "\uD655\uC778"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1099965122138122
+    m_Localized: "\uB3CC\uC544\uAC00\uAE30"
+    m_Metadata:
+      m_Items: []
   references:
     version: 2
     RefIds:
@@ -459,3 +511,6 @@ MonoBehaviour:
         - id: 363280344207360
         - id: 2262749228
         - id: 2262749237
+        - id: 1099965122138116
+        - id: 1099965122138119
+        - id: 1099965122138120

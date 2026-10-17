@@ -20,7 +20,8 @@ namespace FlickCurling.Game.Account
         public Task<string> GetIdTokenAsync() =>
             Task.FromException<string>(new NotSupportedException("Sign in with Apple is not set up yet"));
 
-        public Task LinkAsync(string idToken) => AuthenticationService.Instance.LinkWithAppleAsync(idToken);
+        public Task LinkAsync(string idToken, bool force = false) =>
+            AuthenticationService.Instance.LinkWithAppleAsync(idToken, new LinkOptions { ForceLink = force });
         public Task SignInAsync(string idToken) => AuthenticationService.Instance.SignInWithAppleAsync(idToken);
         public Task UnlinkAsync() => AuthenticationService.Instance.UnlinkAppleAsync();
     }

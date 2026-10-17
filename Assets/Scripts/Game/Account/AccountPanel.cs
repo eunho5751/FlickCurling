@@ -35,7 +35,7 @@ namespace FlickCurling.Game.Account
 #endif
                 ShowStatus("account.googleUnavailable"); return;
             }
-            bool ok = await AccountService.LinkAsync(AccountService.Google);
+            bool ok = await AccountService.LinkAsync(AccountService.Google, conflict => LinkConflictPopup.ChooseAsync(this, conflict));
             if (this && !ok && !string.IsNullOrEmpty(AccountService.LastError)) ShowStatus("account.linkFailed");
         }
 
