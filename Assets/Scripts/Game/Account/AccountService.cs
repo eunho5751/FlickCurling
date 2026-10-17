@@ -114,6 +114,54 @@ namespace FlickCurling.Game.Account
             finally { Busy = false; Notify(); }
         }
 
+        /// <summary>Removes <paramref name="provider"/>'s account from this player, who is then a guest again (kept on this
+        /// device only). Returns false (with <see cref="LastError"/>) if it did not.</summary>
+        public static async Task<bool> UnlinkAsync(IIdentityProvider provider)
+        {
+            if (Busy || !IsLinked(provider)) return false;
+            Busy = true; LastError = ""; Notify();
+            try
+            {
+                await provider.UnlinkAsync();
+                await RefreshAsync();
+                return true;
+            }
+            catch (Exception e)
+            {
+                Debug.LogWarning("FlickCurling: unlinking " + provider.TypeId + " failed: " + e.Message);
+                LastError = e.Message;
+                return false;
+            }
+            finally { Busy = false; Notify(); }
+        }
+
+#if UNITY_EDITOR
+        /// <summary>Testing: forgets this device's player (the session token) and signs in as a brand-new guest. The old
+        /// player stays on the server, still reachable through any account linked to it.</summary>
+        public static async Task<bool> StartOverAsGuestAsync()
+        {
+            if (Busy || Status != State.Ready) return false;
+            Busy = true; LastError = ""; Notify();
+            try
+            {
+                var auth = AuthenticationService.Instance;
+                auth.SignOut(true);   // and clear the credentials
+                auth.ClearSessionToken();
+                await auth.SignInAnonymouslyAsync();
+                await RefreshAsync();
+                return true;
+            }
+            catch (Exception e)
+            {
+                Debug.LogWarning("FlickCurling: starting over as a guest failed: " + e.Message);
+                LastError = e.Message;
+                Status = State.Failed; starting = null;
+                return false;
+            }
+            finally { Busy = false; Notify(); }
+        }
+#endif
+
         static void Notify() => Changed?.Invoke();
     }
 }

@@ -22,5 +22,6 @@ namespace FlickCurling.Game.Account
 
         public Task LinkAsync(string idToken) => AuthenticationService.Instance.LinkWithAppleAsync(idToken);
         public Task SignInAsync(string idToken) => AuthenticationService.Instance.SignInWithAppleAsync(idToken);
+        public Task UnlinkAsync() => AuthenticationService.Instance.UnlinkAppleAsync();
     }
 }

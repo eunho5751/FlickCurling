@@ -23,5 +23,8 @@ namespace FlickCurling.Game.Account
 
         /// <summary>Signs in as the UGS player already linked to the token's account.</summary>
         Task SignInAsync(string idToken);
+
+        /// <summary>Removes this provider's account from the signed-in UGS player.</summary>
+        Task UnlinkAsync();
     }
 }
