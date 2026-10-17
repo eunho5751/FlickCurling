@@ -257,7 +257,7 @@ namespace FlickCurling.EditorTools
 
         // ---- the shop popup: the products as cards hanging from nails, three in a row (three test products for now) ----
 
-        const float ShopW = 860, ShopH = 560, ShopGap = 26;
+        const float ShopW = 880, ShopH = 590, ShopGap = 16;
 
         static Popup BuildShop(GameObject popupPrefab, Transform parent)
         {

@@ -219,8 +219,15 @@ namespace FlickCurling.EditorTools
 
         // a shop product: the parchment card hanging from a brass nail, the name across its top strip, the picture in the
         // middle, the price (a coin and the amount) on the wooden band at the bottom; the card swings about the nail
-        public const float ShopCardW = 220, ShopCardH = 300;
-        const float ShopNameH = 42, ShopPriceH = 56, NailSize = 30;
+        public const float ShopCardW = 236, ShopCardH = 338;   // the art (330 x 452) at 236 wide, plus the nail's upper half
+        const float NailSize = 30;
+        // the card art's edges (frame, name plate, price plate) are drawn this many art pixels per reference pixel: a little
+        // larger than the card's width alone would give (330 / 236), so the name plate reads taller
+        const float ShopCardPpu = 1.15f;
+        // card art pixels (within its 9-slice borders) to reference pixels
+        static float ArtX(float px) => px / ShopCardPpu;
+        static float ArtY(float px) => px / ShopCardPpu;
+
         static GameObject MakeShopCard(TMP_FontAsset font)
         {
             var root = new GameObject("ShopCard", typeof(RectTransform));
@@ -236,25 +243,26 @@ namespace FlickCurling.EditorTools
             var bg = MainMenuBuilder.Child<Image>(tilt, "Background");
             MainMenuBuilder.Stretch(bg.rectTransform);
             var art = Art("shop_card");
-            bg.sprite = art; bg.type = Image.Type.Sliced; bg.pixelsPerUnitMultiplier = art.rect.width / ShopCardW; bg.raycastTarget = false;
+            bg.sprite = art; bg.type = Image.Type.Sliced; bg.pixelsPerUnitMultiplier = ShopCardPpu; bg.raycastTarget = false;
 
             var name = MainMenuBuilder.Label(tilt, "Name", font, 30, Ink);
             var nrt = name.rectTransform;
             nrt.anchorMin = new Vector2(0, 1); nrt.anchorMax = new Vector2(1, 1); nrt.pivot = new Vector2(0.5f, 1);
-            // under the nail's lower half: the name sits in the strip's lower part
-            nrt.offsetMin = new Vector2(14, -ShopNameH - 2); nrt.offsetMax = new Vector2(-14, -NailSize / 2 + 2);
-            name.enableAutoSizing = true; name.fontSizeMin = 16; name.fontSizeMax = 26;
+            // inside the name plate (art rows 28..79 of 452, columns 30..300 of 330), clear of the frame and the nail
+            nrt.offsetMin = new Vector2(ArtX(36), -ArtY(79)); nrt.offsetMax = new Vector2(-ArtX(36), -ArtY(30));
+            name.enableAutoSizing = true; name.fontSizeMin = 16; name.fontSizeMax = 28;
             name.text = "Item";
 
             var pic = MainMenuBuilder.Child<Image>(tilt, "Picture");
             var prt = pic.rectTransform;
             prt.anchorMin = Vector2.zero; prt.anchorMax = Vector2.one;
-            prt.offsetMin = new Vector2(24, ShopPriceH + 10); prt.offsetMax = new Vector2(-24, -(ShopNameH + 6));
+            prt.offsetMin = new Vector2(ArtX(40), ArtY(452 - 347) + 8); prt.offsetMax = new Vector2(-ArtX(40), -(ArtY(79) + 8));
             pic.preserveAspect = true; pic.raycastTarget = false;
 
             var row = MainMenuBuilder.Child<RectTransform>(tilt, "Price");
             row.anchorMin = Vector2.zero; row.anchorMax = new Vector2(1, 0); row.pivot = new Vector2(0.5f, 0);
-            row.offsetMin = new Vector2(12, 4); row.offsetMax = new Vector2(-12, ShopPriceH - 2);
+            // inside the price plate (art rows 347..410)
+            row.offsetMin = new Vector2(ArtX(30), ArtY(452 - 410) - 8); row.offsetMax = new Vector2(-ArtX(30), ArtY(452 - 347) - 8);   // as drawn, a touch lower than measured
             var h = row.gameObject.AddComponent<HorizontalLayoutGroup>();
             h.spacing = 8; h.childAlignment = TextAnchor.MiddleCenter;
             h.childControlWidth = h.childControlHeight = true; h.childForceExpandWidth = h.childForceExpandHeight = false;

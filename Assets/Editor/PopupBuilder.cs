@@ -51,7 +51,7 @@ namespace FlickCurling.EditorTools
         };
 
         // the shop card's rim and its name strip and price band stay unstretched (left, bottom, right, top)
-        public static readonly Vector4 ShopCardBorder = new Vector4(26, 86, 26, 66);
+        public static readonly Vector4 ShopCardBorder = new Vector4(60, 112, 60, 90);
 
         [MenuItem("FlickCurling/Import Popup Controls")]
         public static void ImportControls()
