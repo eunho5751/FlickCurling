@@ -58,7 +58,7 @@ namespace FlickCurling.Game
         Button cardFirst;
 
         public Action OnSettings, OnUiClick;
-        const float GearSize = 40;   // css px
+        const float GearSize = 35, GearInset = 15;   // css px
 
         public Hud(Transform parent)
         {
@@ -126,7 +126,7 @@ namespace FlickCurling.Game
             safeTop = Ui.Rect(root, "SafeTop"); Ui.Stretch(safeTop);
             gear = Ui.Rect(safeTop, "Settings").gameObject.AddComponent<Image>();
             var grt = gear.rectTransform;
-            grt.anchorMin = grt.anchorMax = grt.pivot = new Vector2(1, 1); grt.anchoredPosition = new Vector2(-10, -10);
+            grt.anchorMin = grt.anchorMax = grt.pivot = new Vector2(1, 1); grt.anchoredPosition = new Vector2(-GearInset, -GearInset);
             grt.sizeDelta = new Vector2(GearSize, GearSize);
             gear.preserveAspect = true;
             var gb = gear.gameObject.AddComponent<Button>();
@@ -195,7 +195,7 @@ namespace FlickCurling.Game
         public float HudBottom => insT + (hudShown && !sideMode ? 10 + leftCol.rect.height + 8 : 18);
 
         /// <summary>Where the right edge is free from (css px from the top): under the settings gear.</summary>
-        public float RightColumnBottom => insT + 10 + GearSize + 8;
+        public float RightColumnBottom => insT + GearInset + GearSize + 8;
 
         public void SetInsets(float l, float t, float r, float b)
         {
