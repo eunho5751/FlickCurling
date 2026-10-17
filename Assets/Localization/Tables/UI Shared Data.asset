@@ -431,22 +431,6 @@ MonoBehaviour:
     m_Key: link.keep
     m_Metadata:
       m_Items: []
-  - m_Id: 1099965122138119
-    m_Key: link.confirmLoad
-    m_Metadata:
-      m_Items: []
-  - m_Id: 1099965122138120
-    m_Key: link.confirmKeep
-    m_Metadata:
-      m_Items: []
-  - m_Id: 1099965122138121
-    m_Key: link.confirm
-    m_Metadata:
-      m_Items: []
-  - m_Id: 1099965122138122
-    m_Key: link.back
-    m_Metadata:
-      m_Items: []
   m_Metadata:
     m_Items: []
   m_KeyGenerator:

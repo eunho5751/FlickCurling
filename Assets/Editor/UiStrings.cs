@@ -73,10 +73,6 @@ namespace FlickCurling.EditorTools
             new[] { "link.created", "시작한 날 {date}", "Started {date}", "開始日 {date}" },
             new[] { "link.load", "기존 기록 불러오기", "Load that record", "その記録を読み込む" },
             new[] { "link.keep", "지금 기록으로 덮어쓰기", "Keep this record", "現在の記録で上書き" },
-            new[] { "link.confirmLoad", "Google 계정의 기록을 불러올까요?\n<color=#86613d>{existing}</color>\n\n지금 기록은 다시 불러올 수 없어요.\n<color=#86613d>{current}</color>", "Load the Google account's record?\n<color=#86613d>{existing}</color>\n\nThis record can't be brought back.\n<color=#86613d>{current}</color>", "Googleアカウントの記録を読み込みますか？\n<color=#86613d>{existing}</color>\n\n現在の記録は元に戻せません。\n<color=#86613d>{current}</color>" },
-            new[] { "link.confirmKeep", "지금 기록을 이 Google 계정에 연동할까요?\n<color=#86613d>{current}</color>\n\n기존 기록은 다시 불러올 수 없어요.\n<color=#86613d>{existing}</color>", "Link this record to the Google account?\n<color=#86613d>{current}</color>\n\nIts old record can't be brought back.\n<color=#86613d>{existing}</color>", "現在の記録をこのGoogleアカウントに連携しますか？\n<color=#86613d>{current}</color>\n\n以前の記録は元に戻せません。\n<color=#86613d>{existing}</color>" },
-            new[] { "link.confirm", "확인", "Confirm", "確認" },
-            new[] { "link.back", "돌아가기", "Back", "戻る" },
 
             // ---- HUD ----
             new[] { "hud.hammer", "후공", "Last", "後攻" },

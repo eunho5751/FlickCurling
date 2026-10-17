@@ -361,8 +361,7 @@ namespace FlickCurling.EditorTools
         public const string LinkConflictPrefabPath = "Assets/Resources/" + FlickCurling.Game.Account.LinkConflictPopup.ResourcePath + ".prefab";
         const float LinkW = 860, LinkH = 1010, LinkCardH = 196, LinkButtonW = 560;
 
-        // the account conflict choice: a message, the account's record and this one in account boxes, and the two ways
-        // out; then a confirmation page (its message filled at run time) with confirm and back
+        // the account conflict choice: a message, the account's record and this one in account boxes, and the two ways out
         static void BuildLinkConflictPrefab(GameObject popupPrefab)
         {
             var go = (GameObject)PrefabUtility.InstantiatePrefab(popupPrefab);
@@ -425,31 +424,17 @@ namespace FlickCurling.EditorTools
             var load = Wide(choice, UiPrefabBuilder.PrimaryPath, "Load", "link.load");
             var keep = Wide(choice, UiPrefabBuilder.SecondaryPath, "Keep", "link.keep");
 
-            // are you sure
-            var confirmPage = Page("Confirm", 22);
-            var spacer = Child<RectTransform>(confirmPage, "Top"); spacer.gameObject.AddComponent<LayoutElement>().preferredHeight = 30;
-            var message = Text(confirmPage, "Message", font, 34, Ink);
-            message.gameObject.AddComponent<LayoutElement>().minHeight = 300;
-            var confirm = Wide(confirmPage, UiPrefabBuilder.PrimaryPath, "Confirm", "link.confirm");
-            var back = Wide(confirmPage, UiPrefabBuilder.SecondaryPath, "Back", "link.back");
-            confirmPage.gameObject.SetActive(false);
-
             var panel = go.AddComponent<FlickCurling.Game.Account.LinkConflictPopup>();
             var so = new SerializedObject(panel);
             so.FindProperty("popup").objectReferenceValue = go.GetComponent<Popup>();
-            so.FindProperty("choicePage").objectReferenceValue = choice.gameObject;
-            so.FindProperty("confirmPage").objectReferenceValue = confirmPage.gameObject;
             so.FindProperty("existingName").objectReferenceValue = existing.name;
             so.FindProperty("existingPid").objectReferenceValue = existing.pid;
             so.FindProperty("existingDate").objectReferenceValue = existing.date;
             so.FindProperty("currentName").objectReferenceValue = current.name;
             so.FindProperty("currentPid").objectReferenceValue = current.pid;
             so.FindProperty("currentDate").objectReferenceValue = current.date;
-            so.FindProperty("confirmMessage").objectReferenceValue = message;
             so.FindProperty("load").objectReferenceValue = load;
             so.FindProperty("keep").objectReferenceValue = keep;
-            so.FindProperty("confirm").objectReferenceValue = confirm;
-            so.FindProperty("back").objectReferenceValue = back;
             so.ApplyModifiedPropertiesWithoutUndo();
             go.SetActive(false);
             PrefabUtility.SaveAsPrefabAsset(go, LinkConflictPrefabPath);

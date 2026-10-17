@@ -462,40 +462,6 @@ MonoBehaviour:
     m_Localized: Keep this record
     m_Metadata:
       m_Items: []
-  - m_Id: 1099965122138119
-    m_Localized: 'Load the Google account''s record?
-
-      <color=#86613d>{existing}</color>
-
-
-      This
-      record can''t be brought back.
-
-      <color=#86613d>{current}</color>'
-    m_Metadata:
-      m_Items:
-      - rid: 4297768082125881571
-  - m_Id: 1099965122138120
-    m_Localized: 'Link this record to the Google account?
-
-      <color=#86613d>{current}</color>
-
-
-      Its
-      old record can''t be brought back.
-
-      <color=#86613d>{existing}</color>'
-    m_Metadata:
-      m_Items:
-      - rid: 4297768082125881571
-  - m_Id: 1099965122138121
-    m_Localized: Confirm
-    m_Metadata:
-      m_Items: []
-  - m_Id: 1099965122138122
-    m_Localized: Back
-    m_Metadata:
-      m_Items: []
   references:
     version: 2
     RefIds:
@@ -525,5 +491,3 @@ MonoBehaviour:
         - id: 2262749228
         - id: 2262749237
         - id: 1099965122138116
-        - id: 1099965122138119
-        - id: 1099965122138120
