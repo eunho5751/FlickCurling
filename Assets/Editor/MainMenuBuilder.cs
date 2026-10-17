@@ -257,9 +257,10 @@ namespace FlickCurling.EditorTools
 
         // ---- the shop popup: the products as cards hanging from nails, three in a row (three test products for now) ----
 
-        // the gap leaves room for the cards' tilt: two neighbours leaning toward each other never touch; the window is wide
-        // enough for three cards beside the scrollbar
-        const float ShopW = 920, ShopH = 580, ShopGap = 34;
+        // the gap leaves room for the cards' tilt: two neighbours leaning toward each other never touch. The window shows two
+        // full rows (six products) and the top of the third, a hint that the list goes on
+        const float ShopGap = 34, ShopRowGap = 16, ShopPeek = 46;
+        const float ShopW = 880, ShopH = 135 + 70 + 8 + 2 * UiPrefabBuilder.ShopCardH + ShopRowGap + ShopPeek;
 
         static Popup BuildShop(GameObject popupPrefab, Transform parent)
         {
@@ -277,10 +278,14 @@ namespace FlickCurling.EditorTools
             var area = (RectTransform)go.transform.Find("Window/Content");
             var scroll = UiPrefabBuilder.Place(UiPrefabBuilder.ScrollViewPath, area, "Products");
             Stretch((RectTransform)scroll.transform);
+            // no scrollbar here: the cut-off row below says there is more
+            var sr = scroll.GetComponent<ScrollRect>();
+            sr.verticalScrollbar = null;
+            scroll.transform.Find("Scrollbar").gameObject.SetActive(false);
             var content = (RectTransform)scroll.transform.Find("Viewport/Content");
             var grid = content.gameObject.AddComponent<GridLayoutGroup>();
             grid.cellSize = new Vector2(UiPrefabBuilder.ShopCardW, UiPrefabBuilder.ShopCardH);
-            grid.spacing = new Vector2(ShopGap, 16);
+            grid.spacing = new Vector2(ShopGap, ShopRowGap);
             grid.childAlignment = TextAnchor.UpperCenter;
             grid.constraint = GridLayoutGroup.Constraint.FixedColumnCount; grid.constraintCount = 3;
             grid.padding = new RectOffset(0, 0, 8, 12);
