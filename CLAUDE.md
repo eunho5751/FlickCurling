@@ -7,3 +7,5 @@
   `Assets/Prefabs/Popup.prefab` (PopupBuilder) and the controls in `Assets/Prefabs/UI` (UiPrefabBuilder: Button_Primary,
   Button_Secondary, ToggleGroup, Slider). Fill an instance in with `UiPrefabBuilder.SetLabel` / `SetOptions`. Anything new
   that more than one screen can use becomes a prefab too.
+- Every button, toggle and dropdown clicks when pressed through `UiClickSound` (made at start-up, it watches presses in
+  every scene), so new buttons need nothing extra. Add `NoClickSound` to one that should stay silent.
