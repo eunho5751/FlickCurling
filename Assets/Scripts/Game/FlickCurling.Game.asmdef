@@ -10,7 +10,13 @@
         "Unity.ResourceManager",
         "UniTask",
         "Unity.Services.Core",
-        "Unity.Services.Authentication"
+        "Unity.Services.Authentication",
+        "Unity.Netcode.Runtime",
+        "Unity.Services.Multiplayer",
+        "Unity.Services.CloudCode",
+        "Unity.Services.CloudSave",
+        "Unity.Networking.Transport",
+        "Unity.Collections"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

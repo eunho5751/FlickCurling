@@ -9,7 +9,8 @@
         "Unity.TextMeshPro.Editor",
         "Unity.Localization",
         "Unity.ResourceManager",
-        "Unity.Localization.Editor"
+        "Unity.Localization.Editor",
+        "Unity.Netcode.Runtime"
     ],
     "includePlatforms": [
         "Editor"

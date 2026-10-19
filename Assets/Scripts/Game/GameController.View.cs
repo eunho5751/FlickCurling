@@ -452,7 +452,7 @@ namespace FlickCurling.Game
             var s1 = stonePool[i]; var s0 = shadowPool[i];
             float r = SR * scale, z = -i * 0.001f;
             s1.gameObject.SetActive(true); s0.gameObject.SetActive(true);
-            s1.sprite = team == Team.B ? stoneB : stoneW;
+            s1.sprite = Ui.Shown(team) == Team.B ? stoneB : stoneW;
             s1.color = new Color(1, 1, 1, alpha);
             s1.transform.localPosition = new Vector3(x, y, z);
             s1.transform.localScale = Vector3.one * scale;
@@ -479,7 +479,7 @@ namespace FlickCurling.Game
             DrawBoardLabels();
             DrawTurnInfo();
 
-            bool playing = state == St.Aim || state == St.Ai || state == St.AiPull || state == St.Moving || state == St.Settle;
+            bool playing = state == St.Aim || state == St.Ai || state == St.AiPull || state == St.Remote || state == St.Moving || state == St.Settle;
             // live scoring glow
             if (playing || state == St.Menu)
             {
@@ -522,7 +522,7 @@ namespace FlickCurling.Game
                 foreach (var st in m.Stones) if (st.Live) DrawStone((float)st.X, (float)st.Y, st.Team);
             }
             // pending stone at launch
-            if (state == St.Aim || state == St.Ai || state == St.AiPull)
+            if (state == St.Aim || state == St.Ai || state == St.AiPull || state == St.Remote)
             {
                 var lp = new Vector2((float)m.LaunchX, LY);
                 float lx = X(lp.x), ly = Y(lp.y);
@@ -545,7 +545,8 @@ namespace FlickCurling.Game
                     DrawAim(aiPull.Ang, (float)aiPull.Pw * Mathf.Min(1, aiPull.T));
                 }
                 DrawStone(lp.x, lp.y, m.Cur, 1, turnPulse);
-                string note = state == St.Ai ? Loc.T("ai.thinking", ("name", NameOf(m.Cur)))
+                string note = state == St.Remote ? Loc.T("online.opponentAiming")
+                    : state == St.Ai ? Loc.T("ai.thinking", ("name", NameOf(m.Cur)))
                     : state == St.AiPull && IntentLabel(aiPull) != "" ? Loc.T("ai.pulling", ("name", NameOf(m.Cur)), ("intent", IntentLabel(aiPull))) : "";
                 if (note != "") hud.Label(note, lx, ly - SR * s - 16, 13, Palette.Text, 0, false, true);
             }
@@ -638,7 +639,7 @@ namespace FlickCurling.Game
         // leaves the line showing again
         void DrawFuse(float time)
         {
-            if (!HumanAim || clock < 0) { fuse.Burn(Vector3.zero, false, 0); return; }
+            if (!(HumanAim || state == St.Remote) || clock < 0) { fuse.Burn(Vector3.zero, false, 0); return; }
             const float x0 = 0.5f, x1 = W - 0.5f, y = HOG;
             float left = Mathf.Clamp01(clock / ShotTime);
             var tip = new Vector2(Mathf.Lerp(x1, x0, left), y);
@@ -669,17 +670,19 @@ namespace FlickCurling.Game
             if (!info.HasValue) return;
             float a = Charging || state == St.AiPull ? 0.3f : 0.82f;
             var ink = Palette.Rgba(52, 32, 16, a);
-            // whose turn is a toast; the sheet keeps the title (turn order shot) or the shot count
-            // the title (or the shot count) at one size, with room before the row under it
-            if (info.Value.title != null) hud.Label(info.Value.title, X(W / 2), Y(54.5f), Mathf.RoundToInt(5.4f * s), ink, 0, true);
-            else hud.Label(info.Value.head, X(W / 2), Y(55), Mathf.RoundToInt(5.4f * 1.3f * s), ink, 0, true);   // the shot count, a size up
-            if (info.Value.sides == null) { hud.Label(info.Value.sub, X(W / 2), Y(44), Mathf.RoundToInt(3.4f * s), ink); return; }
-            // the stones left, black in the left half and white in the right, each centred in its half under its role
+            var (names, records, roles, pips) = info.Value;
+            // each side in its half, top down: the stone and the name (the size the shot count had), the record, then
+            // first/last and the stones left; a long name shrinks to fit its half
             for (int i = 0; i < 2; i++)
             {
                 float cx = X(i == 0 ? W / 4 : W * 3 / 4);
-                hud.Label(info.Value.roles[i], cx, Y(48), Mathf.RoundToInt(3.4f * s), ink, 0, true);
-                hud.Label(info.Value.sides[i], cx, Y(42.5f), Mathf.RoundToInt(5.1f * s), ink);
+                float y = 56;
+                hud.Label(names[i], cx, Y(y), Mathf.RoundToInt(5.4f * 1.3f * s), ink, 0, true, maxWidth: (W / 2 - 4) * s);
+                y -= 7.5f;
+                if (records != null) { hud.Label(records[i], cx, Y(y), Mathf.RoundToInt(3.4f * s), ink); y -= 5.5f; }
+                if (roles == null) continue;
+                hud.Label(roles[i], cx, Y(y), Mathf.RoundToInt(3.4f * s), ink, 0, true);
+                hud.Label(pips[i], cx, Y(y - 5.5f), Mathf.RoundToInt(5.1f * s), ink);
             }
         }
 

@@ -24,7 +24,6 @@ namespace FlickCurling.EditorTools
             new[] { "map.kink", "꺾인 측벽", "Bent Rails", "折れたサイドレール" },
             new[] { "mode.pvp", "2인 대전", "2 Players", "2人対戦" },
             new[] { "mode.vsAi", "AI {level}", "AI {level}", "AI {level}" },
-            new[] { "mode.watchVs", "AI 관전 · {b} {lb} vs {w} {lw}", "Watch AI · {b} {lb} vs {w} {lw}", "AI観戦・{b} {lb} vs {w} {lw}" },
 
             // ---- main menu scene ----
             new[] { "mainmenu.offline", "오프라인 대전", "Offline Match", "オフライン対戦" },
@@ -46,6 +45,18 @@ namespace FlickCurling.EditorTools
             new[] { "matchsetup.map", "맵", "Map", "マップ" },
             new[] { "matchsetup.level", "난이도", "Difficulty", "難易度" },
             new[] { "matchsetup.ok", "확인", "OK", "OK" },
+
+            // ---- online match ----
+            new[] { "online.random", "랜덤 매칭", "Random Match", "ランダムマッチ" },
+            new[] { "online.waiting", "상대를 기다리는 중…", "Waiting for opponent…", "相手を待っています…" },
+            new[] { "online.disconnected", "연결 끊김", "Disconnected", "接続切れ" },
+            new[] { "online.opponentAiming", "상대가 조준하는 중…", "Opponent is aiming…", "相手が狙っています…" },
+            new[] { "online.resuming", "경기로 돌아가는 중…", "Returning to the match…", "試合に戻っています…" },
+            new[] { "online.reconnecting", "다시 연결하는 중…", "Reconnecting…", "再接続しています…" },
+            new[] { "online.noShow", "상대가 들어오지 않아 경기가 취소됐어요", "Your opponent didn't arrive, so the match was called off", "相手が来なかったため、試合は中止になりました" },
+            new[] { "device.title", "접속 안내", "Signed In Elsewhere", "接続のお知らせ" },
+            new[] { "device.message", "다른 기기에서 로그인했어요.\n이 기기에서 계속하려면 다시 접속해 주세요.", "Your account was signed in on another device.\nReconnect to keep playing here.", "別の端末でログインしました。\nこの端末で続けるには再接続してください。" },
+            new[] { "device.reconnect", "다시 접속", "Reconnect", "再接続" },
 
             // ---- settings ----
             new[] { "settings.button", "설정", "Settings", "設定" },
@@ -85,13 +96,16 @@ namespace FlickCurling.EditorTools
             // ---- HUD ----
             new[] { "hud.hammer", "후공", "Last", "後攻" },
             new[] { "hud.first", "선공", "First", "先攻" },
+            new[] { "hud.player", "플레이어", "Player", "プレイヤー" },
+            new[] { "hud.player1", "플레이어 1", "Player 1", "プレイヤー1" },
+            new[] { "hud.player2", "플레이어 2", "Player 2", "プレイヤー2" },
+            new[] { "hud.ai", "AI", "AI", "AI" },
+            new[] { "hud.record", "{w}승 {l}패 {d}무", "{w}W {l}L {d}D", "{w}勝 {l}敗 {d}分" },
             new[] { "hud.idle", "대기", "Idle", "待機" },
             new[] { "hud.end", "{n}엔드", "End {n}", "第{n}エンド" },
             new[] { "hud.extra", "연장", "Extra", "延長" },
             new[] { "hud.total", "합", "Total", "計" },
             new[] { "hud.turn", "{name} 차례", "{name} Turn", "{name}の番" },
-            new[] { "hud.endOver", "엔드 종료", "End over", "エンド終了" },
-            new[] { "hud.lsd", "선후공 정하기", "Turn Order Shot", "先攻・後攻決め" },
             new[] { "hud.tickets", "쿠션권 {b} {bn} · {w} {wn}", "Tickets {b} {bn} · {w} {wn}", "クッション券 {b} {bn}・{w} {wn}" },
             new[] { "hud.noRecord", "기록 없음", "No record", "記録なし" },
 
@@ -121,7 +135,6 @@ namespace FlickCurling.EditorTools
             new[] { "over.win", "{name} <color=#d9a54c>승리!</color> ({score})", "{name} <color=#d9a54c>wins!</color> ({score})", "{name}の<color=#d9a54c>勝ち！</color>（{score}）" },
             new[] { "over.draw", "<color=#d9a54c>무승부</color> ({score})", "<color=#d9a54c>Draw</color> ({score})", "<color=#d9a54c>引き分け</color>（{score}）" },
             new[] { "over.again", "다시 하기", "Play again", "もう一度" },
-            new[] { "over.watchAgain", "다시 관전", "Watch again", "もう一度観戦" },
             new[] { "over.menu", "메인 메뉴로 이동", "Main Menu", "メインメニューへ" },
             new[] { "out.hog", "최소 라인을 넘지 못해 무효", "Short of the min line: no stone", "最小ラインを越えられず無効" },
             new[] { "out.back", "아웃 라인을 넘어가 무효", "Past the out line: no stone", "アウトラインを越えて無効" },

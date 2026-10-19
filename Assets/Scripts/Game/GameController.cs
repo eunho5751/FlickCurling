@@ -25,8 +25,8 @@ namespace FlickCurling.Game
         [SerializeField] TMP_FontAsset bodyFont;
         [SerializeField] TMP_FontAsset displayFont;
 
-        enum St { Menu, Coin, Aim, Ai, AiPull, Moving, Restoring, Settle, Measure, EndCard, Over, LsdShow }
-        enum Mode { Pvp, Easy, Normal, Hard, Watch }
+        enum St { Menu, Coin, Aim, Ai, AiPull, Remote, Moving, Restoring, Settle, Measure, EndCard, Over, LsdShow }   // Remote: online, the opponent's turn
+        enum Mode { Pvp, Easy, Normal, Hard, Online }
 
         const float W = (float)Sheet.W, L = (float)Sheet.L, HOG = (float)Sheet.Hog, BACK = (float)Sheet.Back, R = (float)Sheet.R;
         static float SR => (float)Sheet.SR;
@@ -37,12 +37,10 @@ namespace FlickCurling.Game
         St state = St.Menu;
         Mode mode = Mode.Pvp;
         string mapKey = "base";
-        int lvB = 2, lvW = 2;
         readonly AiLevel?[] ai = new AiLevel?[2];
         Match m;
         Ai brain;
         int token;
-        int speed = 1;
         double? laneTo;
         float acc;
         float settleT;
@@ -94,15 +92,17 @@ namespace FlickCurling.Game
         readonly Dictionary<string, Sprite> boardSprites = new Dictionary<string, Sprite>();
         Field shownField;
 
-        bool Watching => mode == Mode.Watch;
-        float Speed => Watching ? speed : 1;
         bool IsAI(Team t) => ai[(int)t].HasValue;
         string NameOf(Team t) => Loc.Team(t) + (IsAI(t) ? Loc.T("team.ai") : "");
         // the HUD shows the side as a stone icon rather than its name
         string SideOf(Team t, int scalePct = 115) => Ui.Icon(t, scalePct) + (IsAI(t) ? Loc.T("team.ai") : "");
         static string EndLabel(int n) => n <= Sheet.Ends ? Loc.T("hud.end", ("n", n)) : Loc.T("hud.extra");
-        // the two sides as stone icons either side of a pair of values (scores, distances)
-        static string Versus(object b, object w, int iconPct = 130) => Loc.T("score.versus", ("b", Ui.Icon(Team.B, iconPct)), ("bv", b), ("wv", w), ("w", Ui.Icon(Team.W, iconPct)));
+        // the side shown on the left (as black) and the one on the right: online, this device's player is on the left
+        static Team Left => Ui.Shown(Team.B);
+        static Team Right => Ui.Shown(Team.W);
+        // the two sides' scores, each with its stone icon, the left side's first
+        string Versus(int iconPct = 130) =>
+            Loc.T("score.versus", ("b", Ui.Icon(Left, iconPct)), ("bv", m.Total(Left)), ("wv", m.Total(Right)), ("w", Ui.Icon(Right, iconPct)));
         const float CardCountdown = 3;
 
         // =====================================================================
@@ -189,12 +189,13 @@ namespace FlickCurling.Game
             Loc.Changed += OnLocaleChanged;
             Resize(true);
             // the match picked in the main menu, or (the scene opened straight in the editor) two players on the basic map
-            if (MatchLaunch.Take(out bool vsAi, out var level, out string map))
-                StartMatch(vsAi ? Mode.Easy + (int)level : Mode.Pvp, map, 0, 0);
-            else StartMatch(Mode.Pvp, "base", 0, 0);
+            if (MatchLaunch.TakeOnline()) StartOnline();
+            else if (MatchLaunch.Take(out bool vsAi, out var level, out string map))
+                StartMatch(vsAi ? Mode.Easy + (int)level : Mode.Pvp, map);
+            else StartMatch(Mode.Pvp, "base");
         }
 
-        void OnDestroy() { Loc.Changed -= OnLocaleChanged; GameSettings.Changed -= OnSettingsChanged; }
+        void OnDestroy() { Loc.Changed -= OnLocaleChanged; GameSettings.Changed -= OnSettingsChanged; OnlineDestroy(); Ui.Flip = false; }
 
         SettingsPanel settingsPrefab, settings;
         bool SettingsOpen => settings && settings.IsOpen;
@@ -271,15 +272,18 @@ namespace FlickCurling.Game
         // flow
         // =====================================================================
 
-        void StartMatch(Mode md, string key, int b, int w)
+        void StartMatch(Mode md, string key)
         {
             token++;
-            mode = md; mapKey = key; lvB = b; lvW = w;
+            hud.HideCard();   // a card from before (its countdown) must not press into the new match
+            mode = md; mapKey = key;
             ai[0] = ai[1] = null;
-            if (md == Mode.Watch) { ai[0] = (AiLevel)b; ai[1] = (AiLevel)w; }
-            else if (md != Mode.Pvp) ai[1] = (AiLevel)(md - Mode.Easy);
+            if (md != Mode.Pvp && md != Mode.Online) ai[1] = (AiLevel)(md - Mode.Easy);
             hud.HudVisible = true;
-            int seed = fx.Next();
+            // online: both devices start the same match (the seed decides the draw's bumpers), each showing its player as black
+            int seed = md == Mode.Online ? Online.OnlineLobby.Seed : fx.Next();
+            Ui.Flip = md == Mode.Online && Online.OnlineLobby.MyTeam == Team.W;
+            OnlineReset();
             m = new Match(Maps.Build(key), PhysicsParams.Default, seed) { Listener = new LiveEvents(this) };
             brain = new Ai(seed ^ 0x5bd1e995);
             m.StartMatch();
@@ -291,21 +295,24 @@ namespace FlickCurling.Game
             Resize(false);
             SetCam(AimView(1));
             camTarget = null;
-            ShowCard(() => new CardSpec
-            {
-                Eyebrow = Loc.T("lsd.eyebrow", ("map", Loc.Map(mapKey)), ("mode", ModeName())),
-                Title = Loc.T("lsd.title"),
-                Head = Loc.T("lsd.head"),
-                Countdown = CardCountdown,
-                Buttons = { new CardButton(Loc.T("lsd.start"), LsdShot) }
-            });
+            // online the records panel comes first (or, coming back to a match, the card waits for where it is)
+            if (mode == Mode.Online) OnlineFirstCard(LsdStartCard);
+            else LsdStartCard();
         }
+
+        void LsdStartCard() => ShowCard(() => new CardSpec
+        {
+            Eyebrow = Loc.T("lsd.eyebrow", ("map", Loc.Map(mapKey)), ("mode", ModeName())),
+            Title = Loc.T("lsd.title"),
+            Head = Loc.T("lsd.head"),
+            Countdown = CardCountdown,
+            Buttons = { SyncButton(CardLsdStart, Loc.T("lsd.start"), LsdShot) }
+        });
 
         string ModeName()
         {
+            if (mode == Mode.Online) return Loc.T("mainmenu.online");
             if (mode == Mode.Pvp) return Loc.T("mode.pvp");
-            if (mode == Mode.Watch)
-                return Loc.T("mode.watchVs", ("b", Ui.Icon(Team.B)), ("lb", Loc.Level((AiLevel)lvB)), ("w", Ui.Icon(Team.W)), ("lw", Loc.Level((AiLevel)lvW)));
             return Loc.T("mode.vsAi", ("level", Loc.Level((AiLevel)(mode - Mode.Easy))));
         }
 
@@ -316,7 +323,7 @@ namespace FlickCurling.Game
             m.BeginLsdShot();
             fades.Clear();
             laneTo = null;
-            state = IsAI(m.Cur) ? St.Ai : St.Aim;
+            state = IsAI(m.Cur) ? St.Ai : IsRemote(m.Cur) ? St.Remote : St.Aim;
             aimAng = 0; ResetShotInput();   // every throw starts aimed straight up the sheet
             userMoved = false;
             CamTo(AimView(zoom), 3.5f);
@@ -324,11 +331,12 @@ namespace FlickCurling.Game
             hud.TurnToast(Loc.T("hud.turn", ("name", SideOf(m.Cur, 130))));
             sfx.TurnStart();
             StartClock();
+            OnlineTurnStarted();
             if (state == St.Ai)
             {
                 int tok = token;
                 var lvl = ai[(int)m.Cur].Value;
-                After((900 + (float)fx.NextDouble() * 500) / 1000f / Speed, () =>
+                After((900 + (float)fx.NextDouble() * 500) / 1000f, () =>
                 {
                     if (tok != token || state != St.Ai) return;
                     var d = brain.DecideLsd(lvl, m.Lsd.TargetX, m.Lsd.TargetY, m.P, m.ActiveField);
@@ -351,7 +359,6 @@ namespace FlickCurling.Game
             RenderHud();
         }
 
-        static string FmtDist(double? d) => d == null ? "—" : double.IsInfinity(d.Value) ? "X" : d.Value.ToString("0.0");   // X = no record
 
         void LsdNext()
         {
@@ -359,6 +366,11 @@ namespace FlickCurling.Game
             if (m.NextLsd()) { LsdShot(); return; }
             double? dB = m.Lsd.Dist[0], dW = m.Lsd.Dist[1];
             var win = m.ResolveLsd(out bool coin);
+            LsdResultCard(win);
+        }
+
+        void LsdResultCard(Team win)
+        {
             state = St.Coin;
             RenderHud();
             ShowCard(() => new CardSpec
@@ -366,7 +378,7 @@ namespace FlickCurling.Game
                 Eyebrow = Loc.T("lsd.resultEyebrow"),
                 Title = Loc.T("lsd.hasHammer", ("first", SideOf(Sheet.Other(win), 110)), ("name", SideOf(win, 110))),
                 Countdown = CardCountdown,
-                Buttons = { new CardButton(Loc.T("end.start", ("n", 1)), () => { m.FinishLsd(); StartEnd(); }) }
+                Buttons = { SyncButton(CardLsdResult, Loc.T("end.start", ("n", 1)), () => { m.FinishLsd(); StartEnd(); }) }
             });
         }
 
@@ -385,7 +397,7 @@ namespace FlickCurling.Game
             if (m.ShotsDone) { FinishEnd(); return; }
             m.BeginShot();
             laneTo = null;
-            state = IsAI(m.Cur) ? St.Ai : St.Aim;
+            state = IsAI(m.Cur) ? St.Ai : IsRemote(m.Cur) ? St.Remote : St.Aim;
             aimAng = 0; ResetShotInput();   // every throw starts aimed straight up the sheet
             userMoved = false;
             CamTo(AimView(zoom), 3.5f);
@@ -394,6 +406,7 @@ namespace FlickCurling.Game
             hud.TurnToast(Loc.T("hud.turn", ("name", SideOf(m.Cur, 130))), m.Shot == 0 ? Loc.T("bonus.title") : null);
             sfx.TurnStart();
             StartClock();
+            OnlineTurnStarted();
             if (state == St.Ai) RunAI();
         }
 
@@ -414,7 +427,7 @@ namespace FlickCurling.Game
             catch (Exception e) { Debug.LogException(e); return; }
             if (tok != token || state != St.Ai) return;
             m.SetLane(team, d.Lx); laneTo = d.Lx;   // slide the stone over while the AI "thinks"
-            float wait = Mathf.Max(0, (1000 + (float)fx.NextDouble() * 700) / 1000f / Speed - (Time.unscaledTime - t0));
+            float wait = Mathf.Max(0, (1000 + (float)fx.NextDouble() * 700) / 1000f - (Time.unscaledTime - t0));
             if (await UniTask.Delay(TimeSpan.FromSeconds(wait), DelayType.Realtime, PlayerLoopTiming.Update, ct).SuppressCancellationThrow()) return;
             if (tok != token || state != St.Ai) return;
             m.LaunchX = d.Lx; laneTo = null;
@@ -431,14 +444,20 @@ namespace FlickCurling.Game
 
         void Release(double ang, double pw)
         {
+            // online, this device's own shot: the input goes to the opponent first (from then on the shot stands), then
+            // this device runs it and sends the record both play
+            bool mine = mode == Mode.Online && state == St.Aim;
             if (laneTo.HasValue) { m.LaunchX = laneTo.Value; laneTo = null; }
+            if (mine) OnlineCommit(ang, pw);
             m.Release(ang, pw);
             state = St.Moving; ResetShotInput(); aiPull = null; clock = -1;
             sfx.Blip(0.4f + (float)pw * 0.4f, 1800, 3, 0.05f);
+            if (mine) OnlineRecordShot();
         }
 
         void AfterShot()
         {
+            OnlineShotDone();
             if (m.InLsd) { LsdAfter(); return; }
             var res = m.ResolveShot();
             if (res.Foul)
@@ -465,14 +484,18 @@ namespace FlickCurling.Game
 
         void StartClock()
         {
-            clock = state == St.Aim ? ShotTime : -1;
+            clock = state == St.Aim || state == St.Remote ? ShotTime : -1;
             clockWait = ClockWait + (!m.InLsd && m.Shot == 0 ? 0.45f : 0);   // the end's first turn toast stays up longer
+            if (mode == Mode.Online && clock >= 0) deadline = Now + clockWait + ShotTime;
         }
 
         // real time, held while the turn toast is up, a card covers the sheet or the settings popup is open
         void TickClock(float rdt)
         {
-            if (clock < 0 || !HumanAim || hud.CardVisible || SettingsOpen) return;
+            // online the fuse runs on the wall clock (time in the background counts), on both devices
+            if (mode == Mode.Online) { TickOnlineClock(); return; }
+            // online the clock never waits for the settings popup: the opponent's does not
+            if (clock < 0 || !HumanAim || hud.CardVisible || (SettingsOpen && mode != Mode.Online)) return;
             if (clockWait > 0) { clockWait -= rdt; return; }
             float before = clock;
             clock -= rdt;
@@ -484,9 +507,17 @@ namespace FlickCurling.Game
         // time is up: a pull under way is dropped and the stone is lost (in the draw: no record)
         void TimeOut()
         {
+            if (mode == Mode.Online) OnlineSend(Online.OnlineMsg.Void);
+            ApplyTimeOut();
+        }
+
+        // the turn's stone is lost (online also when the opponent's time ran out)
+        void ApplyTimeOut()
+        {
             clock = -1;
             ResetShotInput();
             m.Forfeit();
+            OnlineShotDone();
             sfx.Void();
             if (m.InLsd)
             {
@@ -526,7 +557,7 @@ namespace FlickCurling.Game
             {
                 case AfterEnd.NextEnd:
                 case AfterEnd.ExtraEnd: next = () => { m.End++; StartEnd(); }; break;
-                default: next = GameOver; break;
+                default: next = GameOver; OnlineReportResult(); break;
             }
             int end = m.End;
             state = St.EndCard;
@@ -540,12 +571,13 @@ namespace FlickCurling.Game
                     Eyebrow = Loc.T("end.result", ("end", EndLabel(end))),
                     // one line: who scored (or blank) and the running score
                     Title = sc.Team.HasValue
-                        ? Loc.T("end.scored", ("name", SideOf(sc.Team.Value, 110)), ("n", sc.Points), ("score", Versus(m.Total(Team.B), m.Total(Team.W), 110)))
-                        : Loc.T("end.blank", ("score", Versus(m.Total(Team.B), m.Total(Team.W), 110))),
+                        ? Loc.T("end.scored", ("name", SideOf(sc.Team.Value, 110)), ("n", sc.Points), ("score", Versus(110)))
+                        : Loc.T("end.blank", ("score", Versus(110))),
                     // NextStep has already handed the hammer on; nothing to say after the last end
                     Body = step == AfterEnd.GameOver ? "" : Loc.T("end.nextHammer", ("name", SideOf(m.Hammer))),
                     Countdown = CardCountdown,
-                    Buttons = { new CardButton(nextLabel, next) }
+                    // the last end's card is not shared: each player goes on to the result alone
+                    Buttons = { step == AfterEnd.GameOver ? new CardButton(nextLabel, next) : SyncButton(CardEnd + end, nextLabel, next) }
                 };
             });
         }
@@ -555,15 +587,16 @@ namespace FlickCurling.Game
             state = St.Over;
             var win = m.Winner;
             RenderHud();
+            if (mode == Mode.Online) { OnlineGameOver(); return; }
             ShowCard(() => new CardSpec
             {
                 Eyebrow = Loc.T("over.eyebrow"),
                 Title = win.HasValue
-                    ? Loc.T("over.win", ("name", SideOf(win.Value, 110)), ("score", Versus(m.Total(Team.B), m.Total(Team.W), 110)))
-                    : Loc.T("over.draw", ("score", Versus(m.Total(Team.B), m.Total(Team.W), 110))),
+                    ? Loc.T("over.win", ("name", SideOf(win.Value, 110)), ("score", Versus(110)))
+                    : Loc.T("over.draw", ("score", Versus(110))),
                 Buttons =
                 {
-                    new CardButton(Loc.T(Watching ? "over.watchAgain" : "over.again"), () => StartMatch(mode, mapKey, lvB, lvW)),
+                    new CardButton(Loc.T("over.again"), () => StartMatch(mode, mapKey)),
                     new CardButton(Loc.T("over.menu"), ToMenu)
                 }
             });
@@ -573,6 +606,7 @@ namespace FlickCurling.Game
         void ToMenu()
         {
             token++;
+            OnlineLeave();
             ResetShotInput(); aiPull = null; clock = -1;
             hud.ClearToasts(); hud.HideCard();
             ScreenFader.LoadScene(MainMenuScene);
@@ -587,8 +621,6 @@ namespace FlickCurling.Game
             if (ScreenFader.Busy) { ScreenFader.WhenClear(() => { if (this) After(CardAfterFade, () => ShowCard(build)); }); return; }
             cardFactory = build;
             var c = build();
-            // a countdown card presses its button by itself; when watching the AIs it goes at the watch pace
-            if (Watching && c.Countdown > 0) c.Countdown = 2.6f / Speed;
             hud.ShowCard(c, null);
             sfx.Pop();
         }
@@ -602,16 +634,17 @@ namespace FlickCurling.Game
             string hammer = Loc.T("hud.hammer");
             string Hm(Team t) => hammerKnown && m.Hammer == t ? $"<color=#d9a54c><size=10> {hammer}</size></color>" : "";
             string B(int v) => $"<color=#d9a54c><size=19><b>{v}</b></size></color>";
-            int tB = m.Total(Team.B), tW = m.Total(Team.W);
+            // "B" here is the side on the left (black on screen), "W" the one on the right
+            int tB = m.Total(Left), tW = m.Total(Right);
             string end = $"<color=#b39f84><size=12>{(state == St.Menu ? Loc.T("hud.idle") : EndLabel(m.End))} </size><size=9>▼</size></color>";
-            string iconB = Ui.Icon(Team.B, 140), iconW = Ui.Icon(Team.W, 140);
+            string iconB = Ui.Icon(Left, 140), iconW = Ui.Icon(Right, 140);
             if (hud.SideMode)
             {
                 // narrow side column: the score, then who has the hammer, then the end
                 string hm = hammerKnown ? $"\n{Ui.Icon(m.Hammer, 110)}<color=#d9a54c><size=11> {hammer}</size></color>" : "";
                 hud.SetScorePill($"{iconB} {B(tB)}<color=#b39f84> : </color>{B(tW)} {iconW}{hm}\n{end}");
             }
-            else hud.SetScorePill($"{iconB}{Hm(Team.B)} {B(tB)}<color=#b39f84> : </color>{B(tW)} {iconW}{Hm(Team.W)}  {end}");
+            else hud.SetScorePill($"{iconB}{Hm(Left)} {B(tB)}<color=#b39f84> : </color>{B(tW)} {iconW}{Hm(Right)}  {end}");
 
             int ends = Math.Max(Sheet.Ends, Math.Max(m.End, m.Scores[0].Count));
             var rows = new List<string[]>();
@@ -619,7 +652,7 @@ namespace FlickCurling.Game
             for (int i = 1; i <= ends; i++) head.Add(i <= Sheet.Ends ? i.ToString() : Loc.T("hud.extra"));
             head.Add(Loc.T("hud.total"));
             rows.Add(head.ToArray());
-            foreach (var t in new[] { Team.B, Team.W })
+            foreach (var t in new[] { Left, Right })
             {
                 var r = new List<string> { Ui.Icon(t, 130) };   // just the stone: no tags between it and the scores
                 for (int i = 1; i <= ends; i++) r.Add(i - 1 < m.Scores[(int)t].Count ? m.Scores[(int)t][i - 1].ToString() : "");
@@ -630,37 +663,47 @@ namespace FlickCurling.Game
         }
 
         /// <summary>
-        /// The turn info printed on the sheet between the launch line and the min line: the shot number
-        /// and each side's stones left (during the last stone draw: the title and both distances; whose turn pops up as a
-        /// toast instead). Null in the menu.
+        /// The turn info printed on the sheet between the launch line and the min line, black's in the left half and
+        /// white's in the right (on a device the player is always black, the left): the stone and the name, the record
+        /// (online only), then first or last and the stones left (not during the turn order shot, which decides them).
+        /// Null in the menu.
         /// </summary>
-        (string title, string head, string sub, string[] sides, string[] roles)? TurnInfo()
+        (string[] names, string[] records, string[] roles, string[] pips)? TurnInfo()
         {
             if (state == St.Menu) return null;
-            string b = Ui.Icon(Team.B, 130), w = Ui.Icon(Team.W, 130);
-            if (m.InLsd)
-            {
-                // the distances sit level with the middle of the (larger) stone icons
-                string D(int i) => $"<voffset=0.28em>{FmtDist(m.Lsd.Dist[i])}</voffset>";
-                return (Loc.T("hud.lsd"), null, $"{b} {D(0)}      {w} {D(1)}", null, null);
-            }
+            var names = new[] { $"{Ui.Icon(Left, 115)} {SideName(Left)}", $"{Ui.Icon(Right, 115)} {SideName(Right)}" };
+            var records = SideRecords();
+            if (m.InLsd) return (names, records, null, null);
             string Pips(Team team)
             {
                 int left = Mathf.Clamp(Sheet.Per - m.ThrownBy(team), 0, Sheet.Per);
                 // the row empties from the right: the stone being thrown now is the rightmost one still to go, in the
                 // house red, which stands out on the wood
-                bool throwing = team == m.Cur && left > 0 && (state == St.Aim || state == St.Ai || state == St.AiPull);
+                bool throwing = team == m.Cur && left > 0 && (state == St.Aim || state == St.Ai || state == St.AiPull || state == St.Remote);
                 string now = throwing ? $"<color=#a3341f{(Charging || state == St.AiPull ? "4d" : "")}>●</color>" : "";
                 int rest = throwing ? left - 1 : left;
                 // a little smaller than the side icon, so the pips do not read as more side markers
                 // raised to sit level with the middle of the (larger) side icon
                 return "<size=80%><voffset=0.3em>" + new string('●', rest) + now + new string('○', Sheet.Per - left) + "</voffset></size>";
             }
-            string head = m.Shot < Sheet.Shots ? $"{m.Shot + 1} / {Sheet.Shots}" : Loc.T("hud.endOver");
             // each side's stones left in its own half, under "선공" / "후공"
             string Role(Team team) => Loc.T(m.Hammer == team ? "hud.hammer" : "hud.first");
-            return (null, head, null, new[] { $"{b} {Pips(Team.B)}", $"{w} {Pips(Team.W)}" }, new[] { Role(Team.B), Role(Team.W) });
+            return (names, records, new[] { Role(Left), Role(Right) }, new[] { Pips(Left), Pips(Right) });
         }
+
+        /// <summary>What a side is called on the sheet: two players are player 1 (black) and 2; against the AI the
+        /// player goes by their nickname (or "player") and the AI by "AI"; online, the two nicknames.</summary>
+        string SideName(Team t)
+        {
+            if (mode == Mode.Online) return OnlineSideName(t);
+            if (mode == Mode.Pvp) return Loc.T(t == Team.B ? "hud.player1" : "hud.player2");
+            if (t == Team.W) return Loc.T("hud.ai");
+            string nick = Account.Nickname.Display(Account.AccountService.PlayerName);
+            return string.IsNullOrEmpty(nick) ? Loc.T("hud.player") : nick;
+        }
+
+        /// <summary>Each side's record line (left, right), or null where records are not shown (offline).</summary>
+        string[] SideRecords() => mode == Mode.Online ? OnlineRecords() : null;
 
         // =====================================================================
         // live physics events
@@ -690,13 +733,20 @@ namespace FlickCurling.Game
         void Update()
         {
             float rdt = Mathf.Min(0.05f, Time.unscaledDeltaTime);
-            float dt = rdt * Speed;   // game clock (physics, animations); the camera keeps real time
+            float dt = rdt;   // game clock (physics, animations)
 
             UpdateTurnPulse();
             HandleInput();
             TickClock(rdt);
 
-            if (state == St.Moving)
+            OnlineUpdate();
+            if (state == St.Moving && playback != null)
+            {
+                // online: the shot plays from its record (the same on both devices)
+                playback.Advance(dt);
+                if (playback.Done) { playback = null; AfterShot(); }
+            }
+            else if (state == St.Moving)
             {
                 acc += dt;
                 while (acc >= Sheet.DT) { m.Step(); acc -= (float)Sheet.DT; }
@@ -705,7 +755,7 @@ namespace FlickCurling.Game
             else acc = 0;
             if (state == St.Restoring) { restore.T += dt / 0.9f; if (restore.T >= 1) FinishRestore(); }
             // the next turn waits until the last one's toasts have fully gone
-            if (state == St.Settle) { settleT -= dt; if (settleT <= 0 && !hud.ToastsUp) { m.AdvanceShot(); PrepareShot(); } }
+            if (state == St.Settle) { settleT -= dt; if (settleT <= 0 && !hud.ToastsUp && OnlineNextTurnReady()) { m.AdvanceShot(); PrepareShot(); } }
             if (laneTo.HasValue)
             {
                 double d = laneTo.Value - m.LaunchX, stp = 110 * dt;
@@ -713,14 +763,14 @@ namespace FlickCurling.Game
             }
             if (state == St.AiPull) { aiPull.T += dt / 0.6f; if (aiPull.T >= 1.15f) Release(aiPull.Ang, aiPull.Pw); }
             if (state == St.Measure) { measure.T += dt; if (measure.T >= measure.Dur) ShowEndCard(); }
-            if (state == St.LsdShow) { lsdShow.T += dt; if (lsdShow.T >= 1.8f && !hud.ToastsUp) LsdNext(); }
+            if (state == St.LsdShow) { lsdShow.T += dt; if (lsdShow.T >= 1.8f && !hud.ToastsUp && OnlineNextTurnReady()) LsdNext(); }
             foreach (var f in fades) f.A -= dt / 0.5f;
             fades.RemoveAll(f => f.A <= 0);
             foreach (var f in floats) f.T += dt / 1.2f;
             floats.RemoveAll(f => f.T >= 1);
 
             Resize(false);
-            UpdateCam(rdt * Mathf.Sqrt(Speed));
+            UpdateCam(rdt);
             ApplyCamera();
             hud.Tick(px, cw, ch);
             Draw(Time.unscaledTime * 1000);

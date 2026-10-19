@@ -78,9 +78,16 @@ namespace FlickCurling.Game
             return sa;
         }
 
+        /// <summary>Online, the player of this device is always shown as black: when they play white, every side icon
+        /// (and stone) shows the other colour.</summary>
+        public static bool Flip;
+
+        /// <summary>The colour a side is shown in.</summary>
+        public static Core.Team Shown(Core.Team t) => Flip ? Core.Sheet.Other(t) : t;
+
         /// <summary>The side as a stone icon in rich text. scale is relative to the surrounding text.</summary>
         public static string Icon(Core.Team t, int scalePct = 115) =>
-            $"<size={scalePct}%><sprite name=\"{(t == Core.Team.B ? "B" : "W")}\"></size>";
+            $"<size={scalePct}%><sprite name=\"{(Shown(t) == Core.Team.B ? "B" : "W")}\"></size>";
 
         // canvas strokeText: a dark outline around world labels
         static Material StrokeMaterial(TMP_FontAsset f)
@@ -233,7 +240,7 @@ namespace FlickCurling.Game
         {
             var rt = Rect(parent, "Dot");
             var img = rt.gameObject.AddComponent<Image>();
-            img.sprite = team == Core.Team.B ? StoneB : StoneW; img.raycastTarget = false; img.preserveAspect = true;
+            img.sprite = Shown(team) == Core.Team.B ? StoneB : StoneW; img.raycastTarget = false; img.preserveAspect = true;
             var le = rt.gameObject.AddComponent<LayoutElement>();
             le.preferredWidth = le.minWidth = size; le.preferredHeight = le.minHeight = size;
             return img;

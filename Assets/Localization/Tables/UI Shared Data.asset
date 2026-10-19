@@ -63,10 +63,6 @@ MonoBehaviour:
     m_Key: mode.vsAi
     m_Metadata:
       m_Items: []
-  - m_Id: 2262749184
-    m_Key: mode.watchVs
-    m_Metadata:
-      m_Items: []
   - m_Id: 2262749193
     m_Key: settings.button
     m_Metadata:
@@ -101,14 +97,6 @@ MonoBehaviour:
       m_Items: []
   - m_Id: 2262749205
     m_Key: hud.turn
-    m_Metadata:
-      m_Items: []
-  - m_Id: 2262749206
-    m_Key: hud.endOver
-    m_Metadata:
-      m_Items: []
-  - m_Id: 2262749208
-    m_Key: hud.lsd
     m_Metadata:
       m_Items: []
   - m_Id: 2262749209
@@ -193,10 +181,6 @@ MonoBehaviour:
       m_Items: []
   - m_Id: 2262749239
     m_Key: over.again
-    m_Metadata:
-      m_Items: []
-  - m_Id: 2262749240
-    m_Key: over.watchAgain
     m_Metadata:
       m_Items: []
   - m_Id: 2262749241
@@ -453,6 +437,66 @@ MonoBehaviour:
       m_Items: []
   - m_Id: 1152180608225284
     m_Key: nickname.failed
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1694707736301568
+    m_Key: hud.player
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1694707769856000
+    m_Key: hud.player1
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1694707769856001
+    m_Key: hud.player2
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1694707769856002
+    m_Key: hud.ai
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1694707769856003
+    m_Key: hud.record
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1702883118469120
+    m_Key: online.random
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1702883152023552
+    m_Key: online.waiting
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1702883152023553
+    m_Key: online.disconnected
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1702883152023554
+    m_Key: online.opponentAiming
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1702883152023555
+    m_Key: online.resuming
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1702883152023556
+    m_Key: online.reconnecting
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1716912067104768
+    m_Key: online.noShow
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1718844424900608
+    m_Key: device.title
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1718844454260736
+    m_Key: device.message
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1718844454260737
+    m_Key: device.reconnect
     m_Metadata:
       m_Items: []
   m_Metadata:

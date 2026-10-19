@@ -1,6 +1,7 @@
 using System.IO;
 using System.Linq;
 using FlickCurling.Game;
+using FlickCurling.Game.Online;
 using TMPro;
 using UnityEditor;
 using UnityEditor.SceneManagement;
@@ -157,6 +158,7 @@ namespace FlickCurling.EditorTools
             var popup = (GameObject)PrefabUtility.InstantiatePrefab(popupPrefab, canvasGo.transform);
             popup.SetActive(false);
             var matchSetup = BuildMatchSetup(popupPrefab, canvasGo.transform, buttonFont);
+            var onlineSetup = BuildOnlineSetup(popupPrefab, canvasGo.transform);
             var shop = BuildShop(popupPrefab, canvasGo.transform);
             var settingsPrefab = BuildSettingsPrefab(popupPrefab);
             var settingsGo = (GameObject)PrefabUtility.InstantiatePrefab(settingsPrefab, canvasGo.transform);
@@ -164,12 +166,14 @@ namespace FlickCurling.EditorTools
             var settingsPanel = settingsGo.GetComponent<SettingsPanel>();
             BuildLinkConflictPrefab(popupPrefab);   // loaded when needed, over the settings
             BuildNicknamePrefab(popupPrefab);   // loaded when a new player needs a nickname
+            BuildDevicePrefab(popupPrefab);     // loaded when the account is signed in on another device
 
             var menu = canvasGo.AddComponent<MainMenu>();
             var so = new SerializedObject(menu);
             so.FindProperty("safeArea").objectReferenceValue = safe;
             so.FindProperty("popup").objectReferenceValue = popup.GetComponent<Popup>();
             so.FindProperty("matchSetup").objectReferenceValue = matchSetup;
+            so.FindProperty("onlineSetup").objectReferenceValue = onlineSetup;
             so.FindProperty("settings").objectReferenceValue = settingsPanel;
             so.FindProperty("shop").objectReferenceValue = shop;
             var arr = so.FindProperty("entries");
@@ -247,6 +251,56 @@ namespace FlickCurling.EditorTools
             so.FindProperty("map").objectReferenceValue = map;
             so.FindProperty("levelRow").objectReferenceValue = levelRow.gameObject;
             so.FindProperty("level").objectReferenceValue = level;
+            so.FindProperty("ok").objectReferenceValue = ok;
+            so.ApplyModifiedPropertiesWithoutUndo();
+            go.SetActive(false);
+            return setup;
+        }
+
+        // ---- the online match popup: the mode (random match) and the map as group toggles, and OK (which turns into the
+        // search's elapsed time), laid out like the match setup popup ----
+
+        static readonly Vector2 OnlineSetupSize = new Vector2(860, 764);
+
+        static OnlineSetup BuildOnlineSetup(GameObject popupPrefab, Transform parent)
+        {
+            var go = (GameObject)PrefabUtility.InstantiatePrefab(popupPrefab, parent);
+            go.name = "OnlineSetupPopup";
+            var legendFont = AssetDatabase.LoadAssetAtPath<TMP_FontAsset>(FontBuilder.DisplayPath);
+            var title = go.transform.Find("Window/TitleRow/Title").GetComponent<TextMeshProUGUI>();
+            title.text = UiStrings.Entries.First(e => e[0] == "mainmenu.online")[1];
+            LocalizeEvents.BindText(title, Loc.Table, "mainmenu.online");
+            var icon = go.transform.Find("Window/TitleRow/Icon").GetComponent<Image>();
+            icon.sprite = AssetDatabase.LoadAssetAtPath<Sprite>(IconPath("mainmenu.online"));
+            icon.gameObject.SetActive(true);
+            ((RectTransform)go.transform.Find("Window")).sizeDelta = OnlineSetupSize;
+
+            var content = (RectTransform)go.transform.Find("Window/Content");
+            var v = content.gameObject.AddComponent<VerticalLayoutGroup>();
+            v.spacing = SetupGap; v.childAlignment = TextAnchor.UpperCenter;
+            v.childControlWidth = v.childControlHeight = true;
+            v.childForceExpandWidth = true; v.childForceExpandHeight = false;
+
+            var modeRow = Row(content, "ModeRow");
+            Legend(modeRow, legendFont, "matchsetup.mode");
+            var mode = Toggle(modeRow, new[] { "online.random" }, 0);
+            var mapRow = Row(content, "MapRow");
+            Legend(mapRow, legendFont, "matchsetup.map");
+            var map = Toggle(mapRow, new[] { "map.base" }, 0);
+
+            var spacer = Child<RectTransform>(content, "Spacer");
+            spacer.gameObject.AddComponent<LayoutElement>().flexibleHeight = 1;
+            var okRow = Child<RectTransform>(content, "OkRow");
+            okRow.gameObject.AddComponent<LayoutElement>().preferredHeight = SetupOkH;
+            var okGo = UiPrefabBuilder.Place(UiPrefabBuilder.PrimaryPath, okRow, "Ok");
+            Place((RectTransform)okGo.transform, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(SetupOkW, SetupOkH));
+            var ok = UiPrefabBuilder.SetLabel(okGo, "matchsetup.ok");
+
+            var setup = go.AddComponent<OnlineSetup>();
+            var so = new SerializedObject(setup);
+            so.FindProperty("popup").objectReferenceValue = go.GetComponent<Popup>();
+            so.FindProperty("mode").objectReferenceValue = mode;
+            so.FindProperty("map").objectReferenceValue = map;
             so.FindProperty("ok").objectReferenceValue = ok;
             so.ApplyModifiedPropertiesWithoutUndo();
             go.SetActive(false);
@@ -426,6 +480,48 @@ namespace FlickCurling.EditorTools
             so.ApplyModifiedPropertiesWithoutUndo();
             go.SetActive(false);
             PrefabUtility.SaveAsPrefabAsset(go, NicknamePrefabPath);
+            Object.DestroyImmediate(go);
+        }
+
+        public const string DevicePrefabPath = "Assets/Resources/" + FlickCurling.Game.Account.DevicePopup.ResourcePath + ".prefab";
+
+        // signed in on another device: the message and one button to sign in here again; no way to close it
+        static void BuildDevicePrefab(GameObject popupPrefab)
+        {
+            var go = (GameObject)PrefabUtility.InstantiatePrefab(popupPrefab);
+            go.name = "DevicePopup";
+            var font = AssetDatabase.LoadAssetAtPath<TMP_FontAsset>(FontBuilder.DisplayPath);
+            var title = go.transform.Find("Window/TitleRow/Title").GetComponent<TextMeshProUGUI>();
+            title.text = UiStrings.Entries.First(e => e[0] == "device.title")[1];
+            LocalizeEvents.BindText(title, Loc.Table, "device.title");
+            ((RectTransform)go.transform.Find("Window")).sizeDelta = new Vector2(NickW, 640);
+            go.transform.Find("Window/Close").gameObject.SetActive(false);
+            var content = (RectTransform)go.transform.Find("Window/Content");
+            var v = content.gameObject.AddComponent<VerticalLayoutGroup>();
+            v.spacing = 22; v.childAlignment = TextAnchor.UpperCenter; v.padding = new RectOffset(0, 0, 20, 0);
+            v.childControlWidth = v.childControlHeight = true; v.childForceExpandWidth = true; v.childForceExpandHeight = false;
+
+            var message = Label(content, "Message", font, 36, Ink);
+            message.textWrappingMode = TextWrappingModes.Normal;
+            message.alignment = TextAlignmentOptions.Center;
+            message.text = UiStrings.Entries.First(e => e[0] == "device.message")[1];
+            LocalizeEvents.BindText(message, Loc.Table, "device.message");
+
+            var spacer = Child<RectTransform>(content, "Spacer");
+            spacer.gameObject.AddComponent<LayoutElement>().flexibleHeight = 1;
+            var okRow = Child<RectTransform>(content, "OkRow");
+            okRow.gameObject.AddComponent<LayoutElement>().preferredHeight = SetupOkH;
+            var okGo = UiPrefabBuilder.Place(UiPrefabBuilder.PrimaryPath, okRow, "Reconnect");
+            Place((RectTransform)okGo.transform, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(SetupOkW, SetupOkH));
+            var ok = UiPrefabBuilder.SetLabel(okGo, "device.reconnect");
+
+            var panel = go.AddComponent<FlickCurling.Game.Account.DevicePopup>();
+            var so = new SerializedObject(panel);
+            so.FindProperty("popup").objectReferenceValue = go.GetComponent<Popup>();
+            so.FindProperty("reconnect").objectReferenceValue = ok;
+            so.ApplyModifiedPropertiesWithoutUndo();
+            go.SetActive(false);
+            PrefabUtility.SaveAsPrefabAsset(go, DevicePrefabPath);
             Object.DestroyImmediate(go);
         }
 

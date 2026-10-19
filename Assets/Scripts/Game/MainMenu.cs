@@ -1,4 +1,5 @@
 using System;
+using Cysharp.Threading.Tasks;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -24,6 +25,7 @@ namespace FlickCurling.Game
         [SerializeField] Entry[] entries;
         [SerializeField] Popup popup;
         [SerializeField] MatchSetup matchSetup;
+        [SerializeField] Online.OnlineSetup onlineSetup;
         [SerializeField] SettingsPanel settings;
         [SerializeField] Popup shop;
 
@@ -36,14 +38,36 @@ namespace FlickCurling.Game
             foreach (var e in entries)
             {
                 if (e.Key == "mainmenu.offline") e.Button.onClick.AddListener(matchSetup.Open);
+                else if (e.Key == "mainmenu.online" && onlineSetup) e.Button.onClick.AddListener(onlineSetup.Open);
                 else if (e.Key == "mainmenu.shop") e.Button.onClick.AddListener(() => shop.Show());
                 else if (e.Key == "mainmenu.settings") e.Button.onClick.AddListener(() => settings.Open());
             }
         }
 
         // a new player chooses their nickname first (once signed in, and once the screen fade is done)
-        void OnEnable() { Account.AccountService.Changed += AskNickname; AskNickname(); }
-        void OnDisable() => Account.AccountService.Changed -= AskNickname;
+        void OnEnable() { Account.AccountService.Changed += OnAccount; OnAccount(); }
+        void OnDisable() => Account.AccountService.Changed -= OnAccount;
+
+        void OnAccount() { AskNickname(); ResumeMatch(); }
+
+        // once the game has started and signed in: a match the player was still in goes on (Docs/OnlineMatch.md 5.4)
+        static bool matchChecked;
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        static void ResetStatics() => matchChecked = false;
+
+        void ResumeMatch()
+        {
+            if (matchChecked || Account.DeviceGuard.Displaced || Account.AccountService.Status != Account.AccountService.State.Ready) return;
+            matchChecked = true;
+            Resume().Forget();
+            async Cysharp.Threading.Tasks.UniTaskVoid Resume()
+            {
+                bool back = await Online.OnlineLobby.ResumeActiveAsync(destroyCancellationToken);
+                if (!back || !this) return;
+                MatchLaunch.SetOnline();
+                ScreenFader.WhenClear(() => ScreenFader.LoadScene(MatchLaunch.GameScene));
+            }
+        }
 
         void AskNickname()
         {

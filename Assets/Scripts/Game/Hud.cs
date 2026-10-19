@@ -13,6 +13,10 @@ namespace FlickCurling.Game
     {
         public string Label;
         public Action OnClick;
+        /// <summary>Pressing leaves the card up (the caller hides it, and can change the button with
+        /// <see cref="Hud.SetCardButton"/>): online, a card waits for both players.</summary>
+        public bool KeepOpen;
+        public bool Interactable = true;
         public CardButton(string label, Action onClick) { Label = label; OnClick = onClick; }
     }
 
@@ -443,11 +447,22 @@ namespace FlickCurling.Game
             cardBody.text = c.Body; cardBody.gameObject.SetActive(!string.IsNullOrEmpty(c.Body));
             for (int i = cardActions.childCount - 1; i >= 0; i--) UnityEngine.Object.Destroy(cardActions.GetChild(i).gameObject);
             cardFill = null; cardFirst = null;
+            cardButtons.Clear();
             for (int i = 0; i < c.Buttons.Count; i++)
             {
                 var b = c.Buttons[i];
-                var btn = Ui.Button(cardActions, b.Label, i == 0, () => { cardDeadline = 0; HideCard(); onAnyClick?.Invoke(); b.OnClick(); }, 14, "CardBtn" + i);
-                if (i == 0) { cardFirst = btn; if (cardDeadline > 0) cardFill = CountdownFill(btn); }
+                Button btn = null;
+                btn = Ui.Button(cardActions, b.Label, i == 0, () =>
+                {
+                    cardDeadline = 0;
+                    if (cardFill) { cardFill.gameObject.SetActive(false); cardFill = null; }
+                    if (!b.KeepOpen) HideCard();
+                    onAnyClick?.Invoke();
+                    b.OnClick();
+                }, 14, "CardBtn" + i);
+                btn.interactable = b.Interactable;
+                cardButtons.Add(btn);
+                if (i == 0) { cardFirst = btn; if (cardDeadline > 0 && b.Interactable) cardFill = CountdownFill(btn); }
                 // side by side buttons share one height (the primary's larger text would make it taller)
                 var le = btn.gameObject.AddComponent<LayoutElement>();
                 le.minHeight = le.preferredHeight = CardButtonH;
@@ -456,6 +471,18 @@ namespace FlickCurling.Game
             cardOvImg.sprite = null; cardOvImg.color = Palette.Rgba(20, 13, 8, c.Soft ? .35f : .62f);
             cardRt.anchorMin = cardRt.anchorMax = new Vector2(0.5f, 0.5f); cardRt.pivot = new Vector2(0.5f, 0.5f);
             cardRt.anchoredPosition = new Vector2((insL - insR) / 2, (insB - insT) / 2);
+        }
+
+        readonly List<Button> cardButtons = new List<Button>();
+
+        /// <summary>Changes a button of the card that is up (its text, whether it can be pressed).</summary>
+        public void SetCardButton(int index, string label, bool interactable)
+        {
+            if (!cardShown || index < 0 || index >= cardButtons.Count || !cardButtons[index]) return;
+            var b = cardButtons[index];
+            b.interactable = interactable;
+            var t = Ui.ButtonText(b);
+            if (t && t.text != label) t.text = label;
         }
 
         // gone for the game at once; on screen it fades out like the main menu popup
@@ -512,7 +539,7 @@ namespace FlickCurling.Game
         public void BeginLabels() { used = 0; }
 
         /// <summary>A text at a css-px point (top-left origin). align: -1 left, 0 centre, 1 right of the point. rot in degrees (counter-clockwise).</summary>
-        public void Label(string text, float x, float y, int size, Color color, int align = 0, bool display = false, bool stroke = false, float rot = 0, float scale = 1)
+        public void Label(string text, float x, float y, int size, Color color, int align = 0, bool display = false, bool stroke = false, float rot = 0, float scale = 1, float maxWidth = 0)
         {
             TextMeshProUGUI t;
             if (used < pool.Count) t = pool[used];
@@ -537,6 +564,12 @@ namespace FlickCurling.Game
             rt.sizeDelta = new Vector2(10, size * 1.4f);
             rt.anchoredPosition = new Vector2(x, -y);
             rt.localEulerAngles = new Vector3(0, 0, rot);
+            // wider than maxWidth: shrunk to fit
+            if (maxWidth > 0)
+            {
+                float w = t.GetPreferredValues(text, 100000, 1000).x;
+                if (w * scale > maxWidth) scale = maxWidth / w;
+            }
             rt.localScale = Vector3.one * scale;
         }
 

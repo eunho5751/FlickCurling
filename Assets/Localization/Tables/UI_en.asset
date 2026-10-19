@@ -68,11 +68,6 @@ MonoBehaviour:
     m_Metadata:
       m_Items:
       - rid: 4297768082125881571
-  - m_Id: 2262749184
-    m_Localized: "Watch AI \xB7 {b} {lb} vs {w} {lw}"
-    m_Metadata:
-      m_Items:
-      - rid: 4297768082125881571
   - m_Id: 2262749193
     m_Localized: Settings
     m_Metadata:
@@ -111,14 +106,6 @@ MonoBehaviour:
     m_Metadata:
       m_Items:
       - rid: 4297768082125881571
-  - m_Id: 2262749206
-    m_Localized: End over
-    m_Metadata:
-      m_Items: []
-  - m_Id: 2262749208
-    m_Localized: Turn Order Shot
-    m_Metadata:
-      m_Items: []
   - m_Id: 2262749209
     m_Localized: "Tickets {b} {bn} \xB7 {w} {wn}"
     m_Metadata:
@@ -212,10 +199,6 @@ MonoBehaviour:
       - rid: 4297768082125881571
   - m_Id: 2262749239
     m_Localized: Play again
-    m_Metadata:
-      m_Items: []
-  - m_Id: 2262749240
-    m_Localized: Watch again
     m_Metadata:
       m_Items: []
   - m_Id: 2262749241
@@ -489,6 +472,70 @@ MonoBehaviour:
     m_Localized: Couldn't save the nickname. Please try again.
     m_Metadata:
       m_Items: []
+  - m_Id: 1694707736301568
+    m_Localized: Player
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1694707769856000
+    m_Localized: Player 1
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1694707769856001
+    m_Localized: Player 2
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1694707769856002
+    m_Localized: AI
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1694707769856003
+    m_Localized: '{w}W {l}L {d}D'
+    m_Metadata:
+      m_Items:
+      - rid: 4297768082125881571
+  - m_Id: 1702883118469120
+    m_Localized: Random Match
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1702883152023552
+    m_Localized: "Waiting for opponent\u2026"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1702883152023553
+    m_Localized: Disconnected
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1702883152023554
+    m_Localized: "Opponent is aiming\u2026"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1702883152023555
+    m_Localized: "Returning to the match\u2026"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1702883152023556
+    m_Localized: "Reconnecting\u2026"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1716912067104768
+    m_Localized: Your opponent didn't arrive, so the match was called off
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1718844424900608
+    m_Localized: Signed In Elsewhere
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1718844454260736
+    m_Localized: 'Your account was signed in on another device.
+
+      Reconnect
+      to keep playing here.'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1718844454260737
+    m_Localized: Reconnect
+    m_Metadata:
+      m_Items: []
   references:
     version: 2
     RefIds:
@@ -498,7 +545,6 @@ MonoBehaviour:
         m_Entries: 
         m_SharedEntries:
         - id: 2254360590
-        - id: 2262749184
         - id: 2262749202
         - id: 2262749205
         - id: 2262749209
@@ -518,3 +564,4 @@ MonoBehaviour:
         - id: 2262749228
         - id: 2262749237
         - id: 1099965122138116
+        - id: 1694707769856003

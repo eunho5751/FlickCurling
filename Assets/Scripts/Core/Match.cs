@@ -47,12 +47,12 @@ namespace FlickCurling.Core
     /// judging, scoring, hammer (blank ends pass it), extra end and the last stone draw.
     /// Timing and animation are left to the caller.
     /// </summary>
-    public sealed class Match : IPhysicsEvents
+    public sealed partial class Match : IPhysicsEvents
     {
         public readonly Field Field;
         public readonly PhysicsParams P;
         public readonly int TicketCount;
-        readonly Random rng;
+        Rng rng;
 
         public List<Stone> Stones = new List<Stone>();
         int nextId = 1;
@@ -79,7 +79,7 @@ namespace FlickCurling.Core
             Field = field;
             P = p ?? PhysicsParams.Default;
             TicketCount = ticketCount < 0 ? Sheet.Tickets : ticketCount;
-            rng = new Random(seed);
+            rng = new Rng((ulong)(uint)seed);
             Tickets[0] = Tickets[1] = TicketCount;
         }
 
@@ -158,7 +158,7 @@ namespace FlickCurling.Core
         /// house's centre line and the min line, placed at random but spread out (one in each band from low to high, apart
         /// from every other post), and never inside the house.
         /// </summary>
-        public static Post[] LsdBumpers(Random rng, Post[] avoid)
+        public static Post[] LsdBumpers(Rng rng, Post[] avoid)
         {
             double rr = Sheet.LsdBumperR;
             var list = new List<Post> { new Post(Sheet.TeeX, Sheet.TeeY - Sheet.R - rr - 6, rr) };

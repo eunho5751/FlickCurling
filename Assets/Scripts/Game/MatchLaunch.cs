@@ -21,6 +21,18 @@ namespace FlickCurling.Game
             pending = true; vsAi = againstAi; level = aiLevel; map = mapKey;
         }
 
+        static bool online;
+
+        /// <summary>Queues the online match <see cref="Online.OnlineLobby"/> has just set up.</summary>
+        public static void SetOnline() { online = true; pending = false; }
+
+        public static bool TakeOnline()
+        {
+            if (!online) return false;
+            online = false;
+            return true;
+        }
+
         public static bool Take(out bool againstAi, out AiLevel aiLevel, out string mapKey)
         {
             againstAi = vsAi; aiLevel = level; mapKey = map;

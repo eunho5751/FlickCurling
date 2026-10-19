@@ -1,0 +1,29 @@
+{
+  "$schema": "https://ugs-config-schemas.unity3d.com/v1/matchmaker/matchmaker-queue.schema.json",
+  "name": "quick-match",
+  "enabled": true,
+  "maxPlayersPerTicket": 1,
+  "defaultPool": {
+    "variants": [],
+    "name": "default-pool",
+    "enabled": true,
+    "timeoutSeconds": 60,
+    "matchLogic": {
+      "matchDefinition": {
+        "teams": [
+          {
+            "name": "Player",
+            "teamCount": { "min": 2, "max": 2, "relaxations": [] },
+            "playerCount": { "min": 1, "max": 1, "relaxations": [] },
+            "teamRules": []
+          }
+        ],
+        "matchRules": []
+      },
+      "name": "OneOnOne",
+      "backfillEnabled": false
+    },
+    "matchHosting": { "type": "MatchId" }
+  },
+  "filteredPools": []
+}
