@@ -99,6 +99,7 @@ namespace FlickCurling.Game
 
             // opaque: without the prototype's backdrop blur, a see-through table mixes with the board labels under it
             scorePanel = Ui.Panel(safeRoot, "ScorePanel", Palette.Panel, Palette.Line, 10).rectTransform;
+            scorePanel.anchorMin = scorePanel.anchorMax = new Vector2(0, 1); scorePanel.pivot = new Vector2(0, 1);   // placed in Tick
             Ui.VStack(scorePanel.gameObject, 6, 6, 8, 8, 0);
             Ui.Fit(scorePanel.gameObject, true, true);
             scoreTable = Ui.Rect(scorePanel, "Table");
@@ -156,6 +157,7 @@ namespace FlickCurling.Game
         public void Relocalize()
         {
             foreach (var (t, key) in bound) t.text = Loc.T(key);
+            pillTextW = -1;
             lastTable = null;
         }
 
@@ -164,34 +166,39 @@ namespace FlickCurling.Game
 
         // ---------------- per-frame ----------------
 
+        // only what changed is set: a layout property set to the same value still makes the canvas rebuild
+        static void SetSize(RectTransform rt, Vector2 v) { if (rt.sizeDelta != v) rt.sizeDelta = v; }
+        static void SetPos(RectTransform rt, Vector2 v) { if (rt.anchoredPosition != v) rt.anchoredPosition = v; }
+        static void SetScale(RectTransform rt, Vector3 v) { if (rt.localScale != v) rt.localScale = v; }
+
         public void Tick(float cssPx, float cw, float ch)
         {
-            scaler.scaleFactor = cssPx;
+            if (scaler.scaleFactor != cssPx) scaler.scaleFactor = cssPx;
             // the safe area: everything below is laid out inside it
             float sw = cw - insL - insR, sh = ch - insT - insB;
             if (!sideMode)
             {
-                // top-left corner: the pill as wide as its text, wrapping only if the row is narrower
+                // top-left corner: the pill as wide as its text (measured when the text changes), wrapping only if the
+                // row is narrower
+                if (pillTextW < 0) pillTextW = scorePill.GetPreferredValues(scorePill.text).x;
                 float rowW = sw - 20;
-                float pillW = Mathf.Min(scorePill.GetPreferredValues(scorePill.text).x + 18 + 2, rowW);
-                leftCol.sizeDelta = new Vector2(pillW, leftCol.sizeDelta.y);
+                float pillW = Mathf.Min(pillTextW + 18 + 2, rowW);
+                SetSize(leftCol, new Vector2(pillW, leftCol.sizeDelta.y));
             }
             float cardW = CardWidth(sw);
-            foreach (var rt in new[] { cardRt })
-            {
-                rt.sizeDelta = new Vector2(cardW, rt.sizeDelta.y);
-                // a card taller than the screen shrinks to fit rather than running off it
-                float h = rt.rect.height, room = sh - 32;
-                rt.localScale = Vector3.one * (h > room && h > 0 ? room / h : 1) * (rt == cardRt ? cardPop : 1);
-            }
+            SetSize(cardRt, new Vector2(cardW, cardRt.sizeDelta.y));
+            // a card taller than the screen shrinks to fit rather than running off it
+            float h = cardRt.rect.height, room = sh - 32;
+            SetScale(cardRt, Vector3.one * (h > room && h > 0 ? room / h : 1) * cardPop);
             viewW = cw; viewH = ch;
             TickToasts();
             TickCard();
             var sp = scorePanel;
-            sp.anchorMin = sp.anchorMax = new Vector2(0, 1); sp.pivot = new Vector2(0, 1);
             float under = leftCol.rect.height;
-            sp.anchoredPosition = new Vector2(10, -(10 + under + 4));
+            SetPos(sp, new Vector2(10, -(10 + under + 4)));
         }
+
+        float pillTextW = -1;
 
         public bool HudVisible { set { hudShown = value; ApplyHudVisibility(); if (!value) scorePanel.gameObject.SetActive(false); } }
 
@@ -245,7 +252,7 @@ namespace FlickCurling.Game
             scorePanel.gameObject.SetActive(false);
         }
 
-        public void SetScorePill(string rich) { if (scorePill.text != rich) scorePill.text = rich; }
+        public void SetScorePill(string rich) { if (scorePill.text != rich) { scorePill.text = rich; pillTextW = -1; } }
 
         string lastTable;
 
@@ -533,49 +540,128 @@ namespace FlickCurling.Game
 
         // ---------------- world labels (immediate mode) ----------------
 
-        readonly List<TextMeshProUGUI> pool = new List<TextMeshProUGUI>();
+        // a pooled label and what was last given to it: every property is only set (and the text only measured) when it
+        // changes, so a label that stays the same costs nothing from frame to frame
+        sealed class WorldLabel
+        {
+            public TextMeshProUGUI T;
+            public RectTransform Rt;
+            public string Text;
+            public int Size = -1;
+            public float Width = -1, Measured, Height;
+            public Vector2 Pivot = new Vector2(-1, -1), Pos = new Vector2(float.NaN, float.NaN), SizeDelta = new Vector2(-1, -1);
+            public float Rot = float.NaN, Scale = float.NaN;
+            public bool Wrap;
+        }
+
+        readonly List<WorldLabel> pool = new List<WorldLabel>();
         int used;
 
         public void BeginLabels() { used = 0; }
 
-        /// <summary>A text at a css-px point (top-left origin). align: -1 left, 0 centre, 1 right of the point. rot in degrees (counter-clockwise).</summary>
-        public void Label(string text, float x, float y, int size, Color color, int align = 0, bool display = false, bool stroke = false, float rot = 0, float scale = 1, float maxWidth = 0)
+        WorldLabel Next(int size, Color color)
         {
-            TextMeshProUGUI t;
-            if (used < pool.Count) t = pool[used];
+            WorldLabel l;
+            if (used < pool.Count) l = pool[used];
             else
             {
-                t = Ui.NoWrap(Ui.Label(labelLayer, "", size, color));
-                pool.Add(t);
+                var t = Ui.NoWrap(Ui.Label(labelLayer, "", size, color));
+                t.rectTransform.anchorMin = t.rectTransform.anchorMax = new Vector2(0, 1);
+                l = new WorldLabel { T = t, Rt = t.rectTransform };
+                pool.Add(l);
             }
             used++;
-            if (!t.gameObject.activeSelf) t.gameObject.SetActive(true);
+            if (!l.T.gameObject.activeSelf) l.T.gameObject.SetActive(true);
+            return l;
+        }
+
+        static void Style(WorldLabel l, string text, int size, Color color, int align, bool display, bool stroke, bool wrap)
+        {
+            var t = l.T;
             var font = display ? Ui.Display : Ui.Body;
             if (t.font != font) t.font = font;
             var mat = stroke ? Ui.StrokeFor(font) : font.material;
             if (t.fontSharedMaterial != mat) t.fontSharedMaterial = mat;
-            if (t.text != text) t.text = text;
-            t.fontSize = size;
-            t.color = color;
-            t.alignment = align < 0 ? TextAlignmentOptions.Left : align > 0 ? TextAlignmentOptions.Right : TextAlignmentOptions.Center;
-            var rt = t.rectTransform;
-            rt.anchorMin = rt.anchorMax = new Vector2(0, 1);
-            rt.pivot = new Vector2(align < 0 ? 0 : align > 0 ? 1 : 0.5f, 0.5f);
-            rt.sizeDelta = new Vector2(10, size * 1.4f);
-            rt.anchoredPosition = new Vector2(x, -y);
-            rt.localEulerAngles = new Vector3(0, 0, rot);
-            // wider than maxWidth: shrunk to fit
+            if (l.Wrap != wrap) { l.Wrap = wrap; t.textWrappingMode = wrap ? TextWrappingModes.Normal : TextWrappingModes.NoWrap; l.Width = -1; }
+            if (!ReferenceEquals(l.Text, text) && l.Text != text) { l.Text = text; t.text = text; l.Width = -1; }
+            if (l.Size != size) { l.Size = size; t.fontSize = size; l.Width = -1; }
+            if (t.color != color) t.color = color;
+            // align 2: from the top left (wrapping blocks)
+            var a = align == 2 ? TextAlignmentOptions.TopLeft : align < 0 ? TextAlignmentOptions.Left : align > 0 ? TextAlignmentOptions.Right : TextAlignmentOptions.Center;
+            if (t.alignment != a) t.alignment = a;
+        }
+
+        static void Place(WorldLabel l, Vector2 pivot, Vector2 sizeDelta, Vector2 pos, float rot, float scale)
+        {
+            var rt = l.Rt;
+            if (l.Pivot != pivot) { l.Pivot = pivot; rt.pivot = pivot; }
+            if (l.SizeDelta != sizeDelta) { l.SizeDelta = sizeDelta; rt.sizeDelta = sizeDelta; }
+            if (l.Pos != pos) { l.Pos = pos; rt.anchoredPosition = pos; }
+            if (l.Rot != rot) { l.Rot = rot; rt.localEulerAngles = new Vector3(0, 0, rot); }
+            if (l.Scale != scale) { l.Scale = scale; rt.localScale = Vector3.one * scale; }
+        }
+
+        /// <summary>A text at a css-px point (top-left origin). align: -1 left, 0 centre, 1 right of the point. rot in degrees (counter-clockwise).</summary>
+        public void Label(string text, float x, float y, int size, Color color, int align = 0, bool display = false, bool stroke = false, float rot = 0, float scale = 1, float maxWidth = 0)
+        {
+            var l = Next(size, color);
+            Style(l, text, size, color, align, display, stroke, false);
+            // wider than maxWidth: shrunk to fit (the text is measured again only when it changes)
             if (maxWidth > 0)
             {
-                float w = t.GetPreferredValues(text, 100000, 1000).x;
-                if (w * scale > maxWidth) scale = maxWidth / w;
+                if (l.Width < 0) { l.Width = 0; l.Measured = l.T.GetPreferredValues(text, 100000, 1000).x; }
+                if (l.Measured * scale > maxWidth) scale = maxWidth / l.Measured;
             }
-            rt.localScale = Vector3.one * scale;
+            Place(l, new Vector2(align < 0 ? 0 : align > 0 ? 1 : 0.5f, 0.5f), new Vector2(10, size * 1.4f), new Vector2(x, -y), rot, scale);
+        }
+
+        /// <summary>
+        /// A text block centred on x with its first line's top at yTop (css px), at most <paramref name="maxWidth"/> wide:
+        /// past that it wraps, the first line staying put and the rest stacking under it, left-aligned (with a hanging
+        /// indent, if the text sets one). Returns the height of its lines in css px. Laid out again only when it changes.
+        /// </summary>
+        public float LabelWrapped(string text, float x, float yTop, int size, Color color, float maxWidth, out float width, bool display = false)
+        {
+            var l = Next(size, color);
+            Style(l, text, size, color, 2, display, false, true);
+            if (l.Width != maxWidth)
+            {
+                l.Width = maxWidth;
+                // the block as wide as the text on one line, up to the limit (a little slack, so a line that just fits
+                // is not wrapped by rounding)
+                float one = l.T.GetPreferredValues(text, 100000, 1000).x;
+                l.Measured = Mathf.Min(one, maxWidth) + 2;
+                l.SizeDelta = new Vector2(-1, -1);
+                Place(l, new Vector2(0.5f, 1), new Vector2(l.Measured, size * 4), new Vector2(x, -yTop), 0, 1);
+                // the lines as laid out
+                l.T.ForceMeshUpdate();
+                var ti = l.T.textInfo;
+                l.Height = ti.lineCount > 0 ? ti.lineInfo[0].ascender - ti.lineInfo[ti.lineCount - 1].descender : 0;
+            }
+            Place(l, new Vector2(0.5f, 1), new Vector2(l.Measured, Mathf.Max(l.Height, 1)), new Vector2(x, -yTop), 0, 1);
+            width = l.Measured;
+            return l.Height;
+        }
+
+        TextMeshProUGUI measurer;
+
+        /// <summary>How wide <paramref name="text"/> is on one line at <paramref name="size"/>, in css px.</summary>
+        public float Measure(string text, int size, bool display = false)
+        {
+            if (!measurer)
+            {
+                measurer = Ui.NoWrap(Ui.Label(labelLayer, "", size, Color.clear, false, TextAnchor.MiddleCenter, "Measure"));
+                measurer.rectTransform.anchoredPosition = new Vector2(-10000, 10000);
+            }
+            var font = display ? Ui.Display : Ui.Body;
+            if (measurer.font != font) measurer.font = font;
+            measurer.fontSize = size;
+            return measurer.GetPreferredValues(text, 100000, 1000).x;
         }
 
         public void EndLabels()
         {
-            for (int i = used; i < pool.Count; i++) if (pool[i].gameObject.activeSelf) pool[i].gameObject.SetActive(false);
+            for (int i = used; i < pool.Count; i++) if (pool[i].T.gameObject.activeSelf) pool[i].T.gameObject.SetActive(false);
         }
 
         // ---------------- input ----------------

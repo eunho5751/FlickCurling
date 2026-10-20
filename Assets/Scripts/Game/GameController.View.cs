@@ -545,10 +545,8 @@ namespace FlickCurling.Game
                     DrawAim(aiPull.Ang, (float)aiPull.Pw * Mathf.Min(1, aiPull.T));
                 }
                 DrawStone(lp.x, lp.y, m.Cur, 1, turnPulse);
-                string note = state == St.Remote ? Loc.T("online.opponentAiming")
-                    : state == St.Ai ? Loc.T("ai.thinking", ("name", NameOf(m.Cur)))
-                    : state == St.AiPull && IntentLabel(aiPull) != "" ? Loc.T("ai.pulling", ("name", NameOf(m.Cur)), ("intent", IntentLabel(aiPull))) : "";
-                if (note != "") hud.Label(note, lx, ly - SR * s - 16, 13, Palette.Text, 0, false, true);
+                // online, the opponent's turn is noted over the stone (the AI's turns show nothing)
+                if (state == St.Remote) hud.Label(LT("online.opponentAiming"), lx, ly - SR * s - 16, 13, Palette.Text, 0, false, true);
             }
             // last stone draw: distance from the target
             if (state == St.LsdShow && lsdShow != null && lsdShow.D.HasValue)
@@ -557,7 +555,7 @@ namespace FlickCurling.Game
                 var T = new Vector2((float)m.Lsd.TargetX, (float)m.Lsd.TargetY);
                 var S = new Vector2(lsdShow.X, lsdShow.Y);
                 over.Line(T, T + (S - T) * p, U(2.5f), Gold95);
-                if (p >= 1) hud.Label(lsdShow.D.Value.ToString("0.0"), X(S.x), Y(S.y) - SR * s - 14, 16, Palette.Gold, 0, true, true);
+                if (p >= 1) hud.Label(lsdShow.DText, X(S.x), Y(S.y) - SR * s - 14, 16, Palette.Gold, 0, true, true);
             }
             // end measurement
             if ((state == St.Measure || state == St.EndCard) && measure != null)
@@ -579,7 +577,7 @@ namespace FlickCurling.Game
                         over.Ring(op, SR + 1.5f, U(3), Gold95);
                         var badge = op + new Vector2(SR, SR);
                         over.Disc(badge, U(8), Palette.Brass);
-                        hud.Label(rank.ToString(), X(badge.x), Y(badge.y) + 0.5f, 11, Palette.BrassInk, 0, true);
+                        hud.Label(Num(rank), X(badge.x), Y(badge.y) + 0.5f, 11, Palette.BrassInk, 0, true);
                     }
                 }
                 over.Disc(tee, U(2.5f), Palette.BrassInk);
@@ -629,10 +627,10 @@ namespace FlickCurling.Game
             {
                 aim.Ring(hit.p, hitRingRadius + U(hitRingWidth + 2), U(2), Palette.Hex("#c0503a"));
                 bool leftSide = hit.p.x < W / 2;
-                hud.Label(Loc.T("float.noTicket"), X(hit.p.x) + (leftSide ? 1 : -1) * (hitRingRadius * s + 10), Y(hit.p.y), 12, Palette.Hex("#ff9c84"), leftSide ? -1 : 1, false, true);
+                hud.Label(LT("float.noTicket"), X(hit.p.x) + (leftSide ? 1 : -1) * (hitRingRadius * s + 10), Y(hit.p.y), 12, Palette.Hex("#ff9c84"), leftSide ? -1 : 1, false, true);
             }
             float tl = r0 + 26;
-            if (pw > 0 && showPowerPercent) hud.Label($"{Mathf.RoundToInt(pw * 100)}%", lx + dir.x * tl, ly - dir.y * tl, 15, Palette.Hex("#ffe2a6"), 0, true, true);
+            if (pw > 0 && showPowerPercent) hud.Label(Percent[Mathf.Clamp(Mathf.RoundToInt(pw * 100), 0, 100)], lx + dir.x * tl, ly - dir.y * tl, 15, Palette.Hex("#ffe2a6"), 0, true, true);
         }
 
         // the shot clock as a fuse laid over the min line, burning from the left end toward the right; the burnt part
@@ -666,24 +664,63 @@ namespace FlickCurling.Game
         // it fades while a shot is being aimed so the aim arrow reads over it
         void DrawTurnInfo()
         {
-            var info = TurnInfo();
+            var info = CachedTurnInfo();
             if (!info.HasValue) return;
             float a = Charging || state == St.AiPull ? 0.3f : 0.82f;
             var ink = Palette.Rgba(52, 32, 16, a);
             var (names, records, roles, pips) = info.Value;
-            // each side in its half, top down: the stone and the name (the size the shot count had), the record, then
-            // first/last and the stones left; a long name shrinks to fit its half
+            // each side in its half: a row with first/last and the stones left, centred in the half, then the stone and the
+            // name (a long name wraps under its first letter), then the record (online); sizes and gaps in sheet units
+            // (times s)
+            int nameSize = Mathf.RoundToInt(5.4f * 1.3f * 0.8f * s), small = Mathf.RoundToInt(3.4f * s), pipSize = Mathf.RoundToInt(5.1f * s);
+            // a name wraps past the width of a stone and six letters (measured once per size)
+            if (nameCapSize != nameSize)
+            {
+                nameCapSize = nameSize;
+                nameCap = hud.Measure(Ui.Icon(Team.B, 115) + "\u00A0" + NameCapSample, nameSize, true);
+            }
+            float nameW = Mathf.Min(nameCap, (W / 2 - 4) * s);
+            float rowY = Y(RowY), top = Y(NameY) - nameSize * 0.7f;
             for (int i = 0; i < 2; i++)
             {
                 float cx = X(i == 0 ? W / 4 : W * 3 / 4);
-                float y = 56;
-                hud.Label(names[i], cx, Y(y), Mathf.RoundToInt(5.4f * 1.3f * s), ink, 0, true, maxWidth: (W / 2 - 4) * s);
-                y -= 7.5f;
-                if (records != null) { hud.Label(records[i], cx, Y(y), Mathf.RoundToInt(3.4f * s), ink); y -= 5.5f; }
-                if (roles == null) continue;
-                hud.Label(roles[i], cx, Y(y), Mathf.RoundToInt(3.4f * s), ink, 0, true);
-                hud.Label(pips[i], cx, Y(y - 5.5f), Mathf.RoundToInt(5.1f * s), ink);
+                float h = hud.LabelWrapped(names[i], cx, top, nameSize, ink, nameW, out _, true);
+                if (roles != null) hud.Label(RowText(i, roles[i], pips[i], small), cx, rowY, pipSize, ink, 0, true);
+                if (records != null) hud.Label(records[i], cx, top + h + RecordGap * s + small * 0.7f, small, ink);
             }
+        }
+        const float RowY = 56, NameY = 48;     // sheet y of the first/last row and of the name's first line
+        const float RecordGap = 2.2f;          // between the name's last line and the record
+
+        // "first" or "last", then the stones left, as one line (made again only when one of them changes)
+        readonly string[] rowText = new string[2], rowRole = new string[2], rowPips = new string[2];
+        readonly int[] rowSize = new int[2];
+        string RowText(int i, string role, string pip, int size)
+        {
+            if (!ReferenceEquals(rowRole[i], role) || !ReferenceEquals(rowPips[i], pip) || rowSize[i] != size)
+            {
+                rowRole[i] = role; rowPips[i] = pip; rowSize[i] = size;
+                rowText[i] = $"<size={size}>{role}</size>  {pip}";
+            }
+            return rowText[i];
+        }
+        const string NameCapSample = "테스트ㅇㅇㅇ";   // the widest a name line gets
+        int nameCapSize = -1;
+        float nameCap;
+
+        // strings made once and kept: the cards' and labels' fixed words (per language), numbers, percents
+        static readonly string[] Percent = Enumerable.Range(0, 101).Select(i => i + "%").ToArray();
+        static readonly string[] Nums = Enumerable.Range(0, 32).Select(i => i.ToString()).ToArray();
+        static string Num(int n) => n >= 0 && n < Nums.Length ? Nums[n] : n.ToString();
+        readonly Dictionary<string, string> locCache = new Dictionary<string, string>();
+        int locVersion, locCacheVersion = -1;
+
+        /// <summary>A fixed string of the "UI" table, looked up once per language.</summary>
+        string LT(string key)
+        {
+            if (locCacheVersion != locVersion) { locCache.Clear(); locCacheVersion = locVersion; }
+            if (!locCache.TryGetValue(key, out var v)) locCache[key] = v = Loc.T(key);
+            return v;
         }
 
         void DrawBoardLabels()
@@ -693,8 +730,8 @@ namespace FlickCurling.Game
             foreach (var z in f.Zones)
             {
                 float zx = (float)(z.X1 + z.X2) / 2, zy = (float)(z.Y1 + z.Y2) / 2;
-                if (z.Kind == ZoneKind.Sand) hud.Label(Loc.T("board.sand"), X(zx), Y(zy), 11, Palette.Rgba(70, 46, 18, .8f));
-                else hud.Label(Loc.T("board.ice"), X(zx), Y(zy), 11, Palette.Rgba(40, 70, 100, .75f), 0, false, false, 90);
+                if (z.Kind == ZoneKind.Sand) hud.Label(LT("board.sand"), X(zx), Y(zy), 11, Palette.Rgba(70, 46, 18, .8f));
+                else hud.Label(LT("board.ice"), X(zx), Y(zy), 11, Palette.Rgba(40, 70, 100, .75f), 0, false, false, 90);
             }
         }
 

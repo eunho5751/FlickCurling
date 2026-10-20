@@ -110,7 +110,8 @@ namespace FlickCurling.Core
             foreach (var s in stones)
             {
                 if (!s.Live) continue;
-                if (s.Y - Sheet.SR > Sheet.L + 1) { s.Live = false; s.Flew = true; s.Vx = 0; s.Vy = 0; }
+                // off the far end, or wholly back past the launch end (there is no wall there)
+                if (s.Y - Sheet.SR > Sheet.L + 1 || s.Y + Sheet.SR < 0) { s.Live = false; s.Flew = true; s.Vx = 0; s.Vy = 0; }
             }
         }
 

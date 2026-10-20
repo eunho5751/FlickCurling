@@ -199,46 +199,6 @@ MonoBehaviour:
     m_Key: out.knocked
     m_Metadata:
       m_Items: []
-  - m_Id: 2262749250
-    m_Key: ai.thinking
-    m_Metadata:
-      m_Items: []
-  - m_Id: 2262749251
-    m_Key: ai.pulling
-    m_Metadata:
-      m_Items: []
-  - m_Id: 2262749255
-    m_Key: intent.draw
-    m_Metadata:
-      m_Items: []
-  - m_Id: 2262749256
-    m_Key: intent.guard
-    m_Metadata:
-      m_Items: []
-  - m_Id: 2262749257
-    m_Key: intent.takeout
-    m_Metadata:
-      m_Items: []
-  - m_Id: 2262749258
-    m_Key: intent.hit-stay
-    m_Metadata:
-      m_Items: []
-  - m_Id: 2262749259
-    m_Key: intent.bank
-    m_Metadata:
-      m_Items: []
-  - m_Id: 2262749260
-    m_Key: intent.bank-takeout
-    m_Metadata:
-      m_Items: []
-  - m_Id: 2262749261
-    m_Key: intent.blank
-    m_Metadata:
-      m_Items: []
-  - m_Id: 2262749262
-    m_Key: intent.lsd
-    m_Metadata:
-      m_Items: []
   - m_Id: 2262749264
     m_Key: float.noTicket
     m_Metadata:
@@ -497,6 +457,10 @@ MonoBehaviour:
       m_Items: []
   - m_Id: 1718844454260737
     m_Key: device.reconnect
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2011245731303424
+    m_Key: out.near
     m_Metadata:
       m_Items: []
   m_Metadata:

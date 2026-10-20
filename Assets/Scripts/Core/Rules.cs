@@ -4,7 +4,7 @@ using System.Linq;
 
 namespace FlickCurling.Core
 {
-    public enum OutWhy { None, Hog, Back }
+    public enum OutWhy { None, Hog, Back, Near }   // Near: off the sheet at the launch end
 
     public readonly struct Removal
     {
@@ -34,6 +34,7 @@ namespace FlickCurling.Core
         // The min-line rule applies only to the stone just delivered; a stone already in play that is knocked back stays.
         public static OutWhy OutReason(Stone s, int deliveredId)
         {
+            if (s.Flew && s.Y < Sheet.Hog) return OutWhy.Near;   // went off the launch end
             if (s.Flew || s.Y - Sheet.SR > Sheet.Back) return OutWhy.Back;
             if (s.Id == deliveredId && s.Y - Sheet.SR < Sheet.Hog) return OutWhy.Hog;
             return OutWhy.None;

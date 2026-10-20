@@ -51,7 +51,7 @@ namespace FlickCurling.Game
         sealed class Float { public float X, Y, T; public string Text; }
         sealed class Measure { public float T, Dur; public ScoreResult Sc; public Team PrevHammer; }
         sealed class Restore { public float T; public Dictionary<int, Vector2> From; }
-        sealed class LsdShow { public float X, Y, T; public double? D; }
+        sealed class LsdShow { public float X, Y, T; public double? D; public string DText; }
 
         AiPull aiPull;
         readonly List<Fade> fades = new List<Fade>();
@@ -93,7 +93,6 @@ namespace FlickCurling.Game
         Field shownField;
 
         bool IsAI(Team t) => ai[(int)t].HasValue;
-        string NameOf(Team t) => Loc.Team(t) + (IsAI(t) ? Loc.T("team.ai") : "");
         // the HUD shows the side as a stone icon rather than its name
         string SideOf(Team t, int scalePct = 115) => Ui.Icon(t, scalePct) + (IsAI(t) ? Loc.T("team.ai") : "");
         static string EndLabel(int n) => n <= Sheet.Ends ? Loc.T("hud.end", ("n", n)) : Loc.T("hud.extra");
@@ -242,6 +241,7 @@ namespace FlickCurling.Game
 
         void OnLocaleChanged()
         {
+            locVersion++;
             hud.Relocalize();
             RenderHud();
             if (hud.CardVisible && cardFactory != null) hud.ReplaceCard(cardFactory(), null);
@@ -353,7 +353,7 @@ namespace FlickCurling.Game
             if (!ok) sfx.Void();
             if (!ok) hud.Toast(Loc.T("hud.noRecord"), Loc.T(shortOfHog ? "lsd.shortOfHog" : "lsd.offSheet"), 1800);
             var s = m.ShotStone;
-            lsdShow = ok ? new LsdShow { X = (float)s.X, Y = (float)s.Y, D = d, T = 0 } : new LsdShow { T = 0.6f };
+            lsdShow = ok ? new LsdShow { X = (float)s.X, Y = (float)s.Y, D = d, DText = d.ToString("0.0"), T = 0 } : new LsdShow { T = 0.6f };
             state = St.LsdShow;
             CamTo(HouseView(zoom), 4);
             RenderHud();
@@ -435,13 +435,6 @@ namespace FlickCurling.Game
             aiPull = new AiPull { Ang = d.Ang, Pw = d.Pw, Lx = d.Lx, T = 0, Intent = d.Intent };
         }
 
-        /// <summary>"takeout" and the like, shown while the AI pulls.</summary>
-        static string IntentLabel(AiPull a)
-        {
-            string intent = string.IsNullOrEmpty(a.Intent) ? "" : Loc.T("intent." + a.Intent);
-            return intent;
-        }
-
         void Release(double ang, double pw)
         {
             // online, this device's own shot: the input goes to the opponent first (from then on the shot stands), then
@@ -471,7 +464,8 @@ namespace FlickCurling.Game
             }
             foreach (var r in res.Removed) fades.Add(new Fade { X = (float)r.Stone.X, Y = (float)r.Stone.Y, Team = r.Stone.Team, A = 1 });
             // the shot stone's own fate as the title, then one line per colour knocked out
-            string head = res.ShotWhy == OutWhy.Hog ? Loc.T("out.hog") : res.ShotWhy == OutWhy.Back ? Loc.T("out.back") : null;
+            string head = res.ShotWhy == OutWhy.Hog ? Loc.T("out.hog") : res.ShotWhy == OutWhy.Back ? Loc.T("out.back")
+                : res.ShotWhy == OutWhy.Near ? Loc.T("out.near") : null;
             var knocked = new List<string>();
             foreach (var t in new[] { Team.B, Team.W })
                 if (res.Knocked[(int)t] > 0) knocked.Add(Loc.T("out.knocked", ("team", Ui.Icon(t)), ("n", res.Knocked[(int)t])));
@@ -671,7 +665,9 @@ namespace FlickCurling.Game
         (string[] names, string[] records, string[] roles, string[] pips)? TurnInfo()
         {
             if (state == St.Menu) return null;
-            var names = new[] { $"{Ui.Icon(Left, 115)} {SideName(Left)}", $"{Ui.Icon(Right, 115)} {SideName(Right)}" };
+            // the stone, then the name with a hanging indent: a long name wraps under its own first letter
+            string Name(Team t) => $"{Ui.Icon(t, 115)}\u00A0<indent={NameIndentEm().ToString("0.###", System.Globalization.CultureInfo.InvariantCulture)}em>{SideName(t)}</indent>";
+            var names = new[] { Name(Left), Name(Right) };
             var records = SideRecords();
             if (m.InLsd) return (names, records, null, null);
             string Pips(Team team)
@@ -683,12 +679,39 @@ namespace FlickCurling.Game
                 string now = throwing ? $"<color=#a3341f{(Charging || state == St.AiPull ? "4d" : "")}>●</color>" : "";
                 int rest = throwing ? left - 1 : left;
                 // a little smaller than the side icon, so the pips do not read as more side markers
-                // raised to sit level with the middle of the (larger) side icon
-                return "<size=80%><voffset=0.3em>" + new string('●', rest) + now + new string('○', Sheet.Per - left) + "</voffset></size>";
+                return "<size=80%>" + new string('●', rest) + now + new string('○', Sheet.Per - left) + "</size>";
             }
             // each side's stones left in its own half, under "선공" / "후공"
             string Role(Team team) => Loc.T(m.Hammer == team ? "hud.hammer" : "hud.first");
             return (names, records, new[] { Role(Left), Role(Right) }, new[] { Pips(Left), Pips(Right) });
+        }
+
+        // how far the name starts after the stone, in em (measured once)
+        float nameIndentEm = -1;
+        float NameIndentEm()
+        {
+            if (nameIndentEm < 0)
+                nameIndentEm = (hud.Measure(Ui.Icon(Team.B, 115) + "\u00A0가", 100, true) - hud.Measure("가", 100, true)) / 100f;
+            return nameIndentEm;
+        }
+
+        // the turn info is rebuilt only when something it shows changes (it is drawn every frame)
+        int turnInfoKey;
+        (string[] names, string[] records, string[] roles, string[] pips)? turnInfo;
+
+        (string[] names, string[] records, string[] roles, string[] pips)? CachedTurnInfo()
+        {
+            bool throwing = state == St.Aim || state == St.Ai || state == St.AiPull || state == St.Remote;
+            bool dim = Charging || state == St.AiPull;
+            bool here = mode != Mode.Online || Online.OnlineLobby.OpponentHere;
+            int key = HashCode.Combine(HashCode.Combine(state == St.Menu, state == St.Over, m.InLsd, m.Cur, m.Hammer, m.Shot, m.End, mode),
+                HashCode.Combine(throwing, dim, here, locVersion, Account.AccountService.PlayerName, m));
+            if (key != turnInfoKey || (turnInfo == null && state != St.Menu))
+            {
+                turnInfoKey = key;
+                turnInfo = TurnInfo();
+            }
+            return turnInfo;
         }
 
         /// <summary>What a side is called on the sheet: two players are player 1 (black) and 2; against the AI the

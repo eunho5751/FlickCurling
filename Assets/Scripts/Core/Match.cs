@@ -128,7 +128,7 @@ namespace FlickCurling.Core
             bool ok = s != null && s.Live && !s.Flew && s.Y - Sheet.SR >= Sheet.Hog && s.Y - Sheet.SR <= Sheet.Back;
             double d = ok ? Sheet.Dist(s.X, s.Y, Lsd.TargetX, Lsd.TargetY) : double.PositiveInfinity;
             Lsd.Dist[(int)Cur] = d;
-            shortOfHog = s != null && s.Y - Sheet.SR < Sheet.Hog;
+            shortOfHog = s != null && !s.Flew && s.Y - Sheet.SR < Sheet.Hog;   // off the sheet (either end) is not "short"
             return d;
         }
 

@@ -60,7 +60,8 @@ namespace FlickCurling.Core
         const double TopY = Sheet.L + 60;
 
 
-        static Seg[] BaseWalls() => new[] { new Seg(0, 0, 0, TopY), new Seg(Sheet.W, 0, Sheet.W, TopY), new Seg(0, 0, Sheet.W, 0) };
+        // no wall across the launch end: a stone sent back that way leaves the sheet (and is out)
+        static Seg[] BaseWalls() => new[] { new Seg(0, 0, 0, TopY), new Seg(Sheet.W, 0, Sheet.W, TopY) };
 
         static readonly double[][] LeftKink =
         {
@@ -112,7 +113,6 @@ namespace FlickCurling.Core
                     var right = Mirror(LeftKink);
                     var list = new List<Seg>(Poly(LeftKink));
                     list.AddRange(Poly(right));
-                    list.Add(new Seg(0, 0, Sheet.W, 0));
                     walls = list.ToArray();
                     f.Kinks.Add(Slice(LeftKink, 1, 5));
                     f.Kinks.Add(Slice(right, 1, 5));

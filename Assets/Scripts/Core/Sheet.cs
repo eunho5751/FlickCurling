@@ -59,7 +59,7 @@ namespace FlickCurling.Core
         public Team Team;
         public double X, Y, Vx, Vy;
         public bool Live = true;
-        public bool Flew;    // went past the far end of the sheet
+        public bool Flew;    // went off the sheet (past the far end, or back past the launch end)
         public bool Placed;  // bonus guard
 
         public Stone Clone() => (Stone)MemberwiseClone();

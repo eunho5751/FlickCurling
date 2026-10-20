@@ -218,48 +218,6 @@ MonoBehaviour:
     m_Metadata:
       m_Items:
       - rid: 4297768082125881571
-  - m_Id: 2262749250
-    m_Localized: "{name} is thinking\u2026"
-    m_Metadata:
-      m_Items:
-      - rid: 4297768082125881571
-  - m_Id: 2262749251
-    m_Localized: "{name} \xB7 {intent}"
-    m_Metadata:
-      m_Items:
-      - rid: 4297768082125881571
-  - m_Id: 2262749255
-    m_Localized: draw
-    m_Metadata:
-      m_Items: []
-  - m_Id: 2262749256
-    m_Localized: guard
-    m_Metadata:
-      m_Items: []
-  - m_Id: 2262749257
-    m_Localized: takeout
-    m_Metadata:
-      m_Items: []
-  - m_Id: 2262749258
-    m_Localized: hit and stay
-    m_Metadata:
-      m_Items: []
-  - m_Id: 2262749259
-    m_Localized: bank shot
-    m_Metadata:
-      m_Items: []
-  - m_Id: 2262749260
-    m_Localized: bank takeout
-    m_Metadata:
-      m_Items: []
-  - m_Id: 2262749261
-    m_Localized: blank
-    m_Metadata:
-      m_Items: []
-  - m_Id: 2262749262
-    m_Localized: target throw
-    m_Metadata:
-      m_Items: []
   - m_Id: 2262749264
     m_Localized: No ticket
     m_Metadata:
@@ -536,6 +494,10 @@ MonoBehaviour:
     m_Localized: Reconnect
     m_Metadata:
       m_Items: []
+  - m_Id: 2011245731303424
+    m_Localized: 'Off the near end: no stone'
+    m_Metadata:
+      m_Items: []
   references:
     version: 2
     RefIds:
@@ -556,8 +518,6 @@ MonoBehaviour:
         - id: 2262749232
         - id: 2262749236
         - id: 2262749244
-        - id: 2262749250
-        - id: 2262749251
         - id: 249221082959872
         - id: 263283141431296
         - id: 363280344207360
