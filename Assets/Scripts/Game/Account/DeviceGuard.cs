@@ -33,8 +33,18 @@ namespace FlickCurling.Game.Account
         string subscribedFor = "";
         DevicePopup popup;
 
+        // the app (or the editor's play mode) is closing: the message connection goes down with it, which is no failure
+        static bool quitting;
+
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
-        static void ResetStatics() { Displaced = false; instance = null; }
+        static void ResetStatics()
+        {
+            Displaced = false; instance = null; quitting = false;
+            Application.quitting -= OnQuitting;
+            Application.quitting += OnQuitting;
+        }
+
+        static void OnQuitting() => quitting = true;
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
         static void Create()
@@ -71,13 +81,13 @@ namespace FlickCurling.Game.Account
         {
             await SubscribeAsync();
             try { await CloudCodeService.Instance.CallModuleEndpointAsync(Online.OnlineApi.Module, "ClaimDevice", new Dictionary<string, object> { ["deviceId"] = DeviceId }); }
-            catch (Exception e) { Debug.LogWarning("FlickCurling: claiming the device failed: " + e.Message); }
+            catch (Exception e) { if (!quitting) Debug.LogWarning("FlickCurling: claiming the device failed: " + e.Message); }
         }
 
         async Task SubscribeAsync()
         {
             string player = AccountService.PlayerId;
-            if (subscription != null && subscribedFor == player) return;
+            if (quitting || (subscription != null && subscribedFor == player)) return;
             if (subscription != null)
             {
                 try { await subscription.UnsubscribeAsync(); } catch (Exception) { }
@@ -91,7 +101,7 @@ namespace FlickCurling.Game.Account
                 subscription = await CloudCodeService.Instance.SubscribeToPlayerMessagesAsync(callbacks);
                 subscribedFor = player;
             }
-            catch (Exception e) { Debug.LogWarning("FlickCurling: device messages unavailable: " + e.Message); }
+            catch (Exception e) { if (!quitting) Debug.LogWarning("FlickCurling: device messages unavailable: " + e.Message); }
         }
 
         // back from the background: another device may have signed in meanwhile
@@ -107,7 +117,7 @@ namespace FlickCurling.Game.Account
                     new LoadOptions(new ProtectedReadAccessClassOptions()));
                 current = items.TryGetValue(DeviceKey, out var item) ? item.Value.GetAs<string>() : null;
             }
-            catch (Exception e) { Debug.LogWarning("FlickCurling: checking the device failed: " + e.Message); return; }
+            catch (Exception e) { if (!quitting) Debug.LogWarning("FlickCurling: checking the device failed: " + e.Message); return; }
             if (!string.IsNullOrEmpty(current) && current != DeviceId) StepAside();
         }
 
