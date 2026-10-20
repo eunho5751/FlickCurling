@@ -27,7 +27,7 @@ namespace FlickCurling.Game
         const float CommitStuck = 8;                       // input but no record this long: run the shot here
         const float NextTurnWait = 3;                      // the next turn waits this long at most for the other's playback
 
-        /// <summary>Where a match is, as a device coming back is told (<see cref="OnlineMsg.State"/>).</summary>
+        /// <summary>Where a match is, as each device's card keeps it (<see cref="OnlinePlayerState.State"/>).</summary>
         enum Phase { LsdStartCard = 1, Turn, LsdResultCard, EndCard, Over }
 
         ShotPlayback playback;
@@ -36,8 +36,7 @@ namespace FlickCurling.Game
         (int key, Action go)? waitingCard;
         OnlineMessage? commit;       // the opponent's input for this turn, until its record comes
         float commitAt, doneAt = -100;
-        bool stateWanted;            // the opponent came back and wants the match: send at the next steady point
-        bool awaitingState;          // this device came back: waiting for where the match is
+        bool awaitingState;          // this device came back: waiting for where the match is (the opponent's card)
         Action firstCard;
         Task reportTask;
         string reportedMatch = "";
@@ -68,7 +67,8 @@ namespace FlickCurling.Game
             playback = null;
             myReady.Clear(); oppReady.Clear(); oppDone.Clear(); held.Clear();
             waitingCard = null; commit = null; doneAt = -100;
-            stateWanted = false; reportTask = null; reportedMatch = "";
+            reportTask = null; reportedMatch = "";
+            published = (-1, -1, -1); myStamp = appliedStamp = 0; myData = null; resyncUntil = -1;
             wasHere = true; arriving = false; oppArrived = false;
             myVsAt = oppVsAt = null;   // (the opponent's may come in before this device's panel is up)
             // who is playing, kept for the whole match (the lobby forgets the opponent once the session is left)
@@ -82,8 +82,7 @@ namespace FlickCurling.Game
             {
                 // the match goes on from where the opponent's device has it
                 firstCard = show;
-                OnlineSend(OnlineMsg.StateRequest);
-                hud.Toast(Loc.T("online.resuming"), null, 2400);
+                BeginResync(false);
                 return;
             }
             if (!connecting) Arrived();
@@ -225,7 +224,8 @@ namespace FlickCurling.Game
             state = St.Over;
             playback = null; commit = null; waitingCard = null; clock = -1;
             ResetShotInput(); aiPull = null;
-            hud.ClearToasts(); hud.HideCard();
+            awaitingState = false; resyncUntil = -1;
+            hud.ClearToasts(); hud.HideCard(); hud.HideWaiting();
             RenderHud();
         }
 
@@ -425,9 +425,8 @@ namespace FlickCurling.Game
             TickArrival();
             TickForfeit();
             CheckCard();
-            if (stateWanted) SendStateIfSteady();
-            // nothing came back (the opponent is away too): go on from here, with what the opponent sent meanwhile
-            if (awaitingState && resyncing && Time.unscaledTime - awaitStart > ResyncWait) { awaitingState = resyncing = false; hud.ClearToasts(); }
+            PublishState();
+            TickResync();
             TickReconnect();
             TickRematch();
         }
@@ -453,16 +452,6 @@ namespace FlickCurling.Game
                     if (msg.Seq == CardVs) oppVsAt = msg.A;
                     return true;
                 case OnlineMsg.PlaybackDone: oppDone.Add(msg.Seq); return true;
-                case OnlineMsg.StateRequest:
-                    // both back at once: one answers (the lower player id), the other waits for it
-                    if (awaitingState)
-                    {
-                        if (string.CompareOrdinal(OnlineLobby.MyId, OnlineLobby.OpponentId) >= 0) return true;
-                        awaitingState = resyncing = false;
-                    }
-                    stateWanted = true;
-                    return true;
-                case OnlineMsg.State: if (awaitingState) ApplyState(msg); return true;
             }
             if (awaitingState) return false;
             // turn messages: past turns are dropped, later ones kept, and so is this turn's until it has started here
@@ -498,47 +487,98 @@ namespace FlickCurling.Game
         // ---------------- coming back ----------------
 
         // back from the background in a match: what happened meanwhile is not played through here, the match is taken
-        // as the opponent's device has it (their answer comes at their next steady point: a turn or a card)
+        // as the opponent's device has it (their card, kept by the session's service whether or not they are there)
         void OnApplicationPause(bool paused)
         {
             if (paused || mode != Mode.Online || state == St.Over || awaitingState || connecting || !OnlineLobby.InMatch) return;
-            awaitingState = resyncing = true;
-            awaitStart = Time.unscaledTime;
             CheckSettled().Forget();
             ResetShotInput();
-            OnlineSend(OnlineMsg.StateRequest);
-            hud.ClearToasts();
-            hud.Toast(Loc.T("online.resuming"), null, 2400);
+            BeginResync(true);
         }
-        bool resyncing;
-        float awaitStart;
+
+        // waiting for where the match is: with a match here already (back from the background, or reconnected), for
+        // ResyncWait at most, then on from here; with none (the game opened on a match come back to), until it comes
+        void BeginResync(bool haveMatch)
+        {
+            awaitingState = true;
+            resyncUntil = haveMatch ? Time.unscaledTime + ResyncWait : float.MaxValue;
+            hud.ClearToasts();
+            hud.ShowWaiting(Loc.T("online.resuming"));
+        }
+        float resyncUntil = -1;
         const float ResyncWait = 8;
 
-        // where the match is, sent at a steady point (a turn not yet thrown, or a card)
-        void SendStateIfSteady()
+        // the opponent's card ahead of this device (written later, and not what this device has): the match is taken
+        // from it. Watched until ResyncWait has passed (their device may answer late, its network slow); once the wait
+        // is over here, only at a steady point
+        double appliedStamp;
+
+        void TickResync()
         {
-            if (awaitingState) return;
-            Phase? phase = null;
-            if ((state == St.Aim || state == St.Remote) && !commit.HasValue) phase = Phase.Turn;
-            else if (state == St.Coin && hud.CardVisible) phase = m.InLsd && m.Lsd != null && m.Lsd.Dist[0] == null ? Phase.LsdStartCard : Phase.LsdResultCard;
-            else if (state == St.EndCard && hud.CardVisible && m.NextStep() != AfterEnd.GameOver) phase = Phase.EndCard;
-            else if (state == St.EndCard || state == St.Over) phase = Phase.Over;
-            if (!phase.HasValue) return;
-            stateWanted = false;
-            OnlineSend(OnlineMsg.State, (int)phase.Value, a: deadline, data: m.Capture().ToBytes());
+            if (resyncUntil < 0) return;
+            float now = Time.unscaledTime;
+            var card = OnlinePlayerState.Of(OnlineLobby.OpponentId);
+            var snap = card ? card.State.Value : null;
+            if (snap != null && snap.Data != null && snap.Data.Length > 0 && snap.Stamp > Math.Max(myStamp, appliedStamp)
+                && (awaitingState || SteadyPhase().HasValue) && !SameAsMine(snap))
+            {
+                appliedStamp = snap.Stamp;
+                OnlineLobby.Trace("match state taken from the opponent's card");
+                ApplyState(snap);
+                if (resyncUntil == float.MaxValue) resyncUntil = now + ResyncWait;
+            }
+            if (now <= resyncUntil) return;
+            resyncUntil = -1;
+            // nothing newer came (the opponent is away too): go on from here, with what the opponent sent meanwhile
+            if (awaitingState) { awaitingState = false; hud.HideWaiting(); }
         }
 
-        void ApplyState(OnlineMessage msg)
+        bool SameAsMine(MatchSnapshot snap) =>
+            myData != null && snap.Phase == published.phase && snap.Data.AsSpan().SequenceEqual(myData);
+
+        // ---------------- this device's card ----------------
+
+        // where the match is, written on this device's card at every steady point (a turn not yet thrown, or a card)
+        (int phase, int seq, int end) published = (-1, -1, -1);
+        double myStamp;
+        byte[] myData;
+        OnlinePlayerState publishedOn;   // the card it went on (after a reconnect this device has a new one, written again)
+
+        void PublishState()
+        {
+            if (awaitingState) return;
+            var phase = SteadyPhase();
+            if (!phase.HasValue) return;
+            var key = ((int)phase.Value, TurnSeq, m.End);
+            if (key == published && publishedOn == OnlinePlayerState.Mine) return;
+            var data = m.Capture().ToBytes();
+            double stamp = OnlinePlayerState.Publish((int)phase.Value, deadline, data);
+            if (stamp < 0) return;   // no card yet: written once it is there
+            published = key; myStamp = stamp; myData = data; publishedOn = OnlinePlayerState.Mine;
+        }
+
+        Phase? SteadyPhase()
+        {
+            if ((state == St.Aim || state == St.Remote) && !commit.HasValue) return Phase.Turn;
+            if (state == St.Coin && hud.CardVisible) return m.InLsd && m.Lsd != null && m.Lsd.Dist[0] == null ? Phase.LsdStartCard : Phase.LsdResultCard;
+            if (state == St.EndCard && hud.CardVisible && m.NextStep() != AfterEnd.GameOver) return Phase.EndCard;
+            if (state == St.EndCard || state == St.Over) return Phase.Over;
+            return null;
+        }
+
+        void ApplyState(MatchSnapshot snap)
         {
             MatchState st;
-            try { st = MatchState.FromBytes(msg.Data); }
+            try { st = MatchState.FromBytes(snap.Data); }
             catch (Exception e) { Debug.LogWarning("FlickCurling: bad match state: " + e.Message); return; }
-            awaitingState = resyncing = false;
+            awaitingState = false;
+            hud.HideWaiting();
             hud.ClearToasts(); hud.HideCard();
             playback = null; commit = null; waitingCard = null;
             m.Restore(st);
             fades.Clear(); measure = null; lsdShow = null;
-            switch ((Phase)msg.Seq)
+            published = (-1, -1, -1);   // (written again from here)
+            switch ((Phase)snap.Phase)
             {
                 case Phase.LsdStartCard:
                     state = St.Coin;
@@ -552,7 +592,7 @@ namespace FlickCurling.Game
                     CamTo(AimView(zoom), 3.5f);
                     RenderHud();
                     hud.TurnToast(Loc.T("hud.turn", ("name", SideOf(m.Cur, 130))));
-                    deadline = msg.A;   // the turn's own deadline
+                    deadline = snap.Deadline;   // the turn's own deadline
                     ClockFromDeadline();
                     OnlineTurnStarted();
                     break;
@@ -592,8 +632,7 @@ namespace FlickCurling.Game
             if (r == OnlineLobby.Resume.Ok)
             {
                 reconnecting = false;
-                awaitingState = true;
-                OnlineSend(OnlineMsg.StateRequest);
+                BeginResync(true);
                 CheckSettled().Forget();
                 return;
             }

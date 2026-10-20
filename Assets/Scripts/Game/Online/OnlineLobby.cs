@@ -190,8 +190,8 @@ namespace FlickCurling.Game.Online
                 NetworkTransport = go.GetComponent<UnityTransport>(),
                 EnableSceneManagement = false,   // each device loads its scenes itself
             };
-            var prefab = Resources.Load<GameObject>(OnlineMatchSync.ResourcePath);
-            nm.NetworkConfig.Prefabs.Add(new NetworkPrefab { Prefab = prefab });
+            nm.NetworkConfig.Prefabs.Add(new NetworkPrefab { Prefab = Resources.Load<GameObject>(OnlineMatchSync.ResourcePath) });
+            nm.NetworkConfig.Prefabs.Add(new NetworkPrefab { Prefab = Resources.Load<GameObject>(OnlinePlayerState.ResourcePath) });
             return nm;
         }
 
@@ -491,6 +491,16 @@ namespace FlickCurling.Game.Online
             MyTeam = info.FirstThrower == MyId ? Team.B : Team.W;
         }
 
+        // the opponent's record from the server (their card not there), filled in when it comes
+        static async void FetchOpponentStats()
+        {
+            OpponentStats = null;
+            string opponent = OpponentId;
+            var stats = await OnlineApi.GetStats(opponent);
+            if (OpponentId != opponent) return;   // another match by now
+            OpponentStats = stats?.FirstOrDefault(x => x.PlayerId == opponent);
+        }
+
         // both records, filled in when they come (the records panel and the sheet show them then)
         static async void FetchStats()
         {
@@ -503,7 +513,8 @@ namespace FlickCurling.Game.Online
         }
 
         // connected to the session's network, and the match object there: the session owner makes it (checked again
-        // while waiting, as who owns the session can be settled a moment after connecting), the other gets it
+        // while waiting, as who owns the session can be settled a moment after connecting), the other gets it. Each
+        // device then makes its own card (OnlinePlayerState); the other's, if there, has come with the session.
         static async Task SpawnSync(CancellationToken ct)
         {
             var nm = NetworkManager.Singleton;
@@ -523,6 +534,8 @@ namespace FlickCurling.Game.Online
                 await Task.Delay(50, ct);
             }
             Trace("match object up");
+            if (!OnlinePlayerState.Mine)
+                UnityEngine.Object.Instantiate(Resources.Load<GameObject>(OnlinePlayerState.ResourcePath)).GetComponent<NetworkObject>().Spawn();
         }
 
         static void Watch(ISession s)
@@ -587,6 +600,7 @@ namespace FlickCurling.Game.Online
             Connecting = Task.FromResult(true);
             try
             {
+                MyStats = await OnlineApi.MyStats(MyId);   // (on this device's card, made next)
                 await SpawnSync(ct);
                 MatchId = matchId;
                 var info = await OnlineApi.GetMatch(matchId);
@@ -596,7 +610,15 @@ namespace FlickCurling.Game.Online
                 if (opp != null) OpponentName = NameOf(opp);
                 Settle(info != null && info.Exists ? info : OnlineApi.LocalInfo(matchId, MyId, OpponentId));
                 OnlineApi.RecordReady = Task.FromResult(info);   // the record is there already (or gone)
-                FetchStats();
+                // the opponent's name and record from their card (it came with the session); from the server only if
+                // their device is not in it
+                var card = OnlinePlayerState.Of(OpponentId);
+                if (card)
+                {
+                    if (string.IsNullOrEmpty(OpponentName) || OpponentName == "?") OpponentName = card.Nick.Value.ToString();
+                    OpponentStats = card.Stats ?? new OnlineApi.PlayerStats { PlayerId = OpponentId };
+                }
+                else FetchOpponentStats();
                 Watch(s);
                 OpponentHere = opp != null;
                 Send(HelloMessage());

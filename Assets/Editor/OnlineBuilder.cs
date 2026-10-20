@@ -6,11 +6,13 @@ using UnityEngine;
 namespace FlickCurling.EditorTools
 {
     /// <summary>
-    /// Builds Resources/OnlineMatchSync.prefab (the networked object of an online match) and holds the online test menu.
+    /// Builds Resources/OnlineMatchSync.prefab and Resources/OnlinePlayerState.prefab (the networked objects of an online
+    /// match) and holds the online test menu.
     /// </summary>
     public static class OnlineBuilder
     {
         const string PrefabPath = "Assets/Resources/" + OnlineMatchSync.ResourcePath + ".prefab";
+        const string CardPath = "Assets/Resources/" + OnlinePlayerState.ResourcePath + ".prefab";
         const string TestMenu = "FlickCurling/Online Test/Use Test Session (no matchmaker)";
 
         [MenuItem("FlickCurling/Build Online Prefab")]
@@ -31,6 +33,17 @@ namespace FlickCurling.EditorTools
             PrefabUtility.SaveAsPrefabAsset(go, PrefabPath);
             Object.DestroyImmediate(go);
             Debug.Log("Built " + PrefabPath);
+
+            // each player's card: owned by its device and gone with it (not handed to the other)
+            var card = new GameObject(OnlinePlayerState.ResourcePath);
+            var cno = card.AddComponent<NetworkObject>();
+            card.AddComponent<OnlinePlayerState>();
+            var cso = new SerializedObject(cno);
+            cso.FindProperty("Ownership").intValue = (int)NetworkObject.OwnershipStatus.None;
+            cso.ApplyModifiedPropertiesWithoutUndo();
+            PrefabUtility.SaveAsPrefabAsset(card, CardPath);
+            Object.DestroyImmediate(card);
+            Debug.Log("Built " + CardPath);
         }
 
         [MenuItem(TestMenu)]

@@ -4,7 +4,8 @@ using UnityEngine;
 
 namespace FlickCurling.Game.Online
 {
-    /// <summary>What the two devices of an online match tell each other.</summary>
+    /// <summary>What the two devices of an online match tell each other (where the match is, each keeps on its own
+    /// card instead: <see cref="OnlinePlayerState"/>).</summary>
     public enum OnlineMsg : byte
     {
         Hello,         // here I am (on joining and coming back); Text = my player id
@@ -13,8 +14,6 @@ namespace FlickCurling.Game.Online
         Shot,          // Seq: turn; A, B, C as Commit; Data: its ShotRecord
         Void,          // Seq: turn; the turn ran out of time
         PlaybackDone,  // Seq: turn; I have finished playing the shot
-        StateRequest,  // I came back: send me where the match is
-        State,         // Seq: where the flow is (OnlinePhase); A: the turn's deadline (network time); Data: the match state (MatchState)
         Ping,          // every second, Text = my player id: I am here (see OnlineLobby.OpponentHere)
         Deadline,      // Seq: turn; A: its deadline in network time (the thrower's device sets it)
         Forfeit,       // Text: the winner's player id (the sender gave up, or claims the win over a long disconnection)

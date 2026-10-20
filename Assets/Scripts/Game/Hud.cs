@@ -126,6 +126,15 @@ namespace FlickCurling.Game
             cardGroup = cardOv.gameObject.AddComponent<CanvasGroup>();
             cardOv.gameObject.SetActive(false);
 
+            // ---- waiting overlay: a dim and one pulsing line in the middle (over the cards, under the gear) ----
+            var waitImg = Ui.Rect(root, "WaitOverlay").gameObject.AddComponent<Image>();
+            waitOv = waitImg.rectTransform; Ui.Stretch(waitOv);
+            waitImg.color = Palette.Rgba(20, 13, 8, .62f);   // (it takes the touches: nothing under it is pressed meanwhile)
+            waitText = Ui.Label(waitOv, "", 20, Palette.Brass, true, TextAnchor.MiddleCenter);
+            waitText.raycastTarget = false;
+            Ui.Stretch(waitText.rectTransform);
+            waitOv.gameObject.SetActive(false);
+
             // ---- top right: the settings gear (the main menu's icon), above the overlays ----
             // its own safe-area root, created last so the gear draws above the cards
             safeTop = Ui.Rect(root, "SafeTop"); Ui.Stretch(safeTop);
@@ -171,8 +180,21 @@ namespace FlickCurling.Game
         static void SetPos(RectTransform rt, Vector2 v) { if (rt.anchoredPosition != v) rt.anchoredPosition = v; }
         static void SetScale(RectTransform rt, Vector3 v) { if (rt.localScale != v) rt.localScale = v; }
 
+        /// <summary>Dims the screen with <paramref name="text"/> in the middle, pulsing, until <see cref="HideWaiting"/>.</summary>
+        public void ShowWaiting(string text)
+        {
+            if (waitText.text != text) waitText.text = text;
+            waitOv.gameObject.SetActive(true);
+        }
+
+        public void HideWaiting() { if (waitOv.gameObject.activeSelf) waitOv.gameObject.SetActive(false); }
+
+        readonly RectTransform waitOv;
+        readonly TextMeshProUGUI waitText;
+
         public void Tick(float cssPx, float cw, float ch)
         {
+            if (waitOv.gameObject.activeSelf) waitText.alpha = 0.55f + 0.45f * Mathf.Cos(Time.unscaledTime * 4);
             if (scaler.scaleFactor != cssPx) scaler.scaleFactor = cssPx;
             // the safe area: everything below is laid out inside it
             float sw = cw - insL - insR, sh = ch - insT - insB;
