@@ -48,16 +48,36 @@ namespace FlickCurling.Game.Online
             }
         }
 
+        /// <summary>
+        /// The current match's StartMatch call (it makes the match's record). The game does not wait for it, but the calls
+        /// that need the record (MarkStarted, ReportResult, CancelMatch, Acknowledge) go after it.
+        /// </summary>
+        public static Task RecordReady = Task.CompletedTask;
+
+        static async Task AfterRecord()
+        {
+            try { await RecordReady; } catch (Exception) { }
+        }
+
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        static void ResetStatics() => RecordReady = Task.CompletedTask;
+
+        /// <summary>Makes the match's record if it is not there yet (both players call it) and notes it as the caller's
+        /// current match. Its settings come back too; they are the same as <see cref="LocalInfo"/>.</summary>
         public static Task<MatchInfo> StartMatch(string matchId, string opponentId, string map) =>
             Call<MatchInfo>("StartMatch", new Dictionary<string, object> { ["matchId"] = matchId, ["opponentId"] = opponentId, ["map"] = map });
 
         /// <param name="winner">the winner's player id, or "draw"</param>
         /// <param name="score">the two scores in the order of <see cref="MatchInfo.Players"/></param>
-        public static Task<MatchInfo> ReportResult(string matchId, string winner, int[] score) =>
-            Call<MatchInfo>("ReportResult", new Dictionary<string, object> { ["matchId"] = matchId, ["winner"] = winner, ["score"] = score });
+        public static async Task<MatchInfo> ReportResult(string matchId, string winner, int[] score)
+        {
+            await AfterRecord();
+            return await Call<MatchInfo>("ReportResult", new Dictionary<string, object> { ["matchId"] = matchId, ["winner"] = winner, ["score"] = score });
+        }
 
         public static async Task<bool> Acknowledge(string matchId)
         {
+            await AfterRecord();
             try { await CloudCodeService.Instance.CallModuleEndpointAsync(Module, "Acknowledge", new Dictionary<string, object> { ["matchId"] = matchId }); return true; }
             catch (Exception e) { Debug.LogWarning("FlickCurling: " + Module + ".Acknowledge failed: " + e.Message); return false; }
         }
@@ -66,6 +86,7 @@ namespace FlickCurling.Game.Online
         /// simply deleted).</summary>
         public static async Task<bool> MarkStarted(string matchId)
         {
+            await AfterRecord();
             try { return await CloudCodeService.Instance.CallModuleEndpointAsync<bool>(Module, "MarkStarted", new Dictionary<string, object> { ["matchId"] = matchId }); }
             catch (Exception e) { Debug.LogWarning("FlickCurling: " + Module + ".MarkStarted failed: " + e.Message); return false; }
         }
@@ -73,6 +94,7 @@ namespace FlickCurling.Game.Online
         /// <summary>Calls off a match the opponent never arrived in (only just after it was made); true when it is off.</summary>
         public static async Task<bool> CancelMatch(string matchId)
         {
+            await AfterRecord();
             try { return await CloudCodeService.Instance.CallModuleEndpointAsync<bool>(Module, "CancelMatch", new Dictionary<string, object> { ["matchId"] = matchId }); }
             catch (Exception e) { Debug.LogWarning("FlickCurling: " + Module + ".CancelMatch failed: " + e.Message); return true; }
         }
@@ -102,8 +124,8 @@ namespace FlickCurling.Game.Online
             }
         }
 
-        /// <summary>What the module would decide for a match (the turn order shot's first thrower, the seed), worked out
-        /// here the same way when the module cannot be reached.</summary>
+        /// <summary>What the module decides for a match (the turn order shot's first thrower, the seed), worked out here
+        /// the same way, so the game starts at once. Keep it the same as OnlineMatch.StartMatch in the Cloud Code module.</summary>
         public static MatchInfo LocalInfo(string matchId, string a, string b)
         {
             var players = string.CompareOrdinal(a, b) <= 0 ? new[] { a, b } : new[] { b, a };

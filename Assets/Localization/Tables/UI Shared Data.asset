@@ -491,6 +491,10 @@ MonoBehaviour:
     m_Key: online.forfeitLost
     m_Metadata:
       m_Items: []
+  - m_Id: 2156758594146304
+    m_Key: online.connecting
+    m_Metadata:
+      m_Items: []
   m_Metadata:
     m_Items: []
   m_KeyGenerator:

@@ -11,7 +11,8 @@ namespace FlickCurling.Game.Online
     /// The popup the main menu's "Online Match" button opens (built by MainMenuBuilder on the shared Popup, like the
     /// offline one): the mode (random match only for now) and the map (the basic one), then OK, which starts looking for
     /// an opponent; while it looks, the button shows the time spent ("00:00"), and pressing it again or closing the
-    /// popup stops. A match found goes over to the Game scene.
+    /// popup stops. Once an opponent is found the match can no longer be cancelled: the Game scene opens on it (and if
+    /// the two cannot be connected there, the menu comes back with this popup looking again).
     /// </summary>
     public sealed class OnlineSetup : MonoBehaviour
     {
@@ -37,6 +38,7 @@ namespace FlickCurling.Game.Online
 
         public void Open()
         {
+            OnlineLobby.MeasureRegion();   // ahead of a match (in the background)
             mode.Select(0, false, false);
             map.Select(0, false, false);
             Stop();
@@ -45,11 +47,20 @@ namespace FlickCurling.Game.Online
             popup.Show();
         }
 
+        /// <summary>Opens the popup already looking (back from a match that could not be connected).</summary>
+        public void OpenSearching()
+        {
+            Open();
+            Toggle();
+            OnlineLobby.Trace("search started again (match not connected)");
+        }
+
         void Toggle()
         {
             if (search != null) { Stop(); return; }
             search = new CancellationTokenSource();
             started = Time.unscaledTime;
+            OnlineLobby.Trace("search started (online popup)");
             if (labelLoc) labelLoc.enabled = false;   // the time replaces "OK" until the search stops
             Tick();
             Find(search).Forget();
@@ -68,7 +79,9 @@ namespace FlickCurling.Game.Online
 
         void Stop()
         {
+            if (OnlineLobby.Joining) return;   // a match found is no longer cancelled
             if (search == null) return;
+            OnlineLobby.Trace("search cancelled (online popup)");
             search.Cancel();
             search = null;
             Restore();

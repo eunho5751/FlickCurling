@@ -706,7 +706,8 @@ namespace FlickCurling.Game
             bool dim = Charging || state == St.AiPull;
             bool here = mode != Mode.Online || Online.OnlineLobby.OpponentHere;
             int key = HashCode.Combine(HashCode.Combine(state == St.Menu, state == St.Over, m.InLsd, m.Cur, m.Hammer, m.Shot, m.End, mode),
-                HashCode.Combine(throwing, dim, here, locVersion, Account.AccountService.PlayerName, m));
+                HashCode.Combine(throwing, dim, here, locVersion, Account.AccountService.PlayerName, m,
+                    mode == Mode.Online && Online.OnlineLobby.MyStats != null, mode == Mode.Online && Online.OnlineLobby.OpponentStats != null));
             if (key != turnInfoKey || (turnInfo == null && state != St.Menu))
             {
                 turnInfoKey = key;

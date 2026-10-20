@@ -48,7 +48,15 @@ namespace FlickCurling.Game
         void OnEnable() { Account.AccountService.Changed += OnAccount; OnAccount(); }
         void OnDisable() => Account.AccountService.Changed -= OnAccount;
 
-        void OnAccount() { AskNickname(); ResumeMatch(); }
+        // signed in: also the nearest network region, measured in the background ahead of an online match
+        void OnAccount() { AskNickname(); ResumeMatch(); Online.OnlineLobby.MeasureRegion(); }
+
+        // back from an online match that could not be connected: the search goes on
+        void Start()
+        {
+            if (MatchLaunch.TakeSearchAgain() && onlineSetup)
+                ScreenFader.WhenClear(() => { if (this) onlineSetup.OpenSearching(); });
+        }
 
         // once the game has started and signed in: a match the player was still in goes on (Docs/OnlineMatch.md 5.4)
         static bool matchChecked;

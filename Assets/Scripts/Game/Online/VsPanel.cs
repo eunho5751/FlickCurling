@@ -10,8 +10,9 @@ namespace FlickCurling.Game.Online
     /// The record panel shown as an online match opens (Docs/OnlineMatch.md, 3.3): the opponent's card on top, this
     /// player's at the bottom and VS between them, each card with its stone, nickname and won / lost / drawn. Its own
     /// overlay canvas (1080 x 1920 reference, like the menus); it slides in, holds, fades out and calls back.
-    /// It holds until <c>ready</c> says both players have opened the match, then for the time given from that moment,
-    /// so it ends together on both devices however long each took to get there.
+    /// It ends when <c>endAt</c> says (a time on the clock <c>now</c> reads, shared by both devices): online, the given
+    /// time after the later of the two panels appeared, so both go together however long each device took.
+    /// While <c>connecting</c> says so (the two devices are still being connected), a line under the cards says that.
     /// The art is in Resources/Online (Codex).
     /// </summary>
     public static class VsPanel
@@ -21,8 +22,9 @@ namespace FlickCurling.Game.Online
 
         const float InTime = 0.55f, OutTime = 0.25f;
 
-        /// <summary>Shows the panel; returns it, to be destroyed if the match is called off meanwhile.</summary>
-        public static GameObject Show(Transform parent, int sortingOrder, float seconds, Func<bool> ready, Action done)
+        /// <summary>Shows the panel (<paramref name="shown"/> as it appears); it fades out at <paramref name="endAt"/>
+        /// (null while not known yet). Returns it, to be destroyed if the match is called off meanwhile.</summary>
+        public static GameObject Show(Transform parent, int sortingOrder, Func<double> now, Func<double?> endAt, Func<bool> connecting, Action shown, Action done)
         {
             var go = new GameObject("VsPanel", typeof(RectTransform));
             go.transform.SetParent(parent, false);
@@ -45,6 +47,10 @@ namespace FlickCurling.Game.Online
             var vs = Ui.Rect(go.transform, "Vs").gameObject.AddComponent<Image>();
             vs.sprite = Resources.Load<Sprite>("Online/vs_emblem"); vs.preserveAspect = true; vs.raycastTarget = false;
             vs.rectTransform.sizeDelta = new Vector2(440, 264);
+            var note = Text(go.transform, "Connecting", Loc.T("online.connecting"), 44, Color.white, false);
+            note.alignment = TextAlignmentOptions.Center;
+            note.rectTransform.sizeDelta = new Vector2(CardW, 80);
+            note.rectTransform.anchoredPosition = new Vector2(0, -CardY - CardH / 2 - 90);
 
             // in: the cards slide in from either side and VS pops; out: everything fades
             group.alpha = 0;
@@ -58,34 +64,60 @@ namespace FlickCurling.Game.Online
             seq.Append(vs.rectTransform.DOScale(1, 0.3f).SetEase(Ease.OutBack));
             // then held until both are here, for the time given counted from then (at least the entrance), and faded
             var hold = go.AddComponent<Hold>();
-            hold.Begin(ready, seconds, () =>
+            hold.Records(top.Find("Record").GetComponent<TextMeshProUGUI>(), bottom.Find("Record").GetComponent<TextMeshProUGUI>());
+            hold.Connecting(note, connecting);
+            shown?.Invoke();
+            hold.Begin(now, endAt, () =>
                 DOTween.To(() => group.alpha, a => group.alpha = a, 0, OutTime).SetUpdate(true).SetLink(go)
                     .OnComplete(() => { UnityEngine.Object.Destroy(go); done?.Invoke(); }));
             return go;
         }
 
-        // waits for both players, then counts the panel's time from the later of its own start and that moment
+        // holds until the end time is known and near (the fade-out ends on it), and at least past the entrance
         sealed class Hold : MonoBehaviour
         {
-            Func<bool> ready;
-            float seconds, shown, from = -1;
+            Func<double> now;
+            Func<double?> endAt;
+            float shown;
             Action finish;
 
-            public void Begin(Func<bool> isReady, float time, Action onDone)
+            // the records come from the server while the panel is up (the match does not wait for them)
+            TextMeshProUGUI oppRecord, myRecord;
+            bool oppDone, myDone;
+
+            // "connecting", pulsing, until the two devices are connected
+            TextMeshProUGUI note;
+            Func<bool> connecting;
+
+            public void Connecting(TextMeshProUGUI text, Func<bool> busy)
             {
-                ready = isReady; seconds = time; finish = onDone; shown = Time.unscaledTime;
+                note = text; connecting = busy;
+                note.gameObject.SetActive(connecting != null && connecting());
+            }
+
+            public void Records(TextMeshProUGUI opponent, TextMeshProUGUI mine)
+            {
+                oppRecord = opponent; myRecord = mine;
+                oppDone = OnlineLobby.OpponentStats != null; myDone = OnlineLobby.MyStats != null;
+            }
+
+            public void Begin(Func<double> clock, Func<double?> end, Action onDone)
+            {
+                now = clock; endAt = end; finish = onDone; shown = Time.unscaledTime;
             }
 
             void Update()
             {
-                if (finish == null) return;
-                if (from < 0)
+                if (!oppDone && OnlineLobby.OpponentStats != null) { oppDone = true; oppRecord.text = RecordText(OnlineLobby.OpponentStats); }
+                if (!myDone && OnlineLobby.MyStats != null) { myDone = true; myRecord.text = RecordText(OnlineLobby.MyStats); }
+                if (note && note.gameObject.activeSelf)
                 {
-                    if (ready != null && !ready()) return;
-                    from = Time.unscaledTime;
+                    if (connecting == null || !connecting()) note.gameObject.SetActive(false);
+                    else note.alpha = 0.55f + 0.45f * Mathf.Cos(Time.unscaledTime * 4);
                 }
-                float end = Mathf.Max(from + seconds, shown + InTime + 0.3f) - OutTime;
-                if (Time.unscaledTime < end) return;
+                if (finish == null || Time.unscaledTime < shown + InTime + 0.3f) return;
+                var end = endAt();
+                if (!end.HasValue || now() < end.Value - OutTime) return;
                 var f = finish; finish = null;
                 f();
             }
@@ -94,6 +126,9 @@ namespace FlickCurling.Game.Online
         // to x = 0 (its place), easing out
         static Tween SlideX(RectTransform rt, float t) =>
             DOTween.To(() => rt.anchoredPosition.x, x => rt.anchoredPosition = new Vector2(x, rt.anchoredPosition.y), 0, t).SetEase(Ease.OutCubic);
+
+        static string RecordText(OnlineApi.PlayerStats stats) =>
+            stats != null ? Loc.T("hud.record", ("w", stats.W), ("l", stats.L), ("d", stats.D)) : "-";
 
         static RectTransform Card(Transform parent, string name, Vector2 pos, string stone, string nick, OnlineApi.PlayerStats stats)
         {
@@ -114,8 +149,7 @@ namespace FlickCurling.Game.Online
             var n = Text(card, "Name", string.IsNullOrEmpty(nick) ? "?" : nick, 64, Ink, true);
             Place(n.rectTransform, textX, 34, CardW - textX - 60, 100);
             n.enableAutoSizing = true; n.fontSizeMin = 36; n.fontSizeMax = 64;
-            string rec = stats != null ? Loc.T("hud.record", ("w", stats.W), ("l", stats.L), ("d", stats.D)) : "-";
-            var r = Text(card, "Record", rec, 44, Value, false);
+            var r = Text(card, "Record", RecordText(stats), 44, Value, false);
             Place(r.rectTransform, textX, -54, CardW - textX - 60, 72);
             return card;
         }

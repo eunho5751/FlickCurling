@@ -56,16 +56,21 @@ namespace FlickCurling.Game
         {
             awaitingState = OnlineLobby.TakeResuming();
             playingMatch = OnlineLobby.MatchId;
+            connect = OnlineLobby.Connecting;
+            connecting = !connect.IsCompleted;
+            OnlineLobby.Trace("game scene opened");
             StartMatch(Mode.Online, OnlineLobby.Map);
         }
 
         void OnlineReset()
         {
+            vsUp = false;
             playback = null;
             myReady.Clear(); oppReady.Clear(); oppDone.Clear(); held.Clear();
             waitingCard = null; commit = null; doneAt = -100;
             stateWanted = false; reportTask = null; reportedMatch = "";
             wasHere = true; arriving = false; oppArrived = false;
+            myVsAt = oppVsAt = null;   // (the opponent's may come in before this device's panel is up)
             // who is playing, kept for the whole match (the lobby forgets the opponent once the session is left)
             myName = OnlineLobby.MyName; oppName = OnlineLobby.OpponentName;
             myStats = OnlineLobby.MyStats; oppStats = OnlineLobby.OpponentStats;
@@ -81,21 +86,79 @@ namespace FlickCurling.Game
                 hud.Toast(Loc.T("online.resuming"), null, 2400);
                 return;
             }
-            // here: the opponent waits for this before the match starts (and this device for theirs)
-            myReady.Add(CardArrive);
-            OnlineSend(OnlineMsg.Ready, CardArrive);
-            arriving = true; arriveStart = Time.unscaledTime;
+            if (!connecting) Arrived();
             ScreenFader.WhenClear(() =>
             {
                 if (!this) return;
-                // held until the opponent has opened the match too, so both panels end (and the first card shows) together
+                // both panels end together: each device tells the other when its panel appeared (network time, so once
+                // connected), and both end it the panel's time after the later of the two
                 int tok = token;
-                vsPanel = VsPanel.Show(transform, hud.Canvas.sortingOrder + 20, VsSeconds, () => !arriving,
-                    () => { if (this && tok == token) show(); });
+                vsPanel = VsPanel.Show(transform, hud.Canvas.sortingOrder + 20, () => Now, VsEnd, () => connecting,
+                    () => { vsUp = true; OnlineLobby.Trace("records panel shown"); if (!connecting) VsShown(); },
+                    () => { OnlineLobby.Trace("records panel closed (both shown " + (oppVsAt.HasValue ? "" : "not ") + "known), first card"); if (this && tok == token) show(); });
             });
         }
-        const float VsSeconds = 2.5f;
+
+        // here: the opponent waits for this before the match starts (and this device for theirs)
+        void Arrived()
+        {
+            myReady.Add(CardArrive);
+            OnlineSend(OnlineMsg.Ready, CardArrive);
+            arriving = true; arriveStart = Time.unscaledTime;
+        }
+
+        void VsShown()
+        {
+            myVsAt = Now; vsShownReal = Time.unscaledTime;
+            OnlineSend(OnlineMsg.Ready, CardVs, a: myVsAt.Value);
+        }
+        bool vsUp;
+
+        // ---------------- connecting ----------------
+
+        // the scene opens as soon as the opponent is known, the two devices connecting behind the records panel (which
+        // says so): then the match goes on as usual; if that fails, back to the menu, looking for another opponent
+        Task<bool> connect;
+        bool connecting;
+
+        void TickConnect()
+        {
+            if (!connecting || !connect.IsCompleted) return;
+            connecting = false;
+            if (!connect.Result) { ConnectFailed(); return; }
+            OnlineLobby.Trace("connected in the game");
+            if (awaitingState) return;
+            Arrived();
+            if (vsUp) VsShown();
+            RenderHud();
+        }
+
+        void ConnectFailed()
+        {
+            OnlineLobby.Trace("could not connect the match, looking again");
+            if (vsPanel) Destroy(vsPanel);
+            string id = playingMatch;
+            reportedMatch = id;   // nothing to report
+            OffTheSheet();
+            if (!string.IsNullOrEmpty(id)) _ = OnlineApi.CancelMatch(id);
+            MatchLaunch.SetSearchAgain();
+            ToMenu();
+        }
+        const float VsSeconds = 2.5f, VsWaitMax = 10;
+        const int CardVs = 3;   // Ready key: my records panel appeared (A: when, in network time)
         GameObject vsPanel;
+        double? myVsAt, oppVsAt;
+        float vsShownReal;
+
+        // when the panel ends: after both appeared; if the opponent's never comes (gone, or something lost), from this
+        // device's own after a while
+        double? VsEnd()
+        {
+            if (!myVsAt.HasValue) return null;
+            if (oppVsAt.HasValue) return Math.Max(myVsAt.Value, oppVsAt.Value) + VsSeconds;
+            if (!OnlineLobby.OpponentInSession || Time.unscaledTime - vsShownReal > VsWaitMax) return myVsAt.Value + VsSeconds;
+            return null;
+        }
 
         // ---------------- an opponent who never arrives ----------------
 
@@ -112,6 +175,7 @@ namespace FlickCurling.Game
             if (!arriving) return;
             if (oppReady.Contains(CardArrive) || oppArrived)
             {
+                OnlineLobby.Trace("opponent arrived in the game");
                 // both here: the match has started (from now on leaving it counts)
                 arriving = false;
                 if (!string.IsNullOrEmpty(OnlineLobby.MatchId)) _ = OnlineApi.MarkStarted(OnlineLobby.MatchId);
@@ -122,6 +186,8 @@ namespace FlickCurling.Game
         }
 
         // the opponent never came: the match is off (no record for anyone) and this player looks for another one
+        const float NoShowSettle = 2;
+
         void NoShow()
         {
             arriving = false;
@@ -129,9 +195,17 @@ namespace FlickCurling.Game
             string id = OnlineLobby.MatchId;
             reportedMatch = id;   // nothing to report
             OffTheSheet();
-            _ = OnlineLobby.LeaveAsync();
             if (!string.IsNullOrEmpty(id)) _ = OnlineApi.CancelMatch(id);
-            StartRematch();
+            // the session is left (and the next search started) a moment later: the opponent having just left, the SDK is
+            // still taking that in (it restarts the session's network as the new owner), and leaving under it only breaks
+            // that with errors
+            _ = OnlineLobby.LeaveSettledAsync();
+            LookAgainSoon().Forget();
+            async UniTaskVoid LookAgainSoon()
+            {
+                if (await UniTask.Delay(TimeSpan.FromSeconds(NoShowSettle), DelayType.Realtime, cancellationToken: destroyCancellationToken).SuppressCancellationThrow()) return;
+                if (rematch == null && state == St.Over && hud.CardVisible) { StartRematch(); hud.SetCardButton(0, Elapsed(), true); }
+            }
             ShowCard(() => new CardSpec
             {
                 Eyebrow = Loc.T("mainmenu.online"),
@@ -165,7 +239,7 @@ namespace FlickCurling.Game
         {
             rematch?.Cancel();
             rematch = null;
-            if (IsOnline) _ = leaveSoon ? OnlineLobby.LeaveAfterAsync(0.5f) : OnlineLobby.LeaveAsync();
+            if (IsOnline) _ = leaveSoon ? OnlineLobby.LeaveAfterAsync(0.5f) : OnlineLobby.LeaveWhenSettledAsync();
         }
         bool leaveSoon;
 
@@ -185,10 +259,12 @@ namespace FlickCurling.Game
         /// <summary>Whether the side is the opponent and their device is not heard now (shown under their name while the
         /// match is on).</summary>
         bool SideDisconnected(Team t) =>
-            mode == Mode.Online && t != OnlineLobby.MyTeam && state != St.Over && !OnlineLobby.OpponentHere;
+            mode == Mode.Online && t != OnlineLobby.MyTeam && state != St.Over && !connecting && !OnlineLobby.OpponentHere;
 
         string[] OnlineRecords()
         {
+            // filled in when the server's answer comes (the match does not wait for it)
+            myStats ??= OnlineLobby.MyStats; oppStats ??= OnlineLobby.OpponentStats;
             string Rec(OnlineApi.PlayerStats s) => s == null ? "" : Loc.T("hud.record", ("w", s.W), ("l", s.L), ("d", s.D));
             var mine = Rec(myStats); var theirs = Rec(oppStats);
             return Left == OnlineLobby.MyTeam ? new[] { mine, theirs } : new[] { theirs, mine };
@@ -331,6 +407,7 @@ namespace FlickCurling.Game
         void OnlineUpdate()
         {
             if (!IsOnline) return;
+            TickConnect();
             // the match is over here, or the next one has been found: its messages wait for the next scene
             if (string.IsNullOrEmpty(playingMatch) || OnlineLobby.MatchId != playingMatch) { TickRematch(); return; }
             while (OnlineLobby.Inbox.Count > 0) held.Add(OnlineLobby.Inbox.Dequeue());
@@ -371,7 +448,10 @@ namespace FlickCurling.Game
                         EndByForfeit(won ? "online.forfeitWin" : "online.forfeitLost", won ? OnlineLobby.MyId : null);
                     }
                     return true;
-                case OnlineMsg.Ready: oppReady.Add(msg.Seq); return true;
+                case OnlineMsg.Ready:
+                    oppReady.Add(msg.Seq);
+                    if (msg.Seq == CardVs) oppVsAt = msg.A;
+                    return true;
                 case OnlineMsg.PlaybackDone: oppDone.Add(msg.Seq); return true;
                 case OnlineMsg.StateRequest:
                     // both back at once: one answers (the lower player id), the other waits for it
@@ -421,7 +501,7 @@ namespace FlickCurling.Game
         // as the opponent's device has it (their answer comes at their next steady point: a turn or a card)
         void OnApplicationPause(bool paused)
         {
-            if (paused || mode != Mode.Online || state == St.Over || awaitingState || !OnlineLobby.InMatch) return;
+            if (paused || mode != Mode.Online || state == St.Over || awaitingState || connecting || !OnlineLobby.InMatch) return;
             awaitingState = resyncing = true;
             awaitStart = Time.unscaledTime;
             CheckSettled().Forget();
@@ -548,12 +628,13 @@ namespace FlickCurling.Game
         // ---------------- forfeits ----------------
 
         // the match has started (both opened it) and is not over: leaving it, or being away too long, forfeits it
-        bool MatchUnderWay => IsOnline && state != St.Over && !arriving && !string.IsNullOrEmpty(playingMatch) && OnlineLobby.MatchId == playingMatch;
+        bool MatchUnderWay => IsOnline && state != St.Over && !connecting && !arriving && !string.IsNullOrEmpty(playingMatch) && OnlineLobby.MatchId == playingMatch;
 
         /// <summary>"Back to the main menu" (the settings popup): online, during a match, that gives the match up, so it
         /// asks first; otherwise straight to the menu.</summary>
         void RequestMenu()
         {
+            if (connecting) return;   // the match found is being connected: it cannot be left half way
             if (!MatchUnderWay) { ToMenu(); return; }
             var under = hud.CardVisible ? cardFactory : null;   // a card that was up comes back if the player stays
             ShowCard(() => new CardSpec
@@ -628,7 +709,7 @@ namespace FlickCurling.Game
                 if (winner != null) await OnlineApi.ReportResult(id, winner, score);
                 await OnlineApi.Acknowledge(id);
             }
-            _ = OnlineLobby.LeaveAsync();
+            _ = OnlineLobby.LeaveSettledAsync();
             ShowCard(() => new CardSpec
             {
                 Eyebrow = Loc.T("over.eyebrow"),
@@ -681,8 +762,10 @@ namespace FlickCurling.Game
         // play again: look for a new opponent (the button shows the time spent); pressed again, stop looking
         void ToggleRematch()
         {
+            if (OnlineLobby.Joining) return;   // a match found is no longer cancelled
             if (rematch != null)
             {
+                OnlineLobby.Trace("search cancelled (result card)");
                 rematch.Cancel(); rematch = null;
                 hud.SetCardButton(0, Loc.T("over.again"), true);
                 return;
@@ -693,6 +776,7 @@ namespace FlickCurling.Game
 
         void StartRematch()
         {
+            OnlineLobby.Trace("search started (result card)");
             rematch = new CancellationTokenSource();
             rematchStart = Time.unscaledTime;
             FindAgain(rematch).Forget();

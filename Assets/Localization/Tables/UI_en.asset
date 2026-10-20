@@ -526,6 +526,10 @@ MonoBehaviour:
     m_Localized: You were disconnected and lost by forfeit
     m_Metadata:
       m_Items: []
+  - m_Id: 2156758594146304
+    m_Localized: "Connecting to your opponent\u2026"
+    m_Metadata:
+      m_Items: []
   references:
     version: 2
     RefIds:

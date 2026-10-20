@@ -26,6 +26,18 @@ namespace FlickCurling.Game
         /// <summary>Queues the online match <see cref="Online.OnlineLobby"/> has just set up.</summary>
         public static void SetOnline() { online = true; pending = false; }
 
+        static bool searchAgain;
+
+        /// <summary>The online match found could not be connected: the main menu, back, looks for another one at once.</summary>
+        public static void SetSearchAgain() => searchAgain = true;
+
+        public static bool TakeSearchAgain()
+        {
+            bool r = searchAgain;
+            searchAgain = false;
+            return r;
+        }
+
         public static bool TakeOnline()
         {
             if (!online) return false;

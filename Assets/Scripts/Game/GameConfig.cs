@@ -27,6 +27,8 @@ namespace FlickCurling.Game
         [Header("Online")]
         [Tooltip("Seconds an online opponent may be disconnected at a stretch before the other player wins by forfeit")]
         [Range(10f, 300f)] public float forfeitSeconds = 30;
+        [Tooltip("Seconds to wait, once a match is found, for the opponent to show up in the match's session (normally 1 to 3); past it the match is taken as called off on their side and the search goes on")]
+        [Range(2f, 30f)] public float opponentJoinSeconds = 10;
 
         [Header("Stones")]
         [Tooltip("Stone radius in sheet units (the sheet is 100 wide; the house radius is 28)")]
