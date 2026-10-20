@@ -128,7 +128,7 @@ namespace FlickCurling.Game.Online
             DOTween.To(() => rt.anchoredPosition.x, x => rt.anchoredPosition = new Vector2(x, rt.anchoredPosition.y), 0, t).SetEase(Ease.OutCubic);
 
         static string RecordText(OnlineApi.PlayerStats stats) =>
-            stats != null ? Loc.T("hud.record", ("w", stats.W), ("l", stats.L), ("d", stats.D)) : "-";
+            Loc.T("hud.record", ("w", stats?.W ?? 0), ("l", stats?.L ?? 0), ("d", stats?.D ?? 0));   // none: all zero
 
         static RectTransform Card(Transform parent, string name, Vector2 pos, string stone, string nick, OnlineApi.PlayerStats stats)
         {

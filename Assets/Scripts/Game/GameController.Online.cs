@@ -265,7 +265,7 @@ namespace FlickCurling.Game
         {
             // filled in when the server's answer comes (the match does not wait for it)
             myStats ??= OnlineLobby.MyStats; oppStats ??= OnlineLobby.OpponentStats;
-            string Rec(OnlineApi.PlayerStats s) => s == null ? "" : Loc.T("hud.record", ("w", s.W), ("l", s.L), ("d", s.D));
+            string Rec(OnlineApi.PlayerStats s) => Loc.T("hud.record", ("w", s?.W ?? 0), ("l", s?.L ?? 0), ("d", s?.D ?? 0));   // none: all zero
             var mine = Rec(myStats); var theirs = Rec(oppStats);
             return Left == OnlineLobby.MyTeam ? new[] { mine, theirs } : new[] { theirs, mine };
         }

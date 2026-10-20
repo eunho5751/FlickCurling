@@ -108,6 +108,25 @@ namespace FlickCurling.Game.Online
         public static Task<List<PlayerStats>> GetStats(params string[] playerIds) =>
             Call<List<PlayerStats>>("GetStats", new Dictionary<string, object> { ["playerIds"] = playerIds });
 
+        /// <summary>The signed-in player's own won / lost / drawn, read straight from their protected player data (the module
+        /// writes it; nothing yet: all zero), or null if it could not be read.</summary>
+        public static async Task<PlayerStats> MyStats(string playerId)
+        {
+            try
+            {
+                var items = await CloudSaveService.Instance.Data.Player.LoadAsync(new HashSet<string> { StatsKey },
+                    new LoadOptions(new ProtectedReadAccessClassOptions()));
+                var s = items.TryGetValue(StatsKey, out var item) ? item.Value.GetAs<PlayerStats>() : null;
+                return new PlayerStats { PlayerId = playerId, W = s?.W ?? 0, L = s?.L ?? 0, D = s?.D ?? 0 };
+            }
+            catch (Exception e)
+            {
+                Debug.LogWarning("FlickCurling: reading the records failed: " + e.Message);
+                return null;
+            }
+        }
+        const string StatsKey = "stats";   // (as the module keeps it)
+
         /// <summary>The match the signed-in player is in, as the module last noted it (protected player data), or null.</summary>
         public static async Task<string> ActiveMatchId()
         {
