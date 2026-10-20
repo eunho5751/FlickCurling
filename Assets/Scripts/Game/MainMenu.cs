@@ -58,7 +58,7 @@ namespace FlickCurling.Game
                 ScreenFader.WhenClear(() => { if (this) onlineSetup.OpenSearching(); });
         }
 
-        // once the game has started and signed in: a match the player was still in goes on (Docs/OnlineMatch.md 5.4)
+        // once the game has started and signed in: a match the player was still in (the app closed in it) is lost
         static bool matchChecked;
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
         static void ResetStatics() => matchChecked = false;
@@ -67,14 +67,7 @@ namespace FlickCurling.Game
         {
             if (matchChecked || Account.DeviceGuard.Displaced || Account.AccountService.Status != Account.AccountService.State.Ready) return;
             matchChecked = true;
-            Resume().Forget();
-            async Cysharp.Threading.Tasks.UniTaskVoid Resume()
-            {
-                bool back = await Online.OnlineLobby.ResumeActiveAsync(destroyCancellationToken);
-                if (!back || !this) return;
-                MatchLaunch.SetOnline();
-                ScreenFader.WhenClear(() => ScreenFader.LoadScene(MatchLaunch.GameScene));
-            }
+            _ = Online.OnlineApi.SettleLeftMatch();
         }
 
         void AskNickname()

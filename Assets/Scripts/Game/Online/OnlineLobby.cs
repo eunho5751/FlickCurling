@@ -22,14 +22,12 @@ namespace FlickCurling.Game.Online
     /// Distributed Authority session (NGO; the network manager lives across scenes), tells the server (OnlineApi) and
     /// keeps who is who: the match id, both players, which side (team) this device plays, the seed, both records.
     /// Messages for the game (<see cref="OnlineMatchSync"/>) wait in <see cref="Inbox"/> until it reads them.
-    /// A player who drops out gets back in with <see cref="ResumeAsync"/> (the session id is the match id).
+    /// A device dropped from the session's network has lost the match (Docs/OnlineMatch.md): there is no way back in.
     /// </summary>
     public static class OnlineLobby
     {
         public const string Queue = "quick-match";
         const string NickKey = "nick", MatchKey = "match";
-
-        public enum Resume { Ok, Gone, Failed }
 
         public static ISession Session { get; private set; }
         public static string MatchId { get; private set; } = "";
@@ -45,22 +43,17 @@ namespace FlickCurling.Game.Online
         public static OnlineApi.PlayerStats MyStats { get; private set; }
         public static OnlineApi.PlayerStats OpponentStats { get; private set; }
         public static bool InMatch => Session != null && !string.IsNullOrEmpty(MatchId);
-        /// <summary>In a match but out of its session (the connection dropped): get back in with <see cref="ResumeAsync"/>.</summary>
-        public static bool Lost => Session == null && !string.IsNullOrEmpty(MatchId) && connectingNow == 0;
+        /// <summary>This device is on the match's network (false once it has been dropped from it: the match is lost).</summary>
+        public static bool NetworkUp => Session != null && NetworkManager.Singleton && NetworkManager.Singleton.IsConnectedClient;
+        /// <summary>The opponent's device is on the match's network (their card is there; the service takes it away about
+        /// 10 s after their device stops answering, or at once when they leave).</summary>
+        public static bool OpponentPresent => OnlinePlayerState.Of(OpponentId) != null;
         /// <summary>
         /// The match found being connected (<see cref="FindAsync"/> returns as soon as the opponent is known, and the
         /// game scene opens on it while this goes on): true once the two are connected, false if that failed (then the
-        /// match is left and forgotten). Done already (true) for a match come back to.
+        /// match is left and forgotten).
         /// </summary>
         public static Task<bool> Connecting { get; private set; } = Task.FromResult(true);
-        /// <summary>Whether the opponent is connected now: in the session, and heard from lately (their device sends a
-        /// heartbeat every second; one that has crashed, lost its network or sits paused in the background goes quiet
-        /// long before the session notices).</summary>
-        public static bool OpponentHere
-        {
-            get => inSession && Time.realtimeSinceStartup - lastHeard < HeardWithin;
-            private set { inSession = value; if (value) lastHeard = Time.realtimeSinceStartup; }
-        }
         /// <summary>
         /// The session's clock in seconds (NGO's server time, kept by the Distributed Authority service and the same on
         /// both devices, whatever the phones' clocks say). Off the network it runs on from the last reading.
@@ -82,58 +75,25 @@ namespace FlickCurling.Game.Online
         }
         static double netTime, netAt;
 
-        static bool inSession;
-        /// <summary>Whether the opponent is in the session (as the session tells it; slower to notice than
-        /// <see cref="OpponentHere"/>, but not fooled by a device that is busy for a moment).</summary>
-        public static bool OpponentInSession => inSession;
-        static float lastHeard = -100;
-        const float HeardWithin = 5;
-
-        /// <summary>This device is back from the background (it heard nothing meanwhile, which says nothing of the
-        /// opponent): give them a fresh second or two to be heard.</summary>
-        public static void Resumed() => lastHeard = Mathf.Max(lastHeard, Time.realtimeSinceStartup - HeardWithin + 2);
-
         public static readonly Queue<OnlineMessage> Inbox = new Queue<OnlineMessage>();
-        /// <summary>Raised when the opponent leaves or comes back, or this device drops out.</summary>
-        public static event Action Changed;
-
-        static bool resuming;
 
         /// <summary>This run of the app, telling it from the same player on another device.</summary>
         public static readonly string DeviceId = Guid.NewGuid().ToString("N");
-        /// <summary>The same player joined the match from another device, which now plays it (Account.DeviceGuard steps
-        /// this device aside).</summary>
-        public static event Action TakenOver;
 
-        static OnlineMessage HelloMessage() => new OnlineMessage { Kind = OnlineMsg.Hello, Text = MyId + "|" + DeviceId };
-
-        /// <summary>Out of the match without leaving the session (that would take the player out of it on their other
-        /// device too, which plays it on).</summary>
+        /// <summary>Out of the match at once (this account is now played on another device): the match is lost, as any
+        /// device dropped from it.</summary>
         public static void StepOut()
         {
             if (Session == null && string.IsNullOrEmpty(MatchId)) return;
-            Session = null;
-            MatchId = OpponentId = OpponentName = "";
-            OpponentHere = false;
-            Inbox.Clear();
-            if (NetworkManager.Singleton) NetworkManager.Singleton.Shutdown();
-            Changed?.Invoke();
+            _ = LeaveAsync();
         }
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
         static void ResetStatics()
         {
             Session = null; MatchId = MyId = OpponentId = MyName = OpponentName = ""; Map = "base"; Seed = 0;
-            MyTeam = Team.B; MyStats = OpponentStats = null; OpponentHere = false; Inbox.Clear(); Changed = null;
-            hooked = false; resuming = false; TakenOver = null; joinsInFlight = 0; Joining = false; Connecting = Task.FromResult(true); connectingNow = 0; mine = null; BestRegion = null; regionAt = -1; measuring = null; finding = false; settling = Task.CompletedTask; leaving = Task.CompletedTask;
-        }
-
-        /// <summary>Whether the match the game scene opens is one this device came back to (taken once).</summary>
-        public static bool TakeResuming()
-        {
-            bool r = resuming;
-            resuming = false;
-            return r;
+            MyTeam = Team.B; MyStats = OpponentStats = null; Inbox.Clear();
+            hooked = false; joinsInFlight = 0; Joining = false; Connecting = Task.FromResult(true); connectingNow = 0; mine = null; BestRegion = null; regionAt = -1; measuring = null; finding = false; settling = Task.CompletedTask; leaving = Task.CompletedTask;
         }
 
         static bool hooked;
@@ -152,22 +112,7 @@ namespace FlickCurling.Game.Online
                 joinsInFlight = Mathf.Max(0, joinsInFlight - 1);
                 if (!finding && connectingNow == 0 && added != Session) _ = Quit(added);   // one for a search given up: left at once
             };
-            OnlineMatchSync.Received += m =>
-            {
-                if (m.Kind == OnlineMsg.Ping)
-                {
-                    if (m.Text == OpponentId) lastHeard = Time.realtimeSinceStartup;
-                    return;
-                }
-                if (m.Kind == OnlineMsg.Hello)
-                {
-                    // "player|device": this player on another device has taken the seat; this one steps out
-                    var parts = (m.Text ?? "").Split('|');
-                    if (parts[0] == MyId && parts.Length > 1 && parts[1] != DeviceId) { StepOut(); TakenOver?.Invoke(); return; }
-                    if (parts[0] == OpponentId) SetOpponentHere(true);
-                }
-                if (Session != null) Inbox.Enqueue(m);
-            };
+            OnlineMatchSync.Received += m => { if (Session != null) Inbox.Enqueue(m); };
         }
 
         /// <summary>Sends <paramref name="m"/> to the other device (dropped while there is no match object).</summary>
@@ -183,7 +128,8 @@ namespace FlickCurling.Game.Online
             if (NetworkManager.Singleton) return NetworkManager.Singleton;
             var go = new GameObject("Network");
             UnityEngine.Object.DontDestroyOnLoad(go);
-            go.AddComponent<UnityTransport>();
+            // a dropped connection noticed in about the time the service takes to drop it (the default is 30 s)
+            go.AddComponent<UnityTransport>().DisconnectTimeoutMS = 10000;
             var nm = go.AddComponent<NetworkManager>();
             nm.NetworkConfig = new NetworkConfig
             {
@@ -227,9 +173,11 @@ namespace FlickCurling.Game.Online
 
         // A matched search is never left half way: once the matchmaker has paired the two, the session is joined to the
         // end (no cancelling from here; the game scene is opening). Leaving a session whose network is still coming up
-        // is what breaks the SDK (it may start it again later, alone, with errors). The limits only cover an opponent
-        // gone meanwhile: the join given up after JoinLimit (its session left when it lands), the set-up after SetupLimit.
-        const float JoinLimit = 30, SetupLimit = 20;
+        // is what breaks the SDK (it may start it again later, alone, with errors). It is given up only when it cannot
+        // come off: not connected within GameConfig.connectSeconds of the pairing (counted from the same moment on both
+        // devices, so both give up together; the Distributed Authority service can take half a minute and more to hand
+        // out the session's network, a known service issue), or the opponent sure to be gone (never in the session, or
+        // left it). The join itself, given up, has its session left when it lands.
         static int joinsInFlight;
         static bool finding;
         static int connectingNow;   // connections under way (their session is this match's, not a stray to leave)
@@ -277,13 +225,14 @@ namespace FlickCurling.Game.Online
                 sessionOptions.SessionProperties[MatchKey] = new SessionProperty(OnlineTestMode.SessionId + "." + Guid.NewGuid().ToString("N").Substring(0, 8),
                     VisibilityPropertyOptions.Member);
                 Joining = true;
-                Connecting = ConnectAsync(OnlineTestMode.SessionId, sessionOptions, false);
+                Connecting = ConnectAsync(OnlineTestMode.SessionId, sessionOptions, false, Time.realtimeSinceStartup + GameConfig.Load().connectSeconds);
                 return await Connecting;
             }
 #endif
             string matchId = await TicketAsync(ct);
             // cancelled while the ticket's answer was on its way: the match is not joined (no session exists yet)
             if (matchId == null || ct.IsCancellationRequested) return false;
+            float connectBy = Time.realtimeSinceStartup + GameConfig.Load().connectSeconds;
 
             // paired: from here on the match is joined, whatever is pressed
             Joining = true;
@@ -301,9 +250,8 @@ namespace FlickCurling.Game.Online
             // waiting for it; its record is made meanwhile
             Settle(OnlineApi.LocalInfo(MatchId, MyId, OpponentId));
             OnlineApi.RecordReady = OnlineApi.StartMatch(MatchId, OpponentId, "base");
-            resuming = false;
             Trace("opponent " + OpponentId + " (" + OpponentName + "), connecting");
-            Connecting = ConnectAsync(matchId, sessionOptions, true);
+            Connecting = ConnectAsync(matchId, sessionOptions, true, connectBy);
             return true;
         }
 
@@ -335,23 +283,24 @@ namespace FlickCurling.Game.Online
         [Serializable]
         sealed class TicketData { public string nick; public int w, l, d; }
 
-        // into the matched session, both players there and the match object up (the game scene is open meanwhile).
-        // known: the opponent and the match are known already (from the matchmaker); otherwise taken from the session.
-        // False (the match left and forgotten) if it could not be done.
-        static async Task<bool> ConnectAsync(string sessionId, SessionOptions sessionOptions, bool known)
+        // into the matched session, the match object up and the opponent's card here (the game scene is open meanwhile),
+        // by connectBy (realtime). known: the opponent and the match are known already (from the matchmaker); otherwise
+        // taken from the session. False (the match left and forgotten) if it could not be done.
+        static async Task<bool> ConnectAsync(string sessionId, SessionOptions sessionOptions, bool known, float connectBy)
         {
             connectingNow++;
-            try { return await ConnectCoreAsync(sessionId, sessionOptions, known); }
+            try { return await ConnectCoreAsync(sessionId, sessionOptions, known, connectBy); }
             finally { connectingNow--; }
         }
 
-        static async Task<bool> ConnectCoreAsync(string sessionId, SessionOptions sessionOptions, bool known)
+        static async Task<bool> ConnectCoreAsync(string sessionId, SessionOptions sessionOptions, bool known, float connectBy)
         {
             Trace("joining session " + sessionId);
             var joining = MultiplayerService.Instance.CreateOrJoinSessionAsync(sessionId, sessionOptions);
-            if (await Task.WhenAny(joining, Task.Delay(TimeSpan.FromSeconds(JoinLimit))) != joining)
+            var left = TimeSpan.FromSeconds(Mathf.Max(0, connectBy - Time.realtimeSinceStartup));
+            if (await Task.WhenAny(joining, Task.Delay(left)) != joining)
             {
-                Debug.LogWarning("FlickCurling: joining the matched session took too long (the opponent gone?)");
+                Debug.LogWarning("FlickCurling: the matched session was not joined in time (the service slow to start its network?)");
                 await LeaveAsync();
                 return false;
             }
@@ -365,7 +314,7 @@ namespace FlickCurling.Game.Online
             }
             Session = s;
             Trace("joined session " + s.Id + " (" + s.Players.Count + " in, " + (s.IsHost ? "host" : "member") + ")");
-            using var setup = new CancellationTokenSource(TimeSpan.FromSeconds(SetupLimit));
+            using var setup = new CancellationTokenSource(TimeSpan.FromSeconds(Mathf.Max(0.1f, connectBy - Time.realtimeSinceStartup)));
             var ct = setup.Token;
             // the opponent gone while setting up (their app closed): given up at once
             bool gone = false;
@@ -389,6 +338,9 @@ namespace FlickCurling.Game.Online
                 Trace("opponent in the session");
                 await sync;
                 var opp = s.Players.First(p => p.Id != MyId);
+                // their device on the network too (the session's list of players can lag behind one that has gone)
+                while (OnlinePlayerState.Of(opp.Id) == null) await Task.Delay(100, ct);
+                Trace("opponent's card here");
                 if (!known)
                 {
                     OpponentId = opp.Id;
@@ -397,11 +349,8 @@ namespace FlickCurling.Game.Online
                     Settle(OnlineApi.LocalInfo(MatchId, MyId, OpponentId));
                     OnlineApi.RecordReady = OnlineApi.StartMatch(MatchId, OpponentId, "base");
                     FetchStats();
-                    resuming = false;
                 }
                 Watch(s);
-                SetOpponentHere(true);
-                Send(HelloMessage());
                 Trace("match " + MatchId + " connected against " + OpponentId);
                 return true;
             }
@@ -491,16 +440,6 @@ namespace FlickCurling.Game.Online
             MyTeam = info.FirstThrower == MyId ? Team.B : Team.W;
         }
 
-        // the opponent's record from the server (their card not there), filled in when it comes
-        static async void FetchOpponentStats()
-        {
-            OpponentStats = null;
-            string opponent = OpponentId;
-            var stats = await OnlineApi.GetStats(opponent);
-            if (OpponentId != opponent) return;   // another match by now
-            OpponentStats = stats?.FirstOrDefault(x => x.PlayerId == opponent);
-        }
-
         // both records, filled in when they come (the records panel and the sheet show them then)
         static async void FetchStats()
         {
@@ -538,123 +477,16 @@ namespace FlickCurling.Game.Online
                 UnityEngine.Object.Instantiate(Resources.Load<GameObject>(OnlinePlayerState.ResourcePath)).GetComponent<NetworkObject>().Spawn();
         }
 
+        // this device out of the session (removed, or the session gone): the match is lost (NetworkUp turns false)
         static void Watch(ISession s)
         {
-            s.PlayerHasLeft += id => { if (id == OpponentId) SetOpponentHere(false); };
-            s.PlayerJoined += id => { if (id == OpponentId) SetOpponentHere(true); };
             s.RemovedFromSession += () => Dropped(s);
             s.Deleted += () => Dropped(s);
         }
 
-        // this device is out of the session (kept as the match, so it can get back in)
         static void Dropped(ISession s)
         {
-            if (Session != s) return;
-            Session = null;
-            OpponentHere = false;
-            Changed?.Invoke();
-        }
-
-        static void SetOpponentHere(bool here)
-        {
-            bool was = inSession;
-            OpponentHere = here;
-            if (was != here) Changed?.Invoke();
-        }
-
-        // ---------------- coming back ----------------
-
-        /// <summary>
-        /// Gets back into match <paramref name="matchId"/>'s session (after a dropped connection, or on starting the game
-        /// with a match still going) and sets everything up again. Gone: the session is no more (both players left).
-        /// <paramref name="forGame"/>: the game scene is to open on it (it then asks the opponent where the match is).
-        /// </summary>
-        public static async Task<Resume> ResumeAsync(string matchId, CancellationToken ct, bool forGame = false)
-        {
-            // the session it joins is this one's, not a stray to leave
-            finding = true;
-            try { return await ResumeCoreAsync(matchId, ct, forGame); }
-            finally { finding = false; }
-        }
-
-        static async Task<Resume> ResumeCoreAsync(string matchId, CancellationToken ct, bool forGame)
-        {
-            if (string.IsNullOrEmpty(matchId)) return Resume.Gone;
-            if (AccountService.Status != AccountService.State.Ready) await AccountService.StartAsync();
-            if (AccountService.Status != AccountService.State.Ready) return Resume.Failed;
-            Hook();
-            EnsureNetworkManager();
-            Me();
-            ISession s = null;
-            // the session id is the match id (in the editor test session, the part before the dot)
-            string sessionId = matchId.Split('.')[0];
-            try { s = await MultiplayerService.Instance.ReconnectToSessionAsync(sessionId, new ReconnectSessionOptions(), ct); }
-            catch (SessionException e) when (e.Error == SessionError.SessionNotFound) { return Resume.Gone; }
-            catch (OperationCanceledException) { return Resume.Failed; }
-            catch (Exception e) { Debug.Log("FlickCurling: reconnecting failed, joining again: " + e.Message); }
-            if (s == null)
-                try { s = await MultiplayerService.Instance.JoinSessionByIdAsync(sessionId, new JoinSessionOptions { PlayerProperties = MyProperties() }); }
-                catch (SessionException e) when (e.Error == SessionError.SessionNotFound) { return Resume.Gone; }
-                catch (Exception e) { Debug.LogWarning("FlickCurling: joining the match again failed: " + e.Message); return Resume.Failed; }
-            Session = s;
-            Connecting = Task.FromResult(true);
-            try
-            {
-                MyStats = await OnlineApi.MyStats(MyId);   // (on this device's card, made next)
-                await SpawnSync(ct);
-                MatchId = matchId;
-                var info = await OnlineApi.GetMatch(matchId);
-                string[] players = info != null && info.Exists ? info.Players : s.Players.Select(p => p.Id).ToArray();
-                OpponentId = players.FirstOrDefault(p => p != MyId) ?? "";
-                var opp = s.Players.FirstOrDefault(p => p.Id == OpponentId);
-                if (opp != null) OpponentName = NameOf(opp);
-                Settle(info != null && info.Exists ? info : OnlineApi.LocalInfo(matchId, MyId, OpponentId));
-                OnlineApi.RecordReady = Task.FromResult(info);   // the record is there already (or gone)
-                // the opponent's name and record from their card (it came with the session); from the server only if
-                // their device is not in it
-                var card = OnlinePlayerState.Of(OpponentId);
-                if (card)
-                {
-                    if (string.IsNullOrEmpty(OpponentName) || OpponentName == "?") OpponentName = card.Nick.Value.ToString();
-                    OpponentStats = card.Stats ?? new OnlineApi.PlayerStats { PlayerId = OpponentId };
-                }
-                else FetchOpponentStats();
-                Watch(s);
-                OpponentHere = opp != null;
-                Send(HelloMessage());
-                if (forGame) resuming = true;
-                Changed?.Invoke();
-                return Resume.Ok;
-            }
-            catch (Exception e)
-            {
-                if (!(e is OperationCanceledException)) Debug.LogWarning("FlickCurling: getting back into the match failed: " + e.Message);
-                Session = null;
-                await Quit(s);
-                return Resume.Failed;
-            }
-        }
-
-        /// <summary>
-        /// On starting the game (Docs/OnlineMatch.md 5.4): the match the server has this player in, if any. Still going
-        /// with its session there: back into it (true; the game scene is to open on it). Over, or gone: just seen. Going
-        /// but its session is gone (both players left): both lose.
-        /// </summary>
-        public static async Task<bool> ResumeActiveAsync(CancellationToken ct)
-        {
-            string id = await OnlineApi.ActiveMatchId();
-            if (string.IsNullOrEmpty(id) || ct.IsCancellationRequested) return false;
-            var info = await OnlineApi.GetMatch(id);
-            if (info == null || ct.IsCancellationRequested) return false;   // the server cannot be reached: leave it for now
-            if (info.Exists && info.Status == "ongoing")
-            {
-                var r = await ResumeAsync(id, ct, forGame: true);
-                if (r == Resume.Ok) return true;
-                if (r == Resume.Failed) return false;
-                await OnlineApi.ResolveAbandoned(id);
-            }
-            await OnlineApi.Acknowledge(id);
-            return false;
+            if (Session == s) Session = null;
         }
 
         // the network fully down before the next session starts it again: the session being left stops it a moment
@@ -664,7 +496,7 @@ namespace FlickCurling.Game.Online
         static async Task NetworkDown()
         {
             await leaving;
-            float until = Time.realtimeSinceStartup + JoinLimit;
+            float until = Time.realtimeSinceStartup + GameConfig.Load().connectSeconds;
             while (joinsInFlight > 0 && Time.realtimeSinceStartup < until) await Task.Delay(200);
             LeaveStray();
             await leaving;
@@ -699,7 +531,7 @@ namespace FlickCurling.Game.Online
             var s = Session;
             if (s == null) return;
             float until = Time.realtimeSinceStartup + 5;
-            while (inSession && Session == s && Time.realtimeSinceStartup < until) await Task.Delay(100);
+            while (OpponentPresent && Session == s && Time.realtimeSinceStartup < until) await Task.Delay(100);
             await Task.Delay(TimeSpan.FromSeconds(OwnerSettle));
             if (Session == s) await LeaveAsync();
         }
@@ -762,7 +594,6 @@ namespace FlickCurling.Game.Online
             var s = Session;
             Session = null;
             MatchId = OpponentId = OpponentName = "";
-            OpponentHere = false;
             Inbox.Clear();
             if (s != null) leaving = Quit(s);
             await leaving;

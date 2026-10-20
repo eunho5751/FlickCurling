@@ -687,17 +687,11 @@ namespace FlickCurling.Game
                 float h = hud.LabelWrapped(names[i], cx, top, nameSize, ink, nameW, out _, true);
                 if (roles != null) hud.Label(RowText(i, roles[i], pips[i], small), cx, rowY, pipSize, ink, 0, true);
                 float y = top + h + RecordGap * s + small * 0.7f;
-                if (SideDisconnected(i == 0 ? Left : Right))
-                {
-                    hud.Label(LT("online.disconnected"), cx, y, small, Palette.WithA(Disconnected, a), 0, true);
-                    y += small * 1.4f;
-                }
                 if (records != null) hud.Label(records[i], cx, y, small, ink);
             }
         }
         const float RowY = 56, NameY = 48;     // sheet y of the first/last row and of the name's first line
         const float RecordGap = 2.2f;          // between the name's last line and the line under it
-        static readonly Color Disconnected = new Color32(0xa3, 0x34, 0x1f, 0xff);
 
         // "first" or "last", then the stones left, as one line (made again only when one of them changes)
         readonly string[] rowText = new string[2], rowRole = new string[2], rowPips = new string[2];

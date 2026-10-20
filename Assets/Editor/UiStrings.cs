@@ -49,10 +49,8 @@ namespace FlickCurling.EditorTools
             // ---- online match ----
             new[] { "online.random", "랜덤 매칭", "Random Match", "ランダムマッチ" },
             new[] { "online.waiting", "상대를 기다리는 중…", "Waiting for opponent…", "相手を待っています…" },
-            new[] { "online.disconnected", "연결 끊김", "Disconnected", "接続切れ" },
             new[] { "online.opponentAiming", "상대가 조준하는 중…", "Opponent is aiming…", "相手が狙っています…" },
             new[] { "online.resuming", "경기로 돌아가는 중…", "Returning to the match…", "試合に戻っています…" },
-            new[] { "online.reconnecting", "다시 연결하는 중…", "Reconnecting…", "再接続しています…" },
             new[] { "online.connecting", "상대와 연결하는 중…", "Connecting to your opponent…", "対戦相手と接続しています…" },
             new[] { "online.forfeitTitle", "경기를 포기할까요?", "Give up the match?", "試合を棄権しますか？" },
             new[] { "online.forfeitBody", "지금 나가면 기권패로 기록돼요.", "Leaving now counts as a loss.", "今退出すると棄権負けになります。" },

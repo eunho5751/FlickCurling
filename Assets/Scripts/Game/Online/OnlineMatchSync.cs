@@ -8,22 +8,20 @@ namespace FlickCurling.Game.Online
     /// card instead: <see cref="OnlinePlayerState"/>).</summary>
     public enum OnlineMsg : byte
     {
-        Hello,         // here I am (on joining and coming back); Text = my player id
         Ready,         // Seq: I pressed the card (or reached the turn) numbered Seq
         Commit,        // Seq: turn; A, B, C: the shot's angle, power and lane (the shot is thrown, whatever happens next)
-        Shot,          // Seq: turn; A, B, C as Commit; Data: its ShotRecord
+        Shot,          // Seq: turn; A, B, C as Commit; T: when its playback started (network time); Data: its ShotRecord
         Void,          // Seq: turn; the turn ran out of time
         PlaybackDone,  // Seq: turn; I have finished playing the shot
-        Ping,          // every second, Text = my player id: I am here (see OnlineLobby.OpponentHere)
         Deadline,      // Seq: turn; A: its deadline in network time (the thrower's device sets it)
-        Forfeit,       // Text: the winner's player id (the sender gave up, or claims the win over a long disconnection)
+        Forfeit,       // Text: the winner's player id (the sender gave up)
     }
 
     public struct OnlineMessage
     {
         public OnlineMsg Kind;
         public int Seq;
-        public double A, B, C;
+        public double A, B, C, T;
         public byte[] Data;
         public string Text;
     }
@@ -53,23 +51,11 @@ namespace FlickCurling.Game.Online
             if (Instance == this) Instance = null;
         }
 
-        float nextPing;
-
-        // the heartbeat (the object lives across scenes, so it keeps beating while a scene loads)
-        void Update()
-        {
-            if (!IsSpawned || Time.realtimeSinceStartup < nextPing) return;
-            nextPing = Time.realtimeSinceStartup + 1;
-            if (OnlineLobby.InMatch) Send(new OnlineMessage { Kind = OnlineMsg.Ping, Text = OnlineLobby.MyId });
-        }
-
-        void OnApplicationPause(bool paused) { if (!paused) OnlineLobby.Resumed(); }
-
         public void Send(OnlineMessage m) =>
-            MessageRpc((byte)m.Kind, m.Seq, m.A, m.B, m.C, m.Data ?? Array.Empty<byte>(), m.Text ?? "");
+            MessageRpc((byte)m.Kind, m.Seq, m.A, m.B, m.C, m.T, m.Data ?? Array.Empty<byte>(), m.Text ?? "");
 
         [Rpc(SendTo.NotMe)]
-        void MessageRpc(byte kind, int seq, double a, double b, double c, byte[] data, string text) =>
-            Received?.Invoke(new OnlineMessage { Kind = (OnlineMsg)kind, Seq = seq, A = a, B = b, C = c, Data = data, Text = text });
+        void MessageRpc(byte kind, int seq, double a, double b, double c, double t, byte[] data, string text) =>
+            Received?.Invoke(new OnlineMessage { Kind = (OnlineMsg)kind, Seq = seq, A = a, B = b, C = c, T = t, Data = data, Text = text });
     }
 }

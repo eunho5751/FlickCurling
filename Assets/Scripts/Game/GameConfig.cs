@@ -25,8 +25,10 @@ namespace FlickCurling.Game
         [Range(5f, 60f)] public float turnSeconds = 15;
 
         [Header("Online")]
-        [Tooltip("Seconds an online opponent may be disconnected at a stretch before the other player wins by forfeit")]
-        [Range(10f, 300f)] public float forfeitSeconds = 30;
+        [Tooltip("How much faster a device plays the opponent's shot while it is behind theirs (the shot came late), until level")]
+        [Range(1.05f, 2f)] public float catchUpSpeed = 1.15f;
+        [Tooltip("Seconds from the moment a match is found for the two devices to be connected (both give up together past it; the service can take half a minute and more to start the match's network)")]
+        [Range(15f, 120f)] public float connectSeconds = 45;
         [Tooltip("Seconds to wait, once a match is found, for the opponent to show up in the match's session (normally 1 to 3); past it the match is taken as called off on their side and the search goes on")]
         [Range(2f, 30f)] public float opponentJoinSeconds = 10;
 

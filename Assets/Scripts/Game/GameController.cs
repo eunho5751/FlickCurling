@@ -116,7 +116,7 @@ namespace FlickCurling.Game
             showPowerPercent = config.showPowerPercent;
             showHitMarker = config.showHitMarker;
             ShotTime = config.turnSeconds;
-            forfeitAfter = config.forfeitSeconds;
+            catchUpSpeed = config.catchUpSpeed;
             launchRingRadius = config.launchRingRadius; launchRingWidth = config.launchRingWidth;
             hitRingRadius = config.hitRingRadius; hitRingWidth = config.hitRingWidth;
             Application.targetFrameRate = 60;
@@ -704,9 +704,8 @@ namespace FlickCurling.Game
         {
             bool throwing = state == St.Aim || state == St.Ai || state == St.AiPull || state == St.Remote;
             bool dim = Charging || state == St.AiPull;
-            bool here = mode != Mode.Online || Online.OnlineLobby.OpponentHere;
             int key = HashCode.Combine(HashCode.Combine(state == St.Menu, state == St.Over, m.InLsd, m.Cur, m.Hammer, m.Shot, m.End, mode),
-                HashCode.Combine(throwing, dim, here, locVersion, Account.AccountService.PlayerName, m,
+                HashCode.Combine(throwing, dim, locVersion, Account.AccountService.PlayerName, m,
                     mode == Mode.Online && Online.OnlineLobby.MyStats != null, mode == Mode.Online && Online.OnlineLobby.OpponentStats != null));
             if (key != turnInfoKey || (turnInfo == null && state != St.Menu))
             {
@@ -767,8 +766,8 @@ namespace FlickCurling.Game
             OnlineUpdate();
             if (state == St.Moving && playback != null)
             {
-                // online: the shot plays from its record (the same on both devices)
-                playback.Advance(dt);
+                // online: the shot plays from its record (the same on both devices, in step)
+                AdvancePlayback(dt);
                 if (playback.Done) { playback = null; AfterShot(); }
             }
             else if (state == St.Moving)

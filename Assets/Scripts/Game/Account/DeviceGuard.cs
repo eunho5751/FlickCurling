@@ -57,14 +57,12 @@ namespace FlickCurling.Game.Account
         void OnEnable()
         {
             AccountService.Changed += OnAccount;
-            Online.OnlineLobby.TakenOver += StepAside;   // the same player came into the match from another device
             OnAccount();
         }
 
         void OnDisable()
         {
             AccountService.Changed -= OnAccount;
-            Online.OnlineLobby.TakenOver -= StepAside;
         }
 
         // signed in (or a different player now): claim the account for this device

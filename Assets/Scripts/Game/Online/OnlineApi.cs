@@ -127,6 +127,25 @@ namespace FlickCurling.Game.Online
         }
         const string StatsKey = "stats";   // (as the module keeps it)
 
+        /// <summary>
+        /// On starting the game: a match the signed-in player was still in (the app closed or crashed in it) counts as left,
+        /// so lost (the opponent wins); one that never started is called off. Then it is no longer their match.
+        /// </summary>
+        public static async Task SettleLeftMatch()
+        {
+            string id = await ActiveMatchId();
+            if (string.IsNullOrEmpty(id)) return;
+            var info = await GetMatch(id);
+            if (info == null) return;   // the server cannot be reached: left for next time
+            if (info.Exists && info.Status == "ongoing" && !await CancelMatch(id))
+            {
+                string me = Unity.Services.Authentication.AuthenticationService.Instance.PlayerId;
+                string opponent = Array.Find(info.Players, p => p != me);
+                if (!string.IsNullOrEmpty(opponent)) await ReportResult(id, opponent, new[] { 0, 0 });
+            }
+            await Acknowledge(id);
+        }
+
         /// <summary>The match the signed-in player is in, as the module last noted it (protected player data), or null.</summary>
         public static async Task<string> ActiveMatchId()
         {

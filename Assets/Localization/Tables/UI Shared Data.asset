@@ -427,20 +427,12 @@ MonoBehaviour:
     m_Key: online.waiting
     m_Metadata:
       m_Items: []
-  - m_Id: 1702883152023553
-    m_Key: online.disconnected
-    m_Metadata:
-      m_Items: []
   - m_Id: 1702883152023554
     m_Key: online.opponentAiming
     m_Metadata:
       m_Items: []
   - m_Id: 1702883152023555
     m_Key: online.resuming
-    m_Metadata:
-      m_Items: []
-  - m_Id: 1702883152023556
-    m_Key: online.reconnecting
     m_Metadata:
       m_Items: []
   - m_Id: 1716912067104768

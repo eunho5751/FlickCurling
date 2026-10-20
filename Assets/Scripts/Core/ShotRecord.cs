@@ -198,6 +198,9 @@ namespace FlickCurling.Core
         }
 
         public bool Done { get; private set; }
+        /// <summary>How far it has played, and how long it plays, in seconds.</summary>
+        public double Elapsed => step * Sheet.DT;
+        public double Duration => rec.StepCount * Sheet.DT;
 
         /// <summary>Plays on by <paramref name="seconds"/>; at the end the match takes the recorded state.</summary>
         public void Advance(double seconds)

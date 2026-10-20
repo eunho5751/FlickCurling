@@ -9,6 +9,8 @@ namespace FlickCurling.Game.Online
     /// <summary>
     /// Where the match is, as one player's device last had it at a steady point (a turn not yet thrown, or a card):
     /// the flow (<c>Phase</c>), the turn's deadline, the match state (MatchState), and when it was written (network time).
+    /// While that turn's shot is playing, the shot too (<c>ShotSeq</c> is the turn, -1 for none): its input, its record
+    /// and when its playback started, so a device can show it at the same point.
     /// </summary>
     public sealed class MatchSnapshot : INetworkSerializable, IEquatable<MatchSnapshot>
     {
@@ -16,6 +18,9 @@ namespace FlickCurling.Game.Online
         public int Phase;
         public double Deadline;
         public byte[] Data = Array.Empty<byte>();
+        public int ShotSeq = -1;
+        public double ShotAng, ShotPw, ShotLane, ShotStart;
+        public byte[] Shot = Array.Empty<byte>();
 
         public void NetworkSerialize<T>(BufferSerializer<T> s) where T : IReaderWriter
         {
@@ -24,9 +29,14 @@ namespace FlickCurling.Game.Online
             s.SerializeValue(ref Deadline);
             if (s.IsWriter && Data == null) Data = Array.Empty<byte>();
             s.SerializeValue(ref Data);
+            s.SerializeValue(ref ShotSeq);
+            s.SerializeValue(ref ShotAng); s.SerializeValue(ref ShotPw); s.SerializeValue(ref ShotLane); s.SerializeValue(ref ShotStart);
+            if (s.IsWriter && Shot == null) Shot = Array.Empty<byte>();
+            s.SerializeValue(ref Shot);
         }
 
-        public bool Equals(MatchSnapshot o) => o != null && Stamp == o.Stamp && Phase == o.Phase && Deadline == o.Deadline && (Data?.Length ?? 0) == (o.Data?.Length ?? 0);
+        public bool Equals(MatchSnapshot o) => o != null && Stamp == o.Stamp && Phase == o.Phase && Deadline == o.Deadline && ShotSeq == o.ShotSeq
+            && (Data?.Length ?? 0) == (o.Data?.Length ?? 0);
         public override bool Equals(object o) => Equals(o as MatchSnapshot);
         public override int GetHashCode() => Stamp.GetHashCode();
     }
@@ -34,9 +44,9 @@ namespace FlickCurling.Game.Online
     /// <summary>
     /// One player's networked card in an online match (Resources/OnlinePlayerState): each device spawns and owns its own
     /// on joining the match's session, and keeps there who it is (id, nickname, record) and where the match is
-    /// (<see cref="State"/>, rewritten at every steady point). The Distributed Authority service keeps these values, so a
-    /// device coming back (or opening the match again) gets the other's at once, whether or not the other answers.
-    /// It goes with its owner's device (gone from the session, its card goes too).
+    /// (<see cref="State"/>, rewritten at every steady point and as a shot starts). The Distributed Authority service keeps
+    /// these values, so a device back from the background takes the match from the other's at once. It goes with its
+    /// owner's device (dropped from the session, its card goes too: that is how the other learns it is gone).
     /// </summary>
     public sealed class OnlinePlayerState : NetworkBehaviour
     {
@@ -109,6 +119,22 @@ namespace FlickCurling.Game.Online
             if (!me) return -1;
             double stamp = OnlineLobby.NetworkTime;
             me.State.Value = new MatchSnapshot { Stamp = stamp, Phase = phase, Deadline = deadline, Data = data ?? Array.Empty<byte>() };
+            return stamp;
+        }
+
+        /// <summary>Adds the shot of turn <paramref name="seq"/> now playing to what this device's card has (written at that
+        /// turn's start); returns the stamp, or -1 if there is no card or nothing on it yet.</summary>
+        public static double PublishShot(int seq, double ang, double pw, double lane, double start, byte[] record)
+        {
+            var me = Mine;
+            var at = me ? me.State.Value : null;
+            if (at == null || at.Data == null || at.Data.Length == 0) return -1;
+            double stamp = OnlineLobby.NetworkTime;
+            me.State.Value = new MatchSnapshot
+            {
+                Stamp = stamp, Phase = at.Phase, Deadline = at.Deadline, Data = at.Data,
+                ShotSeq = seq, ShotAng = ang, ShotPw = pw, ShotLane = lane, ShotStart = start, Shot = record ?? Array.Empty<byte>(),
+            };
             return stamp;
         }
     }

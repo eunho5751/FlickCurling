@@ -459,20 +459,12 @@ MonoBehaviour:
     m_Localized: "Waiting for opponent\u2026"
     m_Metadata:
       m_Items: []
-  - m_Id: 1702883152023553
-    m_Localized: Disconnected
-    m_Metadata:
-      m_Items: []
   - m_Id: 1702883152023554
     m_Localized: "Opponent is aiming\u2026"
     m_Metadata:
       m_Items: []
   - m_Id: 1702883152023555
     m_Localized: "Returning to the match\u2026"
-    m_Metadata:
-      m_Items: []
-  - m_Id: 1702883152023556
-    m_Localized: "Reconnecting\u2026"
     m_Metadata:
       m_Items: []
   - m_Id: 1716912067104768
