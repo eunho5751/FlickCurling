@@ -73,6 +73,9 @@ namespace FlickCurling.Game.Online
         static double netTime, netAt;
 
         static bool inSession;
+        /// <summary>Whether the opponent is in the session (as the session tells it; slower to notice than
+        /// <see cref="OpponentHere"/>, but not fooled by a device that is busy for a moment).</summary>
+        public static bool OpponentInSession => inSession;
         static float lastHeard = -100;
         const float HeardWithin = 5;
 
@@ -112,7 +115,7 @@ namespace FlickCurling.Game.Online
         {
             Session = null; MatchId = MyId = OpponentId = MyName = OpponentName = ""; Map = "base"; Seed = 0;
             MyTeam = Team.B; MyStats = OpponentStats = null; OpponentHere = false; Inbox.Clear(); Changed = null;
-            hooked = false; resuming = false; TakenOver = null;
+            hooked = false; resuming = false; TakenOver = null; joinStartedAt = -1; finding = false; leaving = Task.CompletedTask;
         }
 
         /// <summary>Whether the match the game scene opens is one this device came back to (taken once).</summary>
@@ -129,6 +132,8 @@ namespace FlickCurling.Game.Online
         {
             if (hooked) return;
             hooked = true;
+            MultiplayerService.Instance.AddingSessionStarted += _ => joinStartedAt = Time.realtimeSinceStartup;
+            MultiplayerService.Instance.SessionAdded += added => { if (!finding && added != Session) _ = Quit(added); };
             OnlineMatchSync.Received += m =>
             {
                 if (m.Kind == OnlineMsg.Ping)
@@ -198,13 +203,49 @@ namespace FlickCurling.Game.Online
             }
         }
 
+        // once the matchmaker has paired the two, the SDK joins the match's session on its own (our token no longer stops
+        // it) and the joining player waits for the other to publish the network's join code, up to minutes if that never
+        // comes. These bound it: a join that takes longer is given up (and its session left once it lands), and so is a
+        // set-up after it.
+        const float JoinLimit = 15, SetupLimit = 20;
+        static float joinStartedAt = -1;
+        static bool finding;
+
         static async Task<bool> FindOnceAsync(CancellationToken ct)
         {
             await LeaveAsync();
+            await NetworkDown();
             if (AccountService.Status != AccountService.State.Ready) await AccountService.StartAsync();
             if (AccountService.Status != AccountService.State.Ready) return false;
             Hook();
             EnsureNetworkManager();
+            finding = true;
+            try { return await FindCoreAsync(ct); }
+            finally
+            {
+                finding = false;
+                LeaveStray();
+            }
+        }
+
+        static async Task<bool> FindCoreAsync(CancellationToken outer)
+        {
+            using var join = CancellationTokenSource.CreateLinkedTokenSource(outer);
+            var ct = join.Token;
+            float findStart = Time.realtimeSinceStartup;
+            _ = Watchdog();
+            async Task Watchdog()
+            {
+                while (!join.IsCancellationRequested)
+                {
+                    try { await Task.Delay(500, join.Token); } catch (OperationCanceledException) { return; }
+                    if (joinStartedAt > findStart && Time.realtimeSinceStartup - joinStartedAt > JoinLimit)
+                    {
+                        Debug.LogWarning("FlickCurling: joining the matched session took too long; looking again");
+                        join.Cancel();
+                    }
+                }
+            }
             Me();
             var props = MyProperties();
             var sessionOptions = new SessionOptions { MaxPlayers = 2, PlayerProperties = props }.WithDistributedAuthorityNetwork();
@@ -228,11 +269,20 @@ namespace FlickCurling.Game.Online
             catch (OperationCanceledException) { return false; }
             catch (Exception e)
             {
-                if (!ct.IsCancellationRequested) Debug.LogWarning("FlickCurling: matchmaking failed: " + e.Message);
+                if (!outer.IsCancellationRequested) Debug.LogWarning("FlickCurling: matchmaking failed: " + e.Message);
                 return false;
             }
-            if (ct.IsCancellationRequested) { await Quit(s); return false; }
+            join.Cancel();   // the watchdog's part is done
+            if (outer.IsCancellationRequested) { await Quit(s); return false; }
             Session = s;
+            using var setup = CancellationTokenSource.CreateLinkedTokenSource(outer);
+            setup.CancelAfter(TimeSpan.FromSeconds(SetupLimit));
+            ct = setup.Token;
+            // the opponent gone while setting up (they cancelled, or their app closed): look again at once
+            bool gone = false;
+            void Left(string id) { if (id != MyId) { gone = true; setup.Cancel(); } }
+            void Removed() { gone = true; setup.Cancel(); }
+            s.PlayerHasLeft += Left; s.RemovedFromSession += Removed; s.Deleted += Removed;
             try
             {
                 // both players in, and the match object up
@@ -242,8 +292,11 @@ namespace FlickCurling.Game.Online
                 OpponentId = opp.Id;
                 OpponentName = NameOf(opp);
                 MatchId = s.Properties.TryGetValue(MatchKey, out var mk) && !string.IsNullOrEmpty(mk.Value) ? mk.Value : s.Id;
-                var info = await OnlineApi.StartMatch(MatchId, OpponentId, "base") ?? OnlineApi.LocalInfo(MatchId, MyId, OpponentId);
-                await Settle(info, ct);
+                // the two server calls at once (neither needs the other's answer)
+                var starting = OnlineApi.StartMatch(MatchId, OpponentId, "base");
+                var stats = OnlineApi.GetStats(MyId, OpponentId);
+                var info = await starting ?? OnlineApi.LocalInfo(MatchId, MyId, OpponentId);
+                await Settle(info, stats, ct);
                 Watch(s);
                 SetOpponentHere(true);
                 Send(HelloMessage());
@@ -252,22 +305,24 @@ namespace FlickCurling.Game.Online
             }
             catch (Exception e)
             {
-                if (!(e is OperationCanceledException)) Debug.LogWarning("FlickCurling: setting the match up failed: " + e.Message);
+                if (gone) Debug.Log("FlickCurling: the opponent left while the match was set up; looking again");
+                else if (!(e is OperationCanceledException)) Debug.LogWarning("FlickCurling: setting the match up failed: " + e.Message);
                 await LeaveAsync();
                 return false;
             }
+            finally { s.PlayerHasLeft -= Left; s.RemovedFromSession -= Removed; s.Deleted -= Removed; }
         }
 
         static string NameOf(IReadOnlyPlayer p) =>
             p.Properties.TryGetValue(NickKey, out var nick) && !string.IsNullOrEmpty(nick.Value) ? nick.Value : "?";
 
         // the match's settings and both records
-        static async Task Settle(OnlineApi.MatchInfo info, CancellationToken ct)
+        static async Task Settle(OnlineApi.MatchInfo info, Task<List<OnlineApi.PlayerStats>> statsCall, CancellationToken ct)
         {
             Map = string.IsNullOrEmpty(info.Map) ? "base" : info.Map;
             Seed = (int)info.Seed;
             MyTeam = info.FirstThrower == MyId ? Team.B : Team.W;
-            var stats = await OnlineApi.GetStats(MyId, OpponentId);
+            var stats = await statsCall;
             ct.ThrowIfCancellationRequested();
             MyStats = stats?.FirstOrDefault(x => x.PlayerId == MyId);
             OpponentStats = stats?.FirstOrDefault(x => x.PlayerId == OpponentId);
@@ -318,6 +373,14 @@ namespace FlickCurling.Game.Online
         /// </summary>
         public static async Task<Resume> ResumeAsync(string matchId, CancellationToken ct, bool forGame = false)
         {
+            // the session it joins is this one's, not a stray to leave
+            finding = true;
+            try { return await ResumeCoreAsync(matchId, ct, forGame); }
+            finally { finding = false; }
+        }
+
+        static async Task<Resume> ResumeCoreAsync(string matchId, CancellationToken ct, bool forGame)
+        {
             if (string.IsNullOrEmpty(matchId)) return Resume.Gone;
             if (AccountService.Status != AccountService.State.Ready) await AccountService.StartAsync();
             if (AccountService.Status != AccountService.State.Ready) return Resume.Failed;
@@ -345,7 +408,7 @@ namespace FlickCurling.Game.Online
                 OpponentId = players.FirstOrDefault(p => p != MyId) ?? "";
                 var opp = s.Players.FirstOrDefault(p => p.Id == OpponentId);
                 if (opp != null) OpponentName = NameOf(opp);
-                await Settle(info != null && info.Exists ? info : OnlineApi.LocalInfo(matchId, MyId, OpponentId), ct);
+                await Settle(info != null && info.Exists ? info : OnlineApi.LocalInfo(matchId, MyId, OpponentId), OnlineApi.GetStats(MyId, OpponentId), ct);
                 Watch(s);
                 OpponentHere = opp != null;
                 Send(HelloMessage());
@@ -384,6 +447,26 @@ namespace FlickCurling.Game.Online
             return false;
         }
 
+        // the network fully down before the next session starts it again (a session being left stops it a moment later)
+        static async Task NetworkDown()
+        {
+            await leaving;
+            var nm = NetworkManager.Singleton;
+            if (!nm) return;
+            float until = Time.realtimeSinceStartup + 5;
+            while ((nm.ShutdownInProgress || nm.IsListening) && Time.realtimeSinceStartup < until) await Task.Delay(100);
+            if (nm.IsListening && !nm.ShutdownInProgress) nm.Shutdown();
+        }
+
+        // a session the SDK joined for a search that was given up or cancelled: left as soon as it shows up
+        static void LeaveStray()
+        {
+            foreach (var other in MultiplayerService.Instance.Sessions.Values.ToList())
+                if (other != Session) _ = Quit(other);
+        }
+
+        static Task leaving = Task.CompletedTask;
+
         /// <summary>Leaves the session (if any) and forgets the match.</summary>
         public static async Task LeaveAsync()
         {
@@ -392,7 +475,8 @@ namespace FlickCurling.Game.Online
             MatchId = OpponentId = OpponentName = "";
             OpponentHere = false;
             Inbox.Clear();
-            await Quit(s);
+            if (s != null) leaving = Quit(s);
+            await leaving;
         }
 
         static async Task Quit(ISession s)

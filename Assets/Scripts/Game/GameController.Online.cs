@@ -55,6 +55,7 @@ namespace FlickCurling.Game
         void StartOnline()
         {
             awaitingState = OnlineLobby.TakeResuming();
+            playingMatch = OnlineLobby.MatchId;
             StartMatch(Mode.Online, OnlineLobby.Map);
         }
 
@@ -64,7 +65,7 @@ namespace FlickCurling.Game
             myReady.Clear(); oppReady.Clear(); oppDone.Clear(); held.Clear();
             waitingCard = null; commit = null; doneAt = -100;
             stateWanted = false; reportTask = null; reportedMatch = "";
-            wasHere = true; arriving = false;
+            wasHere = true; arriving = false; oppArrived = false;
             // who is playing, kept for the whole match (the lobby forgets the opponent once the session is left)
             myName = OnlineLobby.MyName; oppName = OnlineLobby.OpponentName;
             myStats = OnlineLobby.MyStats; oppStats = OnlineLobby.OpponentStats;
@@ -87,23 +88,29 @@ namespace FlickCurling.Game
             ScreenFader.WhenClear(() =>
             {
                 if (!this) return;
-                VsPanel.Show(transform, hud.Canvas.sortingOrder + 20, VsSeconds, () => { if (this) show(); });
+                // held until the opponent has opened the match too, so both panels end (and the first card shows) together
+                int tok = token;
+                vsPanel = VsPanel.Show(transform, hud.Canvas.sortingOrder + 20, VsSeconds, () => !arriving,
+                    () => { if (this && tok == token) show(); });
             });
         }
         const float VsSeconds = 2.5f;
+        GameObject vsPanel;
 
         // ---------------- an opponent who never arrives ----------------
 
         const int CardArrive = 0;          // Ready key: this device has opened the match
-        const float ArriveWait = 20;       // the opponent has this long to open it too
-        const float ArriveGone = 3;        // or this long once they have left the session
-        bool arriving;
+        // the opponent has this long to open the match too; still longer while their device is heard (a slow phone
+        // loading the scene goes quiet for a moment, and is not gone), and not as long once they have left the session
+        const float ArriveWait = 20, ArriveWaitHeard = 60, ArriveGone = 3;
+        bool arriving, oppArrived;
+        string playingMatch = "";   // the match this scene plays (a new one found from its result card is the next scene's)
         float arriveStart;
 
         void TickArrival()
         {
             if (!arriving) return;
-            if (oppReady.Contains(CardArrive))
+            if (oppReady.Contains(CardArrive) || oppArrived)
             {
                 // both here: the match has started (from now on leaving it counts)
                 arriving = false;
@@ -111,13 +118,14 @@ namespace FlickCurling.Game
                 return;
             }
             float t = Time.unscaledTime - arriveStart;
-            if (t > ArriveWait || (!OnlineLobby.OpponentHere && t > ArriveGone)) NoShow();
+            if ((!OnlineLobby.OpponentInSession && t > ArriveGone) || (t > ArriveWait && !OnlineLobby.OpponentHere) || t > ArriveWaitHeard) NoShow();
         }
 
         // the opponent never came: the match is off (no record for anyone) and this player looks for another one
         void NoShow()
         {
             arriving = false;
+            if (vsPanel) Destroy(vsPanel);
             string id = OnlineLobby.MatchId;
             reportedMatch = id;   // nothing to report
             OffTheSheet();
@@ -286,6 +294,7 @@ namespace FlickCurling.Game
 
         void TickOnlineClock()
         {
+            if (awaitingState) return;   // the match is where the opponent's device has it: no judging here meanwhile
             if (state == St.Remote) { TickRemoteClock(); return; }
             if (clock < 0 || !HumanAim) return;
             float before = clock;
@@ -318,6 +327,8 @@ namespace FlickCurling.Game
         void OnlineUpdate()
         {
             if (!IsOnline) return;
+            // the match is over here, or the next one has been found: its messages wait for the next scene
+            if (string.IsNullOrEmpty(playingMatch) || OnlineLobby.MatchId != playingMatch) { TickRematch(); return; }
             while (OnlineLobby.Inbox.Count > 0) held.Add(OnlineLobby.Inbox.Dequeue());
             for (int i = 0; i < held.Count; i++)
             {
@@ -333,6 +344,8 @@ namespace FlickCurling.Game
             TickArrival();
             CheckCard();
             if (stateWanted) SendStateIfSteady();
+            // nothing came back (the opponent is away too): go on from here, with what the opponent sent meanwhile
+            if (awaitingState && resyncing && Time.unscaledTime - awaitStart > ResyncWait) { awaitingState = resyncing = false; hud.ClearToasts(); }
             TickReconnect();
             TickRematch();
         }
@@ -340,12 +353,22 @@ namespace FlickCurling.Game
         /// <summary>Acts on a message; false keeps it for later (it is for a turn still to come).</summary>
         bool Handle(OnlineMessage msg)
         {
+            // anything the opponent's game sends shows they have opened the match (should the arrival itself be missed)
+            if (msg.Kind != OnlineMsg.Hello) oppArrived = true;
             switch (msg.Kind)
             {
-                case OnlineMsg.Hello: return true;
+                case OnlineMsg.Hello: return true;   // sent on joining, before the scene: not "arrived"
                 case OnlineMsg.Ready: oppReady.Add(msg.Seq); return true;
                 case OnlineMsg.PlaybackDone: oppDone.Add(msg.Seq); return true;
-                case OnlineMsg.StateRequest: stateWanted = true; return true;
+                case OnlineMsg.StateRequest:
+                    // both back at once: one answers (the lower player id), the other waits for it
+                    if (awaitingState)
+                    {
+                        if (string.CompareOrdinal(OnlineLobby.MyId, OnlineLobby.OpponentId) >= 0) return true;
+                        awaitingState = resyncing = false;
+                    }
+                    stateWanted = true;
+                    return true;
                 case OnlineMsg.State: if (awaitingState) ApplyState(msg); return true;
             }
             if (awaitingState) return false;
@@ -381,9 +404,26 @@ namespace FlickCurling.Game
 
         // ---------------- coming back ----------------
 
+        // back from the background in a match: what happened meanwhile is not played through here, the match is taken
+        // as the opponent's device has it (their answer comes at their next steady point: a turn or a card)
+        void OnApplicationPause(bool paused)
+        {
+            if (paused || mode != Mode.Online || state == St.Over || awaitingState || !OnlineLobby.InMatch) return;
+            awaitingState = resyncing = true;
+            awaitStart = Time.unscaledTime;
+            ResetShotInput();
+            OnlineSend(OnlineMsg.StateRequest);
+            hud.ClearToasts();
+            hud.Toast(Loc.T("online.resuming"), null, 2400);
+        }
+        bool resyncing;
+        float awaitStart;
+        const float ResyncWait = 8;
+
         // where the match is, sent at a steady point (a turn not yet thrown, or a card)
         void SendStateIfSteady()
         {
+            if (awaitingState) return;
             Phase? phase = null;
             if ((state == St.Aim || state == St.Remote) && !commit.HasValue) phase = Phase.Turn;
             else if (state == St.Coin && hud.CardVisible) phase = m.InLsd && m.Lsd != null && m.Lsd.Dist[0] == null ? Phase.LsdStartCard : Phase.LsdResultCard;
@@ -399,7 +439,7 @@ namespace FlickCurling.Game
             MatchState st;
             try { st = MatchState.FromBytes(msg.Data); }
             catch (Exception e) { Debug.LogWarning("FlickCurling: bad match state: " + e.Message); return; }
-            awaitingState = false;
+            awaitingState = resyncing = false;
             hud.ClearToasts(); hud.HideCard();
             playback = null; commit = null; waitingCard = null;
             m.Restore(st);

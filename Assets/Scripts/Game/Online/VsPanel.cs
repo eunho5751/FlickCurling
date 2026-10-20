@@ -10,6 +10,8 @@ namespace FlickCurling.Game.Online
     /// The record panel shown as an online match opens (Docs/OnlineMatch.md, 3.3): the opponent's card on top, this
     /// player's at the bottom and VS between them, each card with its stone, nickname and won / lost / drawn. Its own
     /// overlay canvas (1080 x 1920 reference, like the menus); it slides in, holds, fades out and calls back.
+    /// It holds until <c>ready</c> says both players have opened the match, then for the time given from that moment,
+    /// so it ends together on both devices however long each took to get there.
     /// The art is in Resources/Online (Codex).
     /// </summary>
     public static class VsPanel
@@ -17,7 +19,10 @@ namespace FlickCurling.Game.Online
         const float CardW = 860, CardH = 300, CardY = 420, StoneSize = 190;
         static readonly Color Ink = new Color32(0x4a, 0x2a, 0x12, 0xff), Value = new Color32(0x86, 0x61, 0x3d, 0xff);
 
-        public static void Show(Transform parent, int sortingOrder, float seconds, Action done)
+        const float InTime = 0.55f, OutTime = 0.25f;
+
+        /// <summary>Shows the panel; returns it, to be destroyed if the match is called off meanwhile.</summary>
+        public static GameObject Show(Transform parent, int sortingOrder, float seconds, Func<bool> ready, Action done)
         {
             var go = new GameObject("VsPanel", typeof(RectTransform));
             go.transform.SetParent(parent, false);
@@ -51,10 +56,39 @@ namespace FlickCurling.Game.Online
             seq.Join(SlideX(top, 0.35f));
             seq.Join(SlideX(bottom, 0.35f));
             seq.Append(vs.rectTransform.DOScale(1, 0.3f).SetEase(Ease.OutBack));
-            seq.AppendInterval(Mathf.Max(0, seconds - 0.85f - 0.25f));
-            seq.Append(DOTween.To(() => group.alpha, a => group.alpha = a, 0, 0.25f));
-            seq.OnComplete(() => { UnityEngine.Object.Destroy(go); done?.Invoke(); });
-            seq.OnKill(() => { if (go) UnityEngine.Object.Destroy(go); });
+            // then held until both are here, for the time given counted from then (at least the entrance), and faded
+            var hold = go.AddComponent<Hold>();
+            hold.Begin(ready, seconds, () =>
+                DOTween.To(() => group.alpha, a => group.alpha = a, 0, OutTime).SetUpdate(true).SetLink(go)
+                    .OnComplete(() => { UnityEngine.Object.Destroy(go); done?.Invoke(); }));
+            return go;
+        }
+
+        // waits for both players, then counts the panel's time from the later of its own start and that moment
+        sealed class Hold : MonoBehaviour
+        {
+            Func<bool> ready;
+            float seconds, shown, from = -1;
+            Action finish;
+
+            public void Begin(Func<bool> isReady, float time, Action onDone)
+            {
+                ready = isReady; seconds = time; finish = onDone; shown = Time.unscaledTime;
+            }
+
+            void Update()
+            {
+                if (finish == null) return;
+                if (from < 0)
+                {
+                    if (ready != null && !ready()) return;
+                    from = Time.unscaledTime;
+                }
+                float end = Mathf.Max(from + seconds, shown + InTime + 0.3f) - OutTime;
+                if (Time.unscaledTime < end) return;
+                var f = finish; finish = null;
+                f();
+            }
         }
 
         // to x = 0 (its place), easing out
