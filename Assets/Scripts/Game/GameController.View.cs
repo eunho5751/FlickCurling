@@ -670,8 +670,8 @@ namespace FlickCurling.Game
             var ink = Palette.Rgba(52, 32, 16, a);
             var (names, records, roles, pips) = info.Value;
             // each side in its half: a row with first/last and the stones left, centred in the half, then the stone and the
-            // name (a long name wraps under its first letter), then the record (online); sizes and gaps in sheet units
-            // (times s)
+            // name (a long name wraps under its first letter), then (online) "disconnected" while the opponent is away and
+            // the record; sizes and gaps in sheet units (times s)
             int nameSize = Mathf.RoundToInt(5.4f * 1.3f * 0.8f * s), small = Mathf.RoundToInt(3.4f * s), pipSize = Mathf.RoundToInt(5.1f * s);
             // a name wraps past the width of a stone and six letters (measured once per size)
             if (nameCapSize != nameSize)
@@ -686,11 +686,18 @@ namespace FlickCurling.Game
                 float cx = X(i == 0 ? W / 4 : W * 3 / 4);
                 float h = hud.LabelWrapped(names[i], cx, top, nameSize, ink, nameW, out _, true);
                 if (roles != null) hud.Label(RowText(i, roles[i], pips[i], small), cx, rowY, pipSize, ink, 0, true);
-                if (records != null) hud.Label(records[i], cx, top + h + RecordGap * s + small * 0.7f, small, ink);
+                float y = top + h + RecordGap * s + small * 0.7f;
+                if (SideDisconnected(i == 0 ? Left : Right))
+                {
+                    hud.Label(LT("online.disconnected"), cx, y, small, Palette.WithA(Disconnected, a), 0, true);
+                    y += small * 1.4f;
+                }
+                if (records != null) hud.Label(records[i], cx, y, small, ink);
             }
         }
         const float RowY = 56, NameY = 48;     // sheet y of the first/last row and of the name's first line
-        const float RecordGap = 2.2f;          // between the name's last line and the record
+        const float RecordGap = 2.2f;          // between the name's last line and the line under it
+        static readonly Color Disconnected = new Color32(0xa3, 0x34, 0x1f, 0xff);
 
         // "first" or "last", then the stones left, as one line (made again only when one of them changes)
         readonly string[] rowText = new string[2], rowRole = new string[2], rowPips = new string[2];

@@ -463,6 +463,34 @@ MonoBehaviour:
     m_Key: out.near
     m_Metadata:
       m_Items: []
+  - m_Id: 2071311918485504
+    m_Key: online.forfeitTitle
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2071311968817152
+    m_Key: online.forfeitBody
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2071311968817153
+    m_Key: online.forfeitLeave
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2071311968817154
+    m_Key: online.forfeitStay
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2071311968817155
+    m_Key: online.forfeitWin
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2071311968817156
+    m_Key: online.forfeitGone
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2071311968817157
+    m_Key: online.forfeitLost
+    m_Metadata:
+      m_Items: []
   m_Metadata:
     m_Items: []
   m_KeyGenerator:

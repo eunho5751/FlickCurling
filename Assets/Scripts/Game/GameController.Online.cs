@@ -165,11 +165,12 @@ namespace FlickCurling.Game
         {
             rematch?.Cancel();
             rematch = null;
-            if (IsOnline) _ = OnlineLobby.LeaveAsync();
+            if (IsOnline) _ = leaveSoon ? OnlineLobby.LeaveAfterAsync(0.5f) : OnlineLobby.LeaveAsync();
         }
+        bool leaveSoon;
 
-        void OnlineSend(OnlineMsg kind, int? seq = null, double a = 0, double b = 0, double c = 0, byte[] data = null) =>
-            OnlineLobby.Send(new OnlineMessage { Kind = kind, Seq = seq ?? TurnSeq, A = a, B = b, C = c, Data = data });
+        void OnlineSend(OnlineMsg kind, int? seq = null, double a = 0, double b = 0, double c = 0, byte[] data = null, string text = null) =>
+            OnlineLobby.Send(new OnlineMessage { Kind = kind, Seq = seq ?? TurnSeq, A = a, B = b, C = c, Data = data, Text = text });
 
         // ---------------- names and records ----------------
 
@@ -178,10 +179,13 @@ namespace FlickCurling.Game
 
         string OnlineSideName(Team t)
         {
-            if (t == OnlineLobby.MyTeam) return myName;
-            // the opponent's connection, small beside their name, while the match is on
-            return OnlineLobby.OpponentHere || state == St.Over ? oppName : $"{oppName} <size=60%><color=#a3341f>{Loc.T("online.disconnected")}</color></size>";
+            return t == OnlineLobby.MyTeam ? myName : oppName;
         }
+
+        /// <summary>Whether the side is the opponent and their device is not heard now (shown under their name while the
+        /// match is on).</summary>
+        bool SideDisconnected(Team t) =>
+            mode == Mode.Online && t != OnlineLobby.MyTeam && state != St.Over && !OnlineLobby.OpponentHere;
 
         string[] OnlineRecords()
         {
@@ -342,6 +346,7 @@ namespace FlickCurling.Game
                 RenderHud();
             }
             TickArrival();
+            TickForfeit();
             CheckCard();
             if (stateWanted) SendStateIfSteady();
             // nothing came back (the opponent is away too): go on from here, with what the opponent sent meanwhile
@@ -358,6 +363,14 @@ namespace FlickCurling.Game
             switch (msg.Kind)
             {
                 case OnlineMsg.Hello: return true;   // sent on joining, before the scene: not "arrived"
+                case OnlineMsg.Forfeit:
+                    // the opponent gave up (they name this player the winner), or claimed the win while this one was away
+                    if (state != St.Over)
+                    {
+                        bool won = msg.Text == OnlineLobby.MyId;
+                        EndByForfeit(won ? "online.forfeitWin" : "online.forfeitLost", won ? OnlineLobby.MyId : null);
+                    }
+                    return true;
                 case OnlineMsg.Ready: oppReady.Add(msg.Seq); return true;
                 case OnlineMsg.PlaybackDone: oppDone.Add(msg.Seq); return true;
                 case OnlineMsg.StateRequest:
@@ -411,6 +424,7 @@ namespace FlickCurling.Game
             if (paused || mode != Mode.Online || state == St.Over || awaitingState || !OnlineLobby.InMatch) return;
             awaitingState = resyncing = true;
             awaitStart = Time.unscaledTime;
+            CheckSettled().Forget();
             ResetShotInput();
             OnlineSend(OnlineMsg.StateRequest);
             hud.ClearToasts();
@@ -500,6 +514,7 @@ namespace FlickCurling.Game
                 reconnecting = false;
                 awaitingState = true;
                 OnlineSend(OnlineMsg.StateRequest);
+                CheckSettled().Forget();
                 return;
             }
             // the session is gone (both out, so both lost): back to the menu; otherwise try again in a moment
@@ -519,10 +534,120 @@ namespace FlickCurling.Game
             var win = m.Winner;
             string Who(Team t) => t == OnlineLobby.MyTeam ? OnlineLobby.MyId : OnlineLobby.OpponentId;
             string winner = win.HasValue ? Who(win.Value) : "draw";
-            // the scores in the order the server keeps the players (by id)
+            reportTask = OnlineApi.ReportResult(id, winner, ReportScores());
+        }
+
+        // the two scores in the order the server keeps the players (by id)
+        int[] ReportScores()
+        {
             var players = new[] { OnlineLobby.MyId, OnlineLobby.OpponentId }.OrderBy(x => x, StringComparer.Ordinal).ToArray();
             int ScoreOf(string pid) => m.Total(pid == OnlineLobby.MyId ? OnlineLobby.MyTeam : Sheet.Other(OnlineLobby.MyTeam));
-            reportTask = OnlineApi.ReportResult(id, winner, new[] { ScoreOf(players[0]), ScoreOf(players[1]) });
+            return new[] { ScoreOf(players[0]), ScoreOf(players[1]) };
+        }
+
+        // ---------------- forfeits ----------------
+
+        // the match has started (both opened it) and is not over: leaving it, or being away too long, forfeits it
+        bool MatchUnderWay => IsOnline && state != St.Over && !arriving && !string.IsNullOrEmpty(playingMatch) && OnlineLobby.MatchId == playingMatch;
+
+        /// <summary>"Back to the main menu" (the settings popup): online, during a match, that gives the match up, so it
+        /// asks first; otherwise straight to the menu.</summary>
+        void RequestMenu()
+        {
+            if (!MatchUnderWay) { ToMenu(); return; }
+            var under = hud.CardVisible ? cardFactory : null;   // a card that was up comes back if the player stays
+            ShowCard(() => new CardSpec
+            {
+                Eyebrow = Loc.T("mainmenu.online"),
+                Title = Loc.T("online.forfeitTitle"),
+                Body = Loc.T("online.forfeitBody"),
+                Buttons =
+                {
+                    new CardButton(Loc.T("online.forfeitStay"), () => { if (under != null) ShowCard(under); }),
+                    new CardButton(Loc.T("online.forfeitLeave"), ForfeitAndLeave)
+                }
+            });
+        }
+
+        // the player gives up: the opponent wins (told at once, and settled on the server), and this one goes to the menu
+        void ForfeitAndLeave()
+        {
+            if (!MatchUnderWay) { ToMenu(); return; }
+            string id = playingMatch, winner = OnlineLobby.OpponentId;
+            var score = ReportScores();
+            OnlineSend(OnlineMsg.Forfeit, text: winner);
+            leaveSoon = true;   // a moment for that message to go out before the session is left
+            reportedMatch = id;
+            Settle().Forget();
+            async UniTaskVoid Settle()
+            {
+                await OnlineApi.ReportResult(id, winner, score);
+                await OnlineApi.Acknowledge(id);
+            }
+            ToMenu();
+        }
+
+        // the opponent unheard for forfeitSeconds at a stretch: this player claims the win (the server's first report
+        // decides it, so two claims cannot both win)
+        float forfeitAfter = 30, goneSince = -1;
+        bool claiming;
+
+        void TickForfeit()
+        {
+            if (!MatchUnderWay || awaitingState || claiming || OnlineLobby.OpponentHere) { goneSince = -1; return; }
+            if (goneSince < 0) goneSince = Time.unscaledTime;
+            if (Time.unscaledTime - goneSince >= forfeitAfter) ClaimForfeit().Forget();
+        }
+
+        async UniTaskVoid ClaimForfeit()
+        {
+            claiming = true;
+            string id = playingMatch;
+            var info = await OnlineApi.ReportResult(id, OnlineLobby.MyId, ReportScores());
+            claiming = false;
+            if (!this || !MatchUnderWay || playingMatch != id) return;
+            // the server not reached (this device's own connection may be the one down): try again shortly
+            if (info == null || !info.Exists) { goneSince = Time.unscaledTime - forfeitAfter + 5; return; }
+            bool won = info.Winner == OnlineLobby.MyId;
+            if (won) OnlineSend(OnlineMsg.Forfeit, text: OnlineLobby.MyId);   // should they come back, they see it
+            EndByForfeit(won ? "online.forfeitGone" : "online.forfeitLost", null);
+        }
+
+        // the match ended by a forfeit: the result card (play again or the menu), told to the server (a report when
+        // <paramref name="winner"/> is given, then seen) and the session left
+        void EndByForfeit(string titleKey, string winner)
+        {
+            string id = playingMatch;
+            var score = ReportScores();
+            OffTheSheet();
+            if (vsPanel) Destroy(vsPanel);
+            reportedMatch = id;
+            Settle().Forget();
+            async UniTaskVoid Settle()
+            {
+                if (winner != null) await OnlineApi.ReportResult(id, winner, score);
+                await OnlineApi.Acknowledge(id);
+            }
+            _ = OnlineLobby.LeaveAsync();
+            ShowCard(() => new CardSpec
+            {
+                Eyebrow = Loc.T("over.eyebrow"),
+                Title = Loc.T(titleKey),
+                Buttons =
+                {
+                    new CardButton(rematch != null ? Elapsed() : Loc.T("over.again"), ToggleRematch) { KeepOpen = true },
+                    new CardButton(Loc.T("over.menu"), ToMenu)
+                }
+            });
+        }
+
+        // back after being away: if the match was settled meanwhile (the opponent claimed the win), show that
+        async UniTaskVoid CheckSettled()
+        {
+            string id = playingMatch;
+            var info = await OnlineApi.GetMatch(id);
+            if (!this || info == null || !info.Exists || info.Status != "finished" || playingMatch != id || state == St.Over) return;
+            EndByForfeit(info.Winner == OnlineLobby.MyId ? "online.forfeitWin" : "online.forfeitLost", null);
         }
 
         void OnlineGameOver()

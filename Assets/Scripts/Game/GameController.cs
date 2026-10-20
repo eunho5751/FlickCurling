@@ -116,6 +116,7 @@ namespace FlickCurling.Game
             showPowerPercent = config.showPowerPercent;
             showHitMarker = config.showHitMarker;
             ShotTime = config.turnSeconds;
+            forfeitAfter = config.forfeitSeconds;
             launchRingRadius = config.launchRingRadius; launchRingWidth = config.launchRingWidth;
             hitRingRadius = config.hitRingRadius; hitRingWidth = config.hitRingWidth;
             Application.targetFrameRate = 60;
@@ -215,7 +216,7 @@ namespace FlickCurling.Game
                 scaler.screenMatchMode = UnityEngine.UI.CanvasScaler.ScreenMatchMode.Expand;
                 go.AddComponent<UnityEngine.UI.GraphicRaycaster>();
                 settings = Instantiate(settingsPrefab, go.transform);
-                settings.ToMenu += ToMenu;
+                settings.ToMenu += RequestMenu;
             }
             ResetShotInput();   // a pull under way is let go without a shot
             settings.Open(true);

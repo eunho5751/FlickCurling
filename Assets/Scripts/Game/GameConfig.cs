@@ -24,6 +24,10 @@ namespace FlickCurling.Game
         [Tooltip("Seconds a player has to throw on their turn (the shot clock)")]
         [Range(5f, 60f)] public float turnSeconds = 15;
 
+        [Header("Online")]
+        [Tooltip("Seconds an online opponent may be disconnected at a stretch before the other player wins by forfeit")]
+        [Range(10f, 300f)] public float forfeitSeconds = 30;
+
         [Header("Stones")]
         [Tooltip("Stone radius in sheet units (the sheet is 100 wide; the house radius is 28)")]
         [Range(2f, 8f)] public float stoneRadius = 4;

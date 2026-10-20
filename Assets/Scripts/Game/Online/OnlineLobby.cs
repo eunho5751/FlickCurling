@@ -467,6 +467,14 @@ namespace FlickCurling.Game.Online
 
         static Task leaving = Task.CompletedTask;
 
+        /// <summary>Leaves the session after <paramref name="seconds"/> (for a last message to go out first).</summary>
+        public static async Task LeaveAfterAsync(float seconds)
+        {
+            var s = Session;
+            await Task.Delay(TimeSpan.FromSeconds(seconds));
+            if (Session == s) await LeaveAsync();
+        }
+
         /// <summary>Leaves the session (if any) and forgets the match.</summary>
         public static async Task LeaveAsync()
         {

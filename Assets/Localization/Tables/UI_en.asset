@@ -498,6 +498,34 @@ MonoBehaviour:
     m_Localized: 'Off the near end: no stone'
     m_Metadata:
       m_Items: []
+  - m_Id: 2071311918485504
+    m_Localized: Give up the match?
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2071311968817152
+    m_Localized: Leaving now counts as a loss.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2071311968817153
+    m_Localized: Forfeit and leave
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2071311968817154
+    m_Localized: Keep playing
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2071311968817155
+    m_Localized: Your opponent forfeited
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2071311968817156
+    m_Localized: 'Opponent disconnected: you win'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2071311968817157
+    m_Localized: You were disconnected and lost by forfeit
+    m_Metadata:
+      m_Items: []
   references:
     version: 2
     RefIds:

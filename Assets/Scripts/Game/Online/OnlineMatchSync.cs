@@ -17,6 +17,7 @@ namespace FlickCurling.Game.Online
         State,         // Seq: where the flow is (OnlinePhase); A: the turn's deadline (network time); Data: the match state (MatchState)
         Ping,          // every second, Text = my player id: I am here (see OnlineLobby.OpponentHere)
         Deadline,      // Seq: turn; A: its deadline in network time (the thrower's device sets it)
+        Forfeit,       // Text: the winner's player id (the sender gave up, or claims the win over a long disconnection)
     }
 
     public struct OnlineMessage
