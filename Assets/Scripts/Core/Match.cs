@@ -38,6 +38,7 @@ namespace FlickCurling.Core
         public int Idx;
         public double TargetX = Sheet.TeeX, TargetY = Sheet.TeeY;   // the centre of the house
         public double?[] Dist = new double?[2];   // null = not thrown yet, +inf = no record
+        public double[] RestX = new double[2], RestY = new double[2];   // where each side's draw stopped (with a record)
         public Post[] Bumpers = new Post[0];        // only on the sheet for the draw
         public Field Field;                          // the map plus the bumpers
     }
@@ -128,6 +129,7 @@ namespace FlickCurling.Core
             bool ok = s != null && s.Live && !s.Flew && s.Y - Sheet.SR >= Sheet.Hog && s.Y - Sheet.SR <= Sheet.Back;
             double d = ok ? Sheet.Dist(s.X, s.Y, Lsd.TargetX, Lsd.TargetY) : double.PositiveInfinity;
             Lsd.Dist[(int)Cur] = d;
+            if (ok) { Lsd.RestX[(int)Cur] = s.X; Lsd.RestY[(int)Cur] = s.Y; }
             shortOfHog = s != null && !s.Flew && s.Y - Sheet.SR < Sheet.Hog;   // off the sheet (either end) is not "short"
             return d;
         }

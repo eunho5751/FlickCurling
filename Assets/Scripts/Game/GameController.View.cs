@@ -436,6 +436,31 @@ namespace FlickCurling.Game
 
         void BeginStones() => stoneUsed = 0;
 
+        // the turn order shot: where an earlier draw stopped (its stone is off the sheet by now), faint, with its record
+        // in the middle, for the one throwing next to beat
+        void DrawLsdMarks()
+        {
+            if (!m.InLsd || m.Lsd == null) return;
+            foreach (var t in m.Lsd.Order)
+            {
+                double? d = m.Lsd.Dist[(int)t];
+                if (t == m.Cur || !d.HasValue || double.IsInfinity(d.Value)) continue;
+                float x = (float)m.Lsd.RestX[(int)t], y = (float)m.Lsd.RestY[(int)t];
+                DrawStone(x, y, t, LsdMarkAlpha);
+                hud.Label(LsdMarkText(t, d.Value), X(x), Y(y), 13, Ui.Shown(t) == Team.B ? Palette.Rgba(255, 255, 255, .95f) : Palette.Rgba(40, 24, 12, .95f), 0, true);
+            }
+        }
+        const float LsdMarkAlpha = 0.4f;
+        readonly string[] lsdMarkText = new string[2];
+        readonly double[] lsdMarkD = { -1, -1 };
+
+        string LsdMarkText(Team t, double d)
+        {
+            int i = (int)t;
+            if (lsdMarkD[i] != d) { lsdMarkD[i] = d; lsdMarkText[i] = d.ToString("0.0"); }
+            return lsdMarkText[i];
+        }
+
         void DrawStone(float x, float y, Team team, float alpha = 1, float scale = 1)
         {
             if (stoneUsed >= stonePool.Count)
@@ -519,6 +544,7 @@ namespace FlickCurling.Game
             }
             else
             {
+                DrawLsdMarks();
                 foreach (var st in m.Stones) if (st.Live) DrawStone((float)st.X, (float)st.Y, st.Team);
             }
             // pending stone at launch
