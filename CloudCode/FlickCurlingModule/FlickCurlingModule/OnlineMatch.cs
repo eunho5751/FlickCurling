@@ -18,7 +18,9 @@ namespace FlickCurlingModule;
 /// Online match bookkeeping (Docs/OnlineMatch.md): a match's record in the private Game Data item "matches" (one key
 /// per match id), each player's current match id and won/lost/drawn in their protected data (they can read it, only
 /// this module writes it), and integrity counters in their private data. The first result report settles a match; a
-/// second one is only compared. Records go once both players have acknowledged, or in the daily clean-up.
+/// second one is only compared. A player dropped from the match's network loses at once (ReportDropped); the other's
+/// result waits for their own report (both dropped: both lose). Records go once both players have acknowledged, or in
+/// the daily clean-up.
 /// </summary>
 public class OnlineMatch
 {
@@ -56,13 +58,15 @@ public class OnlineMatch
         public long StartedAt { get; set; }
         public string Status { get; set; } = "ongoing";   // ongoing / finished
         public bool Started { get; set; }                  // both players opened the match (MarkStarted)
-        public string Ending { get; set; } = "";           // reported / abandoned / expired
+        public string Ending { get; set; } = "";           // reported / dropped / abandoned / expired
         public Report? Result { get; set; }
         public string SettledBy { get; set; } = "";
         public long FinishedAt { get; set; }
         public Dictionary<string, Report> Reports { get; set; } = new();
         public bool Mismatch { get; set; }
         public List<string> Acks { get; set; } = new();
+        public List<string> Dropped { get; set; } = new();   // players who reported being dropped from the match
+        public List<string> Counted { get; set; } = new();   // players whose won/lost/drawn has this match in it
     }
 
     public class Stats
@@ -154,9 +158,11 @@ public class OnlineMatch
             rec.Reports[me] = report;
             bool settles = rec.Status == "ongoing";
             bool differs = false;
+            var uncounted = new List<string>();
             if (settles)
             {
                 rec.Status = "finished"; rec.Ending = "reported"; rec.Result = report; rec.SettledBy = me; rec.FinishedAt = Now();
+                uncounted = MarkCounted(rec, rec.Players);   // (one who reported being dropped has their loss already)
             }
             else if (rec.Result != null && (rec.Result.Winner != winner || !rec.Result.Score.SequenceEqual(score)))
             {
@@ -166,7 +172,7 @@ public class OnlineMatch
 
             if (settles)
             {
-                await Count(ctx, rec, winner);
+                await Count(ctx, uncounted, winner);
                 await BumpIntegrity(ctx, me, i => i.FirstReports++);
             }
             if (differs)
@@ -174,6 +180,36 @@ public class OnlineMatch
                 log.LogWarning("match {MatchId}: {Player} reported {Winner} {Score}, settled as {Settled}", matchId, me, winner, string.Join(":", score), rec.Result?.Winner);
                 await BumpIntegrity(ctx, me, i => i.Mismatch++);
             }
+            return Info(rec);
+        }
+        throw new Exception("could not save the report");
+    }
+
+    /// <summary>
+    /// The caller was dropped from the match's network (or closed the app in it): they have lost, counted at once. The
+    /// opponent's result is their own report's (still connected, they report a win) or, if they were dropped as well,
+    /// a loss: when both have reported being dropped the match is over with no winner (nobody reporting: the daily
+    /// clean-up). A match already settled stays as it is.
+    /// </summary>
+    [CloudCodeFunction("ReportDropped")]
+    public async Task<MatchInfo> ReportDropped(IExecutionContext ctx, string matchId)
+    {
+        string me = Require(ctx.PlayerId, "player");
+        for (int attempt = 0; attempt < 4; attempt++)
+        {
+            var (rec, lockId) = await LoadMatch(ctx, matchId);
+            if (rec == null) throw new Exception("no such match");
+            if (!rec.Players.Contains(me)) throw new Exception("not a player of this match");
+            if (rec.Status != "ongoing" || rec.Dropped.Contains(me)) return Info(rec);   // settled already, or a retry
+
+            rec.Dropped.Add(me);
+            var uncounted = MarkCounted(rec, new[] { me });
+            if (rec.Players.All(rec.Dropped.Contains))
+            {
+                rec.Status = "finished"; rec.Ending = "dropped"; rec.SettledBy = me; rec.FinishedAt = Now();
+            }
+            if (!await TrySaveMatch(ctx, matchId, rec, lockId)) continue;   // someone else wrote meanwhile: read again
+            foreach (var p in uncounted) await UpdateStats(ctx, p, s => s.L++);
             return Info(rec);
         }
         throw new Exception("could not save the report");
@@ -259,8 +295,9 @@ public class OnlineMatch
             if (rec.Status != "ongoing") return Info(rec);
             if (!rec.Started) { await Drop(ctx, matchId, rec, lockId); return new MatchInfo(); }
             rec.Status = "finished"; rec.Ending = "abandoned"; rec.SettledBy = me; rec.FinishedAt = Now();
+            var uncounted = MarkCounted(rec, rec.Players);
             if (!await TrySaveMatch(ctx, matchId, rec, lockId)) continue;
-            foreach (var p in rec.Players) await UpdateStats(ctx, p, s => s.L++);
+            foreach (var p in uncounted) await UpdateStats(ctx, p, s => s.L++);
             return Info(rec);
         }
         throw new Exception("could not resolve the match");
@@ -328,8 +365,9 @@ public class OnlineMatch
             else if (rec.Status == "ongoing" && now - rec.StartedAt > (long)OngoingLimit.TotalMilliseconds)
             {
                 rec.Status = "finished"; rec.Ending = "expired"; rec.FinishedAt = now;
+                var uncounted = MarkCounted(rec, rec.Players);
                 if (!await TrySaveMatch(ctx, key, rec, lockId)) continue;
-                foreach (var p in rec.Players) await UpdateStats(ctx, p, s => s.L++);
+                foreach (var p in uncounted) await UpdateStats(ctx, p, s => s.L++);
                 expired++;
             }
         }
@@ -349,10 +387,19 @@ public class OnlineMatch
         Winner = r.Result?.Winner ?? "", Ending = r.Ending,
     };
 
-    // both players' counts for a settled result: the winner a win, the other a loss, or a draw each
-    async Task Count(IExecutionContext ctx, MatchRecord rec, string winner)
+    // the players among these whose count does not have this match yet, noted as having it (saved with the record,
+    // before their counts change, so no one is counted twice)
+    static List<string> MarkCounted(MatchRecord rec, IEnumerable<string> players)
     {
-        foreach (var p in rec.Players)
+        var fresh = players.Where(p => !rec.Counted.Contains(p)).ToList();
+        rec.Counted.AddRange(fresh);
+        return fresh;
+    }
+
+    // the players' counts for a settled result: the winner a win, the other a loss, or a draw each
+    async Task Count(IExecutionContext ctx, IEnumerable<string> players, string winner)
+    {
+        foreach (var p in players)
         {
             if (winner == "draw") await UpdateStats(ctx, p, s => s.D++);
             else if (winner == p) await UpdateStats(ctx, p, s => s.W++);

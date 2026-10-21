@@ -68,7 +68,7 @@ namespace FlickCurling.Game
             waitingCard = null; commit = null; doneAt = -100;
             reportTask = null; reportedMatch = "";
             published = (-1, -1, -1); myStamp = appliedStamp = 0; myData = null; resyncUntil = -1;
-            arriving = false; oppArrived = false; oppSeen = false; playStart = null;
+            arriving = false; oppArrived = false; oppSeen = false; oppFinished = false; playStart = null;
             myVsAt = oppVsAt = null;   // (the opponent's may come in before this device's panel is up)
             // who is playing, kept for the whole match (the lobby forgets the opponent once the session is left)
             myName = OnlineLobby.MyName; oppName = OnlineLobby.OpponentName;
@@ -220,7 +220,7 @@ namespace FlickCurling.Game
             state = St.Over;
             playback = null; commit = null; waitingCard = null; clock = -1;
             ResetShotInput(); aiPull = null;
-            awaitingState = false; resyncUntil = -1;
+            awaitingState = false; resyncUntil = -1; resultCheck = null;
             hud.ClearToasts(); hud.HideCard(); hud.HideWaiting();
             RenderHud();
         }
@@ -541,10 +541,32 @@ namespace FlickCurling.Game
                 ApplyState(snap);
             }
             if (Time.time <= resyncUntil) return;
+            // the wait over (time for the opponent to have reported a drop): the server asked once whether the match is
+            // still on; the dim stays until it answers (or ResultCheckWait goes by)
+            if (resultCheck == null)
+            {
+                resultCheck = OnlineApi.GetMatch(playingMatch);
+                resultCheckUntil = Time.time + ResultCheckWait;
+                return;
+            }
+            if (!resultCheck.IsCompleted && Time.time <= resultCheckUntil) return;
+            var info = resultCheck.IsCompletedSuccessfully ? resultCheck.Result : null;
+            resultCheck = null;
             resyncUntil = -1;
             awaitingState = false;
             hud.HideWaiting();
+            // settled meanwhile (the opponent saw this device drop and reported it): over here too, as the server has
+            // it (nothing more to report)
+            if (info != null && info.Exists && info.Status == "finished" && state != St.Over)
+            {
+                bool won = info.Winner == OnlineLobby.MyId;
+                OnlineLobby.Trace("back: the match was settled meanwhile (" + (won ? "won" : "lost") + ")");
+                EndByForfeit(won ? "online.forfeitGone" : "online.forfeitLost", null);
+            }
         }
+        Task<OnlineApi.MatchInfo> resultCheck;
+        float resultCheckUntil;
+        const float ResultCheckWait = 3;
 
         bool SameAsMine(MatchSnapshot snap) =>
             myData != null && snap.Phase == published.phase && snap.ShotSeq == myShotSeq && snap.Data.AsSpan().SequenceEqual(myData);
@@ -714,25 +736,39 @@ namespace FlickCurling.Game
         // background or out of signal) loses, the other (its card gone with it) wins. Before the match has started, it is
         // simply off.
         bool oppSeen;   // the opponent's card has been here (until then its absence says nothing)
+        bool oppFinished;   // the opponent's card said the match is over there (their result card): leaving after that is no forfeit
 
         void TickPresence()
         {
             if (connecting || state == St.Over) return;
             bool gone;
             if (!OnlineLobby.NetworkUp) gone = true;
-            else if (OnlineLobby.OpponentPresent) { oppSeen = true; return; }
+            else if (OnlineLobby.OpponentPresent)
+            {
+                oppSeen = true;
+                var card = OnlinePlayerState.Of(OnlineLobby.OpponentId);
+                if (card && card.State.Value != null && card.State.Value.Phase == (int)Phase.Over) oppFinished = true;
+                return;
+            }
             else gone = oppSeen;
             if (!gone) return;
+            // the match decided already, here (the final end scored and reported) or on the opponent's device (its result
+            // card up, from which it leaves the session): a device gone now has left a finished match, not forfeited it;
+            // this one plays on to the result itself
+            if (reportedMatch == playingMatch || oppFinished) return;
             if (arriving) { NoShow(); return; }
             if (!MatchUnderWay) return;
             bool mine = !OnlineLobby.NetworkUp;
             OnlineLobby.Trace(mine ? "this device dropped from the match: lost" : "the opponent dropped from the match: won");
-            EndByForfeit(mine ? "online.forfeitLost" : "online.forfeitGone", mine ? OnlineLobby.OpponentId : OnlineLobby.MyId);
+            // dropped here: only this player's loss is reported (the opponent's own report says how it went for them: a win
+            // if still connected, a loss if dropped as well)
+            EndByForfeit(mine ? "online.forfeitLost" : "online.forfeitGone", mine ? null : OnlineLobby.MyId, dropped: mine);
         }
 
         // the match ended by a forfeit: the result card (play again or the menu), told to the server (a report when
-        // <paramref name="winner"/> is given, then seen) and the session left
-        void EndByForfeit(string titleKey, string winner)
+        // <paramref name="winner"/> is given, or this player's drop when <paramref name="dropped"/>, then seen) and the
+        // session left
+        void EndByForfeit(string titleKey, string winner, bool dropped = false)
         {
             string id = playingMatch;
             var score = ReportScores();
@@ -742,7 +778,8 @@ namespace FlickCurling.Game
             Settle().Forget();
             async UniTaskVoid Settle()
             {
-                if (winner != null) await OnlineApi.ReportResult(id, winner, score);
+                if (dropped) await OnlineApi.ReportDropped(id);
+                else if (winner != null) await OnlineApi.ReportResult(id, winner, score);
                 await OnlineApi.Acknowledge(id);
             }
             _ = OnlineLobby.LeaveSettledAsync();

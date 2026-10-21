@@ -75,6 +75,14 @@ namespace FlickCurling.Game.Online
             return await Call<MatchInfo>("ReportResult", new Dictionary<string, object> { ["matchId"] = matchId, ["winner"] = winner, ["score"] = score });
         }
 
+        /// <summary>This player was dropped from the match's network (or left the app in it): their loss, counted at once.
+        /// The opponent's result is their own report's (both dropped: both lose).</summary>
+        public static async Task<MatchInfo> ReportDropped(string matchId)
+        {
+            await AfterRecord();
+            return await Call<MatchInfo>("ReportDropped", new Dictionary<string, object> { ["matchId"] = matchId });
+        }
+
         public static async Task<bool> Acknowledge(string matchId)
         {
             await AfterRecord();
@@ -129,7 +137,8 @@ namespace FlickCurling.Game.Online
 
         /// <summary>
         /// On starting the game: a match the signed-in player was still in (the app closed or crashed in it) counts as left,
-        /// so lost (the opponent wins); one that never started is called off. Then it is no longer their match.
+        /// so lost, as one dropped from it (the opponent's result is their own report's); one that never started is called
+        /// off. Then it is no longer their match.
         /// </summary>
         public static async Task SettleLeftMatch()
         {
@@ -137,12 +146,7 @@ namespace FlickCurling.Game.Online
             if (string.IsNullOrEmpty(id)) return;
             var info = await GetMatch(id);
             if (info == null) return;   // the server cannot be reached: left for next time
-            if (info.Exists && info.Status == "ongoing" && !await CancelMatch(id))
-            {
-                string me = Unity.Services.Authentication.AuthenticationService.Instance.PlayerId;
-                string opponent = Array.Find(info.Players, p => p != me);
-                if (!string.IsNullOrEmpty(opponent)) await ReportResult(id, opponent, new[] { 0, 0 });
-            }
+            if (info.Exists && info.Status == "ongoing" && !await CancelMatch(id)) await ReportDropped(id);
             await Acknowledge(id);
         }
 

@@ -296,16 +296,18 @@ namespace FlickCurling.Game.Online
         static async Task<bool> ConnectCoreAsync(string sessionId, SessionOptions sessionOptions, bool known, float connectBy)
         {
             Trace("joining session " + sessionId);
-            var joining = MultiplayerService.Instance.CreateOrJoinSessionAsync(sessionId, sessionOptions);
-            var left = TimeSpan.FromSeconds(Mathf.Max(0, connectBy - Time.realtimeSinceStartup));
-            if (await Task.WhenAny(joining, Task.Delay(left)) != joining)
+            // the join is called off at the deadline, not just left to run: the service keeps asking the lobby for the
+            // network's join code for minutes otherwise, and with the next match's join on top the lobby service turns
+            // them away (HTTP 429, too many requests)
+            using var joinTimeout = new CancellationTokenSource(TimeSpan.FromSeconds(Mathf.Max(0.1f, connectBy - Time.realtimeSinceStartup)));
+            ISession s;
+            try { s = await MultiplayerService.Instance.CreateOrJoinSessionAsync(sessionId, sessionOptions, joinTimeout.Token); }
+            catch (OperationCanceledException) when (joinTimeout.IsCancellationRequested)
             {
                 Debug.LogWarning("FlickCurling: the matched session was not joined in time (the service slow to start its network?)");
                 await LeaveAsync();
                 return false;
             }
-            ISession s;
-            try { s = await joining; }
             catch (Exception e)
             {
                 Debug.LogWarning("FlickCurling: joining the matched session failed: " + e.Message);
