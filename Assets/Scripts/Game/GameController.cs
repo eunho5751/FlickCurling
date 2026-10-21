@@ -76,7 +76,7 @@ namespace FlickCurling.Game
 
         async UniTaskVoid AfterAsync(float seconds, Action a)
         {
-            bool cancelled = await UniTask.Delay(TimeSpan.FromSeconds(seconds), DelayType.Realtime, PlayerLoopTiming.Update, destroyCancellationToken)
+            bool cancelled = await UniTask.Delay(TimeSpan.FromSeconds(seconds), DelayType.DeltaTime, PlayerLoopTiming.Update, destroyCancellationToken)
                 .SuppressCancellationThrow();
             if (!cancelled) a();
         }
@@ -185,6 +185,7 @@ namespace FlickCurling.Game
             if (settingsPrefab) hud.SettingsIcon = settingsPrefab.Icon;
             hud.OnSettings = OpenSettings;
             GameSettings.Changed += OnSettingsChanged;
+            Account.NetworkGuard.Resumed += OnNetworkBack;
             LoadSettings();
             Loc.Changed += OnLocaleChanged;
             Resize(true);
@@ -195,7 +196,7 @@ namespace FlickCurling.Game
             else StartMatch(Mode.Pvp, "base");
         }
 
-        void OnDestroy() { Loc.Changed -= OnLocaleChanged; GameSettings.Changed -= OnSettingsChanged; OnlineDestroy(); Ui.Flip = false; }
+        void OnDestroy() { Loc.Changed -= OnLocaleChanged; GameSettings.Changed -= OnSettingsChanged; Account.NetworkGuard.Resumed -= OnNetworkBack; OnlineDestroy(); Ui.Flip = false; }
 
         SettingsPanel settingsPrefab, settings;
         bool SettingsOpen => settings && settings.IsOpen;
@@ -231,7 +232,7 @@ namespace FlickCurling.Game
             bool want = HumanAim && !Charging;
             if (want && pulseTween == null)
                 pulseTween = DOTween.To(() => turnPulse, v => turnPulse = v, 1.08f, 0.6f)
-                    .SetEase(Ease.InOutSine).SetLoops(-1, LoopType.Yoyo).SetUpdate(true).SetLink(gameObject);
+                    .SetEase(Ease.InOutSine).SetLoops(-1, LoopType.Yoyo).SetLink(gameObject);
             else if (!want && pulseTween != null)
             {
                 pulseTween.Kill();
@@ -420,7 +421,7 @@ namespace FlickCurling.Game
             var input = AiInput.From(m, team, ai[(int)team].Value);
             var b = brain;
             int tok = token;
-            float t0 = Time.unscaledTime;
+            float t0 = Time.time;
             var ct = destroyCancellationToken;
             AiDecision d;
             try { d = await UniTask.RunOnThreadPool(() => b.Decide(input), cancellationToken: ct); }
@@ -428,8 +429,8 @@ namespace FlickCurling.Game
             catch (Exception e) { Debug.LogException(e); return; }
             if (tok != token || state != St.Ai) return;
             m.SetLane(team, d.Lx); laneTo = d.Lx;   // slide the stone over while the AI "thinks"
-            float wait = Mathf.Max(0, (1000 + (float)fx.NextDouble() * 700) / 1000f - (Time.unscaledTime - t0));
-            if (await UniTask.Delay(TimeSpan.FromSeconds(wait), DelayType.Realtime, PlayerLoopTiming.Update, ct).SuppressCancellationThrow()) return;
+            float wait = Mathf.Max(0, (1000 + (float)fx.NextDouble() * 700) / 1000f - (Time.time - t0));
+            if (await UniTask.Delay(TimeSpan.FromSeconds(wait), DelayType.DeltaTime, PlayerLoopTiming.Update, ct).SuppressCancellationThrow()) return;
             if (tok != token || state != St.Ai) return;
             m.LaunchX = d.Lx; laneTo = null;
             state = St.AiPull;
@@ -756,7 +757,8 @@ namespace FlickCurling.Game
 
         void Update()
         {
-            float rdt = Mathf.Min(0.05f, Time.unscaledDeltaTime);
+            // the game's clock is the scaled one: Time.timeScale 0 (the network popup) stops the match where it is
+            float rdt = Mathf.Min(0.05f, Time.deltaTime);
             float dt = rdt;   // game clock (physics, animations)
 
             UpdateTurnPulse();
@@ -797,7 +799,7 @@ namespace FlickCurling.Game
             UpdateCam(rdt);
             ApplyCamera();
             hud.Tick(px, cw, ch);
-            Draw(Time.unscaledTime * 1000);
+            Draw(Time.time * 1000);
         }
     }
 }

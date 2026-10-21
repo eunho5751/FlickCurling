@@ -61,6 +61,8 @@ namespace FlickCurling.EditorTools
             new[] { "online.forfeitLost", "연결이 끊겨 기권패 처리됐어요", "You were disconnected and lost by forfeit", "接続切れのため棄権負けになりました" },
             new[] { "online.noShow", "상대가 들어오지 않아 경기가 취소됐어요", "Your opponent didn't arrive, so the match was called off", "相手が来なかったため、試合は中止になりました" },
             new[] { "device.title", "접속 안내", "Signed In Elsewhere", "接続のお知らせ" },
+            new[] { "network.title", "연결 안내", "No Connection", "接続のお知らせ" },
+            new[] { "network.message", "네트워크 연결을 확인해 주세요.", "Please check your network connection.", "ネットワーク接続を確認してください。" },
             new[] { "device.message", "다른 기기에서 로그인했어요.\n이 기기에서 계속하려면 다시 접속해 주세요.", "Your account was signed in on another device.\nReconnect to keep playing here.", "別の端末でログインしました。\nこの端末で続けるには再接続してください。" },
             new[] { "device.reconnect", "다시 접속", "Reconnect", "再接続" },
 

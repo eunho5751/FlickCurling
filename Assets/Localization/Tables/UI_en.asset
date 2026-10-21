@@ -522,6 +522,14 @@ MonoBehaviour:
     m_Localized: "Connecting to your opponent\u2026"
     m_Metadata:
       m_Items: []
+  - m_Id: 2350488668262400
+    m_Localized: No Connection
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2350488752148480
+    m_Localized: Please check your network connection.
+    m_Metadata:
+      m_Items: []
   references:
     version: 2
     RefIds:

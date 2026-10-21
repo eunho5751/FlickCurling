@@ -85,7 +85,7 @@ namespace FlickCurling.Game
                 // connected), and both end it the panel's time after the later of the two
                 int tok = token;
                 vsPanel = VsPanel.Show(transform, hud.Canvas.sortingOrder + 20, () => Now, VsEnd, () => connecting,
-                    () => { vsUp = true; vsUpReal = Time.unscaledTime; OnlineLobby.Trace("records panel shown"); if (!connecting) VsShown(); },
+                    () => { vsUp = true; vsUpReal = Time.time; OnlineLobby.Trace("records panel shown"); if (!connecting) VsShown(); },
                     () => { OnlineLobby.Trace("records panel closed (both shown " + (oppVsAt.HasValue ? "" : "not ") + "known), first card"); if (this && tok == token) show(); });
             });
         }
@@ -95,15 +95,15 @@ namespace FlickCurling.Game
         {
             myReady.Add(CardArrive);
             OnlineSend(OnlineMsg.Ready, CardArrive);
-            arriving = true; arriveStart = Time.unscaledTime;
+            arriving = true; arriveStart = Time.time;
         }
 
         // on the network and the panel up: when it appeared (in network time, dated back to before the connection, if it
         // came up first) and when this device connected, to the other
         void VsShown()
         {
-            myVsConnected = Now; vsShownReal = Time.unscaledTime;
-            myVsAt = myVsConnected - (Time.unscaledTime - vsUpReal);
+            myVsConnected = Now; vsShownReal = Time.time;
+            myVsAt = myVsConnected - (Time.time - vsUpReal);
             OnlineSend(OnlineMsg.Ready, CardVs, a: myVsAt.Value, b: myVsConnected);
         }
         bool vsUp;
@@ -152,7 +152,7 @@ namespace FlickCurling.Game
         {
             if (!myVsAt.HasValue) return null;
             if (oppVsAt.HasValue) return Math.Max(Math.Max(myVsAt.Value, oppVsAt.Value) + VsSeconds, Math.Max(myVsConnected, oppVsConnected));
-            if ((oppSeen && !OnlineLobby.OpponentPresent) || Time.unscaledTime - vsShownReal > VsWaitMax) return Math.Max(myVsAt.Value + VsSeconds, myVsConnected);
+            if ((oppSeen && !OnlineLobby.OpponentPresent) || Time.time - vsShownReal > VsWaitMax) return Math.Max(myVsAt.Value + VsSeconds, myVsConnected);
             return null;
         }
 
@@ -177,7 +177,7 @@ namespace FlickCurling.Game
                 if (!string.IsNullOrEmpty(OnlineLobby.MatchId)) _ = OnlineApi.MarkStarted(OnlineLobby.MatchId);
                 return;
             }
-            if (Time.unscaledTime - arriveStart > ArriveWait) NoShow();
+            if (Time.time - arriveStart > ArriveWait) NoShow();
         }
 
         // the opponent never came: the match is off (no record for anyone) and this player looks for another one
@@ -198,7 +198,7 @@ namespace FlickCurling.Game
             LookAgainSoon().Forget();
             async UniTaskVoid LookAgainSoon()
             {
-                if (await UniTask.Delay(TimeSpan.FromSeconds(NoShowSettle), DelayType.Realtime, cancellationToken: destroyCancellationToken).SuppressCancellationThrow()) return;
+                if (await UniTask.Delay(TimeSpan.FromSeconds(NoShowSettle), DelayType.DeltaTime, cancellationToken: destroyCancellationToken).SuppressCancellationThrow()) return;
                 if (rematch == null && state == St.Over && hud.CardVisible) { StartRematch(); hud.SetCardButton(0, Elapsed(), true); }
             }
             ShowCard(() => new CardSpec
@@ -368,12 +368,12 @@ namespace FlickCurling.Game
         {
             if (!IsOnline) return;
             OnlineSend(OnlineMsg.PlaybackDone);
-            doneAt = Time.unscaledTime;
+            doneAt = Time.time;
         }
 
         // the next turn waits for the other device to finish the shot too, but not for long, nor for one that is gone
         bool OnlineNextTurnReady() =>
-            !IsOnline || oppDone.Contains(TurnSeq) || !OnlineLobby.OpponentPresent || Time.unscaledTime - doneAt > NextTurnWait;
+            !IsOnline || oppDone.Contains(TurnSeq) || !OnlineLobby.OpponentPresent || Time.time - doneAt > NextTurnWait;
 
         // the turn's deadline in network time (the session's clock, the same on both devices and not the phone's): the
         // shooter's device sets it and tells the other, so both fuses end together; time in the background counts
@@ -392,6 +392,9 @@ namespace FlickCurling.Game
         void TickOnlineClock()
         {
             if (awaitingState) return;   // the match is where the opponent's device has it: no judging here meanwhile
+            // the network popup is up: the fuse stands still on screen (the deadline itself goes on, on the opponent's
+            // device too); once it closes the match is taken from the opponent's card, the fuse with the time really left
+            if (Account.NetworkGuard.Blocking) return;
             if (state == St.Remote) { TickRemoteClock(); return; }
             if (clock < 0 || !HumanAim) return;
             float before = clock;
@@ -408,7 +411,7 @@ namespace FlickCurling.Game
             if (commit.HasValue)
             {
                 clock = -1;
-                if (Time.unscaledTime - commitAt > CommitStuck) PlayRemoteShot(commit.Value, null);
+                if (Time.time - commitAt > CommitStuck) PlayRemoteShot(commit.Value, null);
                 return;
             }
             double left = ClockFromDeadline();
@@ -424,6 +427,9 @@ namespace FlickCurling.Game
         void OnlineUpdate()
         {
             if (!IsOnline) return;
+            // the network popup is up: the match stands still here too (what comes in waits); it is taken from the
+            // opponent's card once the network is back (OnNetworkBack)
+            if (Account.NetworkGuard.Blocking) return;
             TickConnect();
             // the match is over here, or the next one has been found: its messages wait for the next scene
             if (string.IsNullOrEmpty(playingMatch) || OnlineLobby.MatchId != playingMatch) { TickRematch(); return; }
@@ -473,7 +479,7 @@ namespace FlickCurling.Game
             {
                 case OnlineMsg.Commit:
                     if (state != St.Remote) return turnOver;
-                    if (!commit.HasValue) { commit = msg; commitAt = Time.unscaledTime; clock = -1; }
+                    if (!commit.HasValue) { commit = msg; commitAt = Time.time; clock = -1; }
                     return true;
                 case OnlineMsg.Shot:
                     if (state != St.Remote) return turnOver;
@@ -496,15 +502,23 @@ namespace FlickCurling.Game
 
         // ---------------- back from the background ----------------
 
-        // a short spell in the background (still on the match's network: longer, and the match is lost, TickPresence):
+        // a short spell in the background or offline (still on the match's network: longer, and the match is lost, TickPresence):
         // what happened meanwhile is not played through, the match is taken at once as the opponent's device has it
         // (their card), under a dim, with any shot of theirs under way shown where it is on their screen
         void OnApplicationPause(bool paused)
         {
-            if (paused || mode != Mode.Online || state == St.Over || awaitingState || connecting || !OnlineLobby.InMatch) return;
+            if (!paused) TakeFromOpponent();
+        }
+
+        // the network back after the popup stood the match still: the same, the match taken as the opponent's device has it
+        void OnNetworkBack() => TakeFromOpponent();
+
+        void TakeFromOpponent()
+        {
+            if (mode != Mode.Online || state == St.Over || awaitingState || connecting || !OnlineLobby.InMatch) return;
             ResetShotInput();
             awaitingState = true;
-            resyncUntil = Time.unscaledTime + ResyncWait;
+            resyncUntil = Time.time + ResyncWait;
             hud.ClearToasts();
             hud.ShowWaiting(Loc.T("online.resuming"));
         }
@@ -526,7 +540,7 @@ namespace FlickCurling.Game
                 OnlineLobby.Trace("match state taken from the opponent's card");
                 ApplyState(snap);
             }
-            if (Time.unscaledTime <= resyncUntil) return;
+            if (Time.time <= resyncUntil) return;
             resyncUntil = -1;
             awaitingState = false;
             hud.HideWaiting();
@@ -791,7 +805,7 @@ namespace FlickCurling.Game
         {
             OnlineLobby.Trace("search started (result card)");
             rematch = new CancellationTokenSource();
-            rematchStart = Time.unscaledTime;
+            rematchStart = Time.unscaledTime;   // (the search time is real time: the search goes on whatever)
             FindAgain(rematch).Forget();
         }
 

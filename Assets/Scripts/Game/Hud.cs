@@ -194,7 +194,7 @@ namespace FlickCurling.Game
 
         public void Tick(float cssPx, float cw, float ch)
         {
-            if (waitOv.gameObject.activeSelf) waitText.alpha = 0.55f + 0.45f * Mathf.Cos(Time.unscaledTime * 4);
+            if (waitOv.gameObject.activeSelf) waitText.alpha = 0.55f + 0.45f * Mathf.Cos(Time.time * 4);
             if (scaler.scaleFactor != cssPx) scaler.scaleFactor = cssPx;
             // the safe area: everything below is laid out inside it
             float sw = cw - insL - insR, sh = ch - insT - insB;
@@ -373,13 +373,13 @@ namespace FlickCurling.Game
 
         void Push(ToastItem it, float ms)
         {
-            it.Until = Time.unscaledTime + ms / 1000f;
+            it.Until = Time.time + ms / 1000f;
             toasts.Add(it);
             // no more than four up at once: the oldest goes first
             var live = toasts.FindAll(t => !t.Leaving);
             for (int i = 0; i < live.Count - 4; i++) Leave(live[i]);
             it.Rt.localScale = Vector3.one * 0.85f;
-            it.Show = DOTween.Sequence().SetUpdate(true).SetLink(it.Rt.gameObject)
+            it.Show = DOTween.Sequence().SetLink(it.Rt.gameObject)
                 .Append(DOTween.To(() => it.Cg.alpha, v => it.Cg.alpha = v, 1, 0.18f))
                 .Join(it.Rt.DOScale(1, 0.25f).SetEase(Ease.OutBack));
             Restack();
@@ -391,7 +391,7 @@ namespace FlickCurling.Game
             if (it.Leaving) return;
             it.Leaving = true;
             it.Show?.Kill();
-            it.Show = DOTween.To(() => it.Cg.alpha, v => it.Cg.alpha = v, 0, 0.3f).SetUpdate(true).SetLink(it.Rt.gameObject)
+            it.Show = DOTween.To(() => it.Cg.alpha, v => it.Cg.alpha = v, 0, 0.3f).SetLink(it.Rt.gameObject)
                 .OnComplete(() => { it.Slide?.Kill(); toasts.Remove(it); UnityEngine.Object.Destroy(it.Rt.gameObject); });
             Restack();
         }
@@ -410,7 +410,7 @@ namespace FlickCurling.Game
                     t.Target = off;
                     t.Slide?.Kill();
                     if (fresh) t.Off = off;
-                    else t.Slide = DOTween.To(() => t.Off, v => t.Off = v, off, 0.28f).SetEase(Ease.OutCubic).SetUpdate(true).SetLink(t.Rt.gameObject);
+                    else t.Slide = DOTween.To(() => t.Off, v => t.Off = v, off, 0.28f).SetEase(Ease.OutCubic).SetLink(t.Rt.gameObject);
                 }
                 off += t.Rt.rect.height + 8;
             }
@@ -419,7 +419,7 @@ namespace FlickCurling.Game
         void TickToasts()
         {
             if (toasts.Count == 0) return;
-            float now = Time.unscaledTime;
+            float now = Time.time;
             foreach (var t in toasts.ToArray()) if (!t.Leaving && now > t.Until) Leave(t);
             // just above the fuse; kept on screen when the camera has taken the min line off it
             float y = Mathf.Clamp(toastY < 0 ? viewH * 0.6f : toastY, insT + 140, viewH - insB - 12);
@@ -440,7 +440,7 @@ namespace FlickCurling.Game
         {
             cardSeq++;
             cardSpan = c.Countdown;
-            cardDeadline = c.Countdown > 0 ? Time.unscaledTime + c.Countdown : 0;
+            cardDeadline = c.Countdown > 0 ? Time.time + c.Countdown : 0;
             FillCard(c, onAnyClick);
             cardShown = true;
             cardOv.gameObject.SetActive(true);
@@ -448,8 +448,8 @@ namespace FlickCurling.Game
             DOTween.Kill(cardGroup); DOTween.Kill(cardRt);
             cardGroup.alpha = 0; cardGroup.interactable = cardGroup.blocksRaycasts = true;
             cardPop = 0.9f;
-            DOTween.To(() => cardGroup.alpha, a => cardGroup.alpha = a, 1, 0.15f).SetUpdate(true).SetTarget(cardGroup);
-            DOTween.To(() => cardPop, v => cardPop = v, 1, 0.2f).SetEase(Ease.OutBack).SetUpdate(true).SetTarget(cardRt);
+            DOTween.To(() => cardGroup.alpha, a => cardGroup.alpha = a, 1, 0.15f).SetTarget(cardGroup);
+            DOTween.To(() => cardPop, v => cardPop = v, 1, 0.2f).SetEase(Ease.OutBack).SetTarget(cardRt);
             return cardSeq;
         }
 
@@ -522,7 +522,7 @@ namespace FlickCurling.Game
             cardShown = false;
             DOTween.Kill(cardGroup); DOTween.Kill(cardRt);
             cardGroup.interactable = cardGroup.blocksRaycasts = false;
-            DOTween.To(() => cardGroup.alpha, a => cardGroup.alpha = a, 0, 0.12f).SetUpdate(true).SetTarget(cardGroup)
+            DOTween.To(() => cardGroup.alpha, a => cardGroup.alpha = a, 0, 0.12f).SetTarget(cardGroup)
                 .OnComplete(() => cardOv.gameObject.SetActive(false));
         }
 
@@ -547,7 +547,7 @@ namespace FlickCurling.Game
         void TickCard()
         {
             if (cardDeadline <= 0 || !CardVisible) return;
-            float left = cardDeadline - Time.unscaledTime;
+            float left = cardDeadline - Time.time;
             if (cardFill) cardFill.fillAmount = Mathf.Clamp01(left / cardSpan);
             if (left <= 0 && cardFirst) cardFirst.onClick.Invoke();
         }

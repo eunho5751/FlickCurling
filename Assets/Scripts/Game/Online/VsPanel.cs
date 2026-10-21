@@ -57,7 +57,7 @@ namespace FlickCurling.Game.Online
             top.anchoredPosition += new Vector2(900, 0);
             bottom.anchoredPosition -= new Vector2(900, 0);
             vs.rectTransform.localScale = Vector3.zero;
-            var seq = DOTween.Sequence().SetUpdate(true).SetLink(go);
+            var seq = DOTween.Sequence().SetLink(go);
             seq.Append(DOTween.To(() => group.alpha, a => group.alpha = a, 1, 0.2f));
             seq.Join(SlideX(top, 0.35f));
             seq.Join(SlideX(bottom, 0.35f));
@@ -68,7 +68,7 @@ namespace FlickCurling.Game.Online
             hold.Connecting(note, connecting);
             shown?.Invoke();
             hold.Begin(now, endAt, () =>
-                DOTween.To(() => group.alpha, a => group.alpha = a, 0, OutTime).SetUpdate(true).SetLink(go)
+                DOTween.To(() => group.alpha, a => group.alpha = a, 0, OutTime).SetLink(go)
                     .OnComplete(() => { UnityEngine.Object.Destroy(go); done?.Invoke(); }));
             return go;
         }
@@ -103,7 +103,7 @@ namespace FlickCurling.Game.Online
 
             public void Begin(Func<double> clock, Func<double?> end, Action onDone)
             {
-                now = clock; endAt = end; finish = onDone; shown = Time.unscaledTime;
+                now = clock; endAt = end; finish = onDone; shown = Time.time;
             }
 
             void Update()
@@ -113,9 +113,9 @@ namespace FlickCurling.Game.Online
                 if (note && note.gameObject.activeSelf)
                 {
                     if (connecting == null || !connecting()) note.gameObject.SetActive(false);
-                    else note.alpha = 0.55f + 0.45f * Mathf.Cos(Time.unscaledTime * 4);
+                    else note.alpha = 0.55f + 0.45f * Mathf.Cos(Time.time * 4);
                 }
-                if (finish == null || Time.unscaledTime < shown + InTime + 0.3f) return;
+                if (finish == null || Time.time < shown + InTime + 0.3f) return;
                 var end = endAt();
                 if (!end.HasValue || now() < end.Value - OutTime) return;
                 var f = finish; finish = null;

@@ -167,6 +167,7 @@ namespace FlickCurling.EditorTools
             BuildLinkConflictPrefab(popupPrefab);   // loaded when needed, over the settings
             BuildNicknamePrefab(popupPrefab);   // loaded when a new player needs a nickname
             BuildDevicePrefab(popupPrefab);     // loaded when the account is signed in on another device
+            BuildNetworkPrefab(popupPrefab);    // loaded while the network (or signing in) is down
 
             var menu = canvasGo.AddComponent<MainMenu>();
             var so = new SerializedObject(menu);
@@ -522,6 +523,38 @@ namespace FlickCurling.EditorTools
             so.ApplyModifiedPropertiesWithoutUndo();
             go.SetActive(false);
             PrefabUtility.SaveAsPrefabAsset(go, DevicePrefabPath);
+            Object.DestroyImmediate(go);
+        }
+
+        public const string NetworkPrefabPath = "Assets/Resources/" + FlickCurling.Game.Account.NetworkPopup.ResourcePath + ".prefab";
+
+        // no network: the message only; no way to close it (it goes when the network is back)
+        static void BuildNetworkPrefab(GameObject popupPrefab)
+        {
+            var go = (GameObject)PrefabUtility.InstantiatePrefab(popupPrefab);
+            go.name = "NetworkPopup";
+            var font = AssetDatabase.LoadAssetAtPath<TMP_FontAsset>(FontBuilder.DisplayPath);
+            var title = go.transform.Find("Window/TitleRow/Title").GetComponent<TextMeshProUGUI>();
+            title.text = UiStrings.Entries.First(e => e[0] == "network.title")[1];
+            LocalizeEvents.BindText(title, Loc.Table, "network.title");
+            ((RectTransform)go.transform.Find("Window")).sizeDelta = new Vector2(NickW, 420);
+            go.transform.Find("Window/Close").gameObject.SetActive(false);
+            var content = (RectTransform)go.transform.Find("Window/Content");
+            var v = content.gameObject.AddComponent<VerticalLayoutGroup>();
+            v.childAlignment = TextAnchor.MiddleCenter;
+            v.childControlWidth = v.childControlHeight = true; v.childForceExpandWidth = v.childForceExpandHeight = true;
+            var message = Label(content, "Message", font, 40, Ink);
+            message.textWrappingMode = TextWrappingModes.Normal;
+            message.alignment = TextAlignmentOptions.Center;
+            message.text = UiStrings.Entries.First(e => e[0] == "network.message")[1];
+            LocalizeEvents.BindText(message, Loc.Table, "network.message");
+
+            var panel = go.AddComponent<FlickCurling.Game.Account.NetworkPopup>();
+            var so = new SerializedObject(panel);
+            so.FindProperty("popup").objectReferenceValue = go.GetComponent<Popup>();
+            so.ApplyModifiedPropertiesWithoutUndo();
+            go.SetActive(false);
+            PrefabUtility.SaveAsPrefabAsset(go, NetworkPrefabPath);
             Object.DestroyImmediate(go);
         }
 

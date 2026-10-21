@@ -225,8 +225,9 @@ namespace FlickCurling.Game
 
         void HandleInput()
         {
-            // nor while the screen fades, or while an online match is being taken from the opponent's device
-            if (ScreenFader.Busy || awaitingState) { mouseWasDown = false; ResetShotInput(); return; }
+            // nor while the screen fades, while an online match is being taken from the opponent's device, or while the
+            // network popup is up
+            if (ScreenFader.Busy || awaitingState || Account.NetworkGuard.Blocking) { mouseWasDown = false; ResetShotInput(); return; }
             bool touched = false;
             foreach (var t in ETouch.activeTouches)
             {
