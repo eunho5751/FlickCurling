@@ -28,6 +28,7 @@ namespace FlickCurling.Game
         [SerializeField] Online.OnlineSetup onlineSetup;
         [SerializeField] SettingsPanel settings;
         [SerializeField] Popup shop;
+        [SerializeField] Online.LeaderboardPopup leaderboard;
 
         /// <summary>The menu's shared popup window (hidden until shown).</summary>
         public Popup Popup => popup;
@@ -39,6 +40,7 @@ namespace FlickCurling.Game
             {
                 if (e.Key == "mainmenu.offline") e.Button.onClick.AddListener(matchSetup.Open);
                 else if (e.Key == "mainmenu.online" && onlineSetup) e.Button.onClick.AddListener(onlineSetup.Open);
+                else if (e.Key == "mainmenu.leaderboard" && leaderboard) e.Button.onClick.AddListener(leaderboard.Open);
                 else if (e.Key == "mainmenu.shop") e.Button.onClick.AddListener(() => shop.Show());
                 else if (e.Key == "mainmenu.settings") e.Button.onClick.AddListener(() => settings.Open());
             }

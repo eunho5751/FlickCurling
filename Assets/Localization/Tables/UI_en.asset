@@ -530,6 +530,55 @@ MonoBehaviour:
     m_Localized: Please check your network connection.
     m_Metadata:
       m_Items: []
+  - m_Id: 2585780813746176
+    m_Localized: See the result
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2585780847300608
+    m_Localized: '{points} ({delta})'
+    m_Metadata:
+      m_Items:
+      - rid: 4297768082125881571
+  - m_Id: 2585780847300609
+    m_Localized: Rank
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2585780847300610
+    m_Localized: Name
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2585780847300611
+    m_Localized: Points
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2585780847300612
+    m_Localized: Win rate
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2585780847300613
+    m_Localized: My rank
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2585780847300614
+    m_Localized: No rank yet
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2585780847300615
+    m_Localized: Sign in with Google to get ranked
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2585780847300616
+    m_Localized: No one is ranked yet
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2585780847300617
+    m_Localized: "Loading\u2026"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2585780847300618
+    m_Localized: Could not load the rankings
+    m_Metadata:
+      m_Items: []
   references:
     version: 2
     RefIds:
@@ -557,3 +606,4 @@ MonoBehaviour:
         - id: 2262749237
         - id: 1099965122138116
         - id: 1694707769856003
+        - id: 2585780847300608

@@ -20,7 +20,9 @@ namespace FlickCurlingModule;
 /// this module writes it), and integrity counters in their private data. The first result report settles a match; a
 /// second one is only compared. A player dropped from the match's network loses at once (ReportDropped); the other's
 /// result waits for their own report (both dropped: both lose). Records go once both players have acknowledged, or in
-/// the daily clean-up.
+/// the daily clean-up. Every counted result also moves the player's rating points (a win +10, a draw 0, a loss -5, never
+/// below 0), which a player linked to an account (not a guest) has on the "rating" leaderboard: only this module writes
+/// it (players are denied writing to leaderboards by the project's access policy).
 /// </summary>
 public class OnlineMatch
 {
@@ -74,7 +76,15 @@ public class OnlineMatch
         public int W { get; set; }
         public int L { get; set; }
         public int D { get; set; }
+        public int P { get; set; }                    // rating points
+        public bool Ranked { get; set; }              // linked to an account: on the leaderboard (SyncLeaderboard)
+        public string LastMatch { get; set; } = "";   // the last match counted, and what it did to P
+        public int LastDelta { get; set; }
     }
+
+    enum Outcome { Win, Draw, Loss }
+    const int WinPoints = 10, LossPoints = 5;
+    const string LeaderboardId = "rating";
 
     public class Integrity
     {
@@ -100,6 +110,7 @@ public class OnlineMatch
         public int W { get; set; }
         public int L { get; set; }
         public int D { get; set; }
+        public int P { get; set; }
     }
 
     // ---------------- functions ----------------
@@ -172,7 +183,7 @@ public class OnlineMatch
 
             if (settles)
             {
-                await Count(ctx, uncounted, winner);
+                await Count(ctx, matchId, uncounted, winner);
                 await BumpIntegrity(ctx, me, i => i.FirstReports++);
             }
             if (differs)
@@ -209,7 +220,7 @@ public class OnlineMatch
                 rec.Status = "finished"; rec.Ending = "dropped"; rec.SettledBy = me; rec.FinishedAt = Now();
             }
             if (!await TrySaveMatch(ctx, matchId, rec, lockId)) continue;   // someone else wrote meanwhile: read again
-            foreach (var p in uncounted) await UpdateStats(ctx, p, s => s.L++);
+            foreach (var p in uncounted) await UpdateStats(ctx, p, Outcome.Loss, matchId);
             return Info(rec);
         }
         throw new Exception("could not save the report");
@@ -297,10 +308,43 @@ public class OnlineMatch
             rec.Status = "finished"; rec.Ending = "abandoned"; rec.SettledBy = me; rec.FinishedAt = Now();
             var uncounted = MarkCounted(rec, rec.Players);
             if (!await TrySaveMatch(ctx, matchId, rec, lockId)) continue;
-            foreach (var p in uncounted) await UpdateStats(ctx, p, s => s.L++);
+            foreach (var p in uncounted) await UpdateStats(ctx, p, Outcome.Loss, matchId);
             return Info(rec);
         }
         throw new Exception("could not resolve the match");
+    }
+
+    /// <summary>
+    /// Puts the caller on the leaderboard once their player is linked to an account (Google, Apple), checked here with the
+    /// player's own record, not taken from the device: their points go up at once if they have played, else after their
+    /// first match. A guest (no linked account) is not ranked. The device calls it after signing in and after linking or
+    /// unlinking. Returns whether the caller is ranked.
+    /// </summary>
+    [CloudCodeFunction("SyncLeaderboard")]
+    public async Task<bool> SyncLeaderboard(IExecutionContext ctx)
+    {
+        string me = Require(ctx.PlayerId, "player");
+        bool linked = await IsLinked(ctx, me);
+        for (int attempt = 0; attempt < 4; attempt++)
+        {
+            var (s, lockId) = await GetProtected<Stats>(ctx, me, StatsKey);
+            s ??= new Stats();
+            if (s.Ranked == linked) return linked;
+            s.Ranked = linked;
+            try { await api.CloudSaveData.SetProtectedItemAsync(ctx, ctx.ServiceToken, ctx.ProjectId, me, new SetItemBody(StatsKey, s, lockId)); }
+            catch (ApiException e) when (Conflict(e)) { continue; }
+            // a player who unlinked stops being updated; their old entry stays until it is taken off in the dashboard
+            if (linked && s.W + s.L + s.D > 0) await PostScore(ctx, me, s);
+            return linked;
+        }
+        throw new Exception("could not update the player");
+    }
+
+    // whether the player has an account linked (any external id: Google, Apple), from Player Authentication
+    async Task<bool> IsLinked(IExecutionContext ctx, string playerId)
+    {
+        var res = await api.PlayerAuth.GetPlayerAsync(ctx, ctx.ServiceToken, playerId, ctx.ProjectId);
+        return res.Data?.ExternalIds?.Count > 0;
     }
 
     /// <summary>A match as far as its players need to know (whether it is there, still going, how it ended).</summary>
@@ -324,7 +368,7 @@ public class OnlineMatch
         {
             var (s, _) = await GetProtected<Stats>(ctx, id, StatsKey);
             s ??= new Stats();
-            list.Add(new PlayerStats { PlayerId = id, W = s.W, L = s.L, D = s.D });
+            list.Add(new PlayerStats { PlayerId = id, W = s.W, L = s.L, D = s.D, P = s.P });
         }
         return list;
     }
@@ -367,7 +411,7 @@ public class OnlineMatch
                 rec.Status = "finished"; rec.Ending = "expired"; rec.FinishedAt = now;
                 var uncounted = MarkCounted(rec, rec.Players);
                 if (!await TrySaveMatch(ctx, key, rec, lockId)) continue;
-                foreach (var p in uncounted) await UpdateStats(ctx, p, s => s.L++);
+                foreach (var p in uncounted) await UpdateStats(ctx, p, Outcome.Loss, key);
                 expired++;
             }
         }
@@ -397,31 +441,48 @@ public class OnlineMatch
     }
 
     // the players' counts for a settled result: the winner a win, the other a loss, or a draw each
-    async Task Count(IExecutionContext ctx, IEnumerable<string> players, string winner)
+    async Task Count(IExecutionContext ctx, string matchId, IEnumerable<string> players, string winner)
     {
         foreach (var p in players)
-        {
-            if (winner == "draw") await UpdateStats(ctx, p, s => s.D++);
-            else if (winner == p) await UpdateStats(ctx, p, s => s.W++);
-            else await UpdateStats(ctx, p, s => s.L++);
-        }
+            await UpdateStats(ctx, p, winner == "draw" ? Outcome.Draw : winner == p ? Outcome.Win : Outcome.Loss, matchId);
     }
 
-    async Task UpdateStats(IExecutionContext ctx, string playerId, Action<Stats> change)
+    // one counted result: won/lost/drawn, the rating points (and how they moved, for the result screen), then the
+    // leaderboard if the player is on it
+    async Task UpdateStats(IExecutionContext ctx, string playerId, Outcome outcome, string matchId)
     {
         for (int attempt = 0; attempt < 4; attempt++)
         {
             var (s, lockId) = await GetProtected<Stats>(ctx, playerId, StatsKey);
             s ??= new Stats();
-            change(s);
+            int before = s.P;
+            switch (outcome)
+            {
+                case Outcome.Win: s.W++; s.P += WinPoints; break;
+                case Outcome.Draw: s.D++; break;
+                default: s.L++; s.P = Math.Max(0, s.P - LossPoints); break;
+            }
+            s.LastMatch = matchId; s.LastDelta = s.P - before;
             try
             {
                 await api.CloudSaveData.SetProtectedItemAsync(ctx, ctx.ServiceToken, ctx.ProjectId, playerId, new SetItemBody(StatsKey, s, lockId));
-                return;
             }
-            catch (ApiException e) when (Conflict(e)) { }
+            catch (ApiException e) when (Conflict(e)) { continue; }
+            if (s.Ranked) await PostScore(ctx, playerId, s);
+            return;
         }
         log.LogError("could not update the stats of {Player}", playerId);
+    }
+
+    // the player's leaderboard entry: the rating points, with won/lost/drawn for the win rate
+    async Task PostScore(IExecutionContext ctx, string playerId, Stats s)
+    {
+        try
+        {
+            await api.Leaderboards.AddLeaderboardPlayerScoreAsync(ctx, ctx.ServiceToken, Guid.Parse(ctx.ProjectId), LeaderboardId, playerId,
+                new Unity.Services.Leaderboards.Model.AddLeaderboardScore(s.P, new Dictionary<string, int> { ["w"] = s.W, ["l"] = s.L, ["d"] = s.D }));
+        }
+        catch (Exception e) { log.LogError("could not post the score of {Player}: {Error}", playerId, e.Message); }
     }
 
     async Task BumpIntegrity(IExecutionContext ctx, string playerId, Action<Integrity> change)

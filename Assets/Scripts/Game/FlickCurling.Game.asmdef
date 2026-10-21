@@ -16,6 +16,7 @@
         "Unity.Services.QoS",
         "Unity.Services.CloudCode",
         "Unity.Services.CloudSave",
+        "Unity.Services.Leaderboards",
         "Unity.Networking.Transport",
         "Unity.Collections"
     ],

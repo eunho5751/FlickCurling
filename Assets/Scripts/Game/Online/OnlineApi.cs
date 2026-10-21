@@ -36,6 +36,9 @@ namespace FlickCurling.Game.Online
         {
             public string PlayerId = "";
             public int W, L, D;
+            public int P;                       // rating points
+            public string LastMatch = "";       // the last match counted, and what it did to P
+            public int LastDelta;
         }
 
         static async Task<T> Call<T>(string function, Dictionary<string, object> args) where T : class
@@ -113,6 +116,14 @@ namespace FlickCurling.Game.Online
         public static Task<MatchInfo> GetMatch(string matchId) =>
             Call<MatchInfo>("GetMatch", new Dictionary<string, object> { ["matchId"] = matchId });
 
+        /// <summary>Puts the signed-in player on the leaderboard if they are linked to an account (the server checks), or
+        /// takes them off; whether they are on it, or null if the server could not be reached.</summary>
+        public static async Task<bool?> SyncLeaderboard()
+        {
+            try { return await CloudCodeService.Instance.CallModuleEndpointAsync<bool>(Module, "SyncLeaderboard", new Dictionary<string, object>()); }
+            catch (Exception e) { Debug.LogWarning("FlickCurling: " + Module + ".SyncLeaderboard failed: " + e.Message); return null; }
+        }
+
         public static Task<List<PlayerStats>> GetStats(params string[] playerIds) =>
             Call<List<PlayerStats>>("GetStats", new Dictionary<string, object> { ["playerIds"] = playerIds });
 
@@ -125,7 +136,7 @@ namespace FlickCurling.Game.Online
                 var items = await CloudSaveService.Instance.Data.Player.LoadAsync(new HashSet<string> { StatsKey },
                     new LoadOptions(new ProtectedReadAccessClassOptions()));
                 var s = items.TryGetValue(StatsKey, out var item) ? item.Value.GetAs<PlayerStats>() : null;
-                return new PlayerStats { PlayerId = playerId, W = s?.W ?? 0, L = s?.L ?? 0, D = s?.D ?? 0 };
+                return new PlayerStats { PlayerId = playerId, W = s?.W ?? 0, L = s?.L ?? 0, D = s?.D ?? 0, P = s?.P ?? 0, LastMatch = s?.LastMatch ?? "", LastDelta = s?.LastDelta ?? 0 };
             }
             catch (Exception e)
             {

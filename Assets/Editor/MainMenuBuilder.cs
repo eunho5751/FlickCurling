@@ -160,6 +160,7 @@ namespace FlickCurling.EditorTools
             var matchSetup = BuildMatchSetup(popupPrefab, canvasGo.transform, buttonFont);
             var onlineSetup = BuildOnlineSetup(popupPrefab, canvasGo.transform);
             var shop = BuildShop(popupPrefab, canvasGo.transform);
+            var leaderboard = BuildLeaderboard(popupPrefab, canvasGo.transform);
             var settingsPrefab = BuildSettingsPrefab(popupPrefab);
             var settingsGo = (GameObject)PrefabUtility.InstantiatePrefab(settingsPrefab, canvasGo.transform);
             settingsGo.SetActive(false);
@@ -177,6 +178,7 @@ namespace FlickCurling.EditorTools
             so.FindProperty("onlineSetup").objectReferenceValue = onlineSetup;
             so.FindProperty("settings").objectReferenceValue = settingsPanel;
             so.FindProperty("shop").objectReferenceValue = shop;
+            so.FindProperty("leaderboard").objectReferenceValue = leaderboard;
             var arr = so.FindProperty("entries");
             arr.arraySize = entries.Length;
             for (int i = 0; i < entries.Length; i++)
@@ -361,6 +363,182 @@ namespace FlickCurling.EditorTools
             }
             go.SetActive(false);
             return go.GetComponent<Popup>();
+        }
+
+        // ---- the leaderboard popup: this player's rank, points and win rate in a box at the top (or why there are none, or
+        // for a guest the Google button), then the column titles and the top 50 in the shared scroll view, one plate per
+        // row; the medals and plates are Codex art in the menu's style ----
+
+        const float BoardW = 900, BoardH = 1560, BoardMineH = 210, BoardHeadH = 54, BoardRowH = 100, BoardRowGap = 10;
+        const float ColRank = 120, ColPoints = 150, ColRate = 130, ColPad = 26, MedalSize = 76;
+        static readonly Color32 MineInk = new Color32(0x6b, 0x34, 0x08, 0xff);
+        const string LbArt = "Assets/Art/Menu/lb_";
+
+        static FlickCurling.Game.Online.LeaderboardPopup BuildLeaderboard(GameObject popupPrefab, Transform parent)
+        {
+            var go = (GameObject)PrefabUtility.InstantiatePrefab(popupPrefab, parent);
+            go.name = "LeaderboardPopup";
+            var legendFont = AssetDatabase.LoadAssetAtPath<TMP_FontAsset>(FontBuilder.DisplayPath);
+            var valueFont = AssetDatabase.LoadAssetAtPath<TMP_FontAsset>(FontBuilder.ButtonPath);
+            var title = go.transform.Find("Window/TitleRow/Title").GetComponent<TextMeshProUGUI>();
+            title.text = UiStrings.Entries.First(e => e[0] == "mainmenu.leaderboard")[1];
+            LocalizeEvents.BindText(title, Loc.Table, "mainmenu.leaderboard");
+            var icon = go.transform.Find("Window/TitleRow/Icon").GetComponent<Image>();
+            icon.sprite = AssetDatabase.LoadAssetAtPath<Sprite>(IconPath("mainmenu.leaderboard"));
+            icon.gameObject.SetActive(true);
+            ((RectTransform)go.transform.Find("Window")).sizeDelta = new Vector2(BoardW, BoardH);
+
+            var content = (RectTransform)go.transform.Find("Window/Content");
+            var v = content.gameObject.AddComponent<VerticalLayoutGroup>();
+            v.spacing = 14; v.childAlignment = TextAnchor.UpperCenter;
+            v.childControlWidth = v.childControlHeight = true;
+            v.childForceExpandWidth = true; v.childForceExpandHeight = false;
+
+            // this player, boxed like the account in the settings: three figures, or a line (and the Google button)
+            var box = Child<Image>(content, "Mine");
+            box.sprite = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Art/Menu/account_box.png");
+            box.type = Image.Type.Sliced; box.pixelsPerUnitMultiplier = 0.75f;
+            box.gameObject.AddComponent<LayoutElement>().preferredHeight = BoardMineH;
+            var stats = Child<RectTransform>(box.transform, "Stats");
+            Stretch(stats); stats.offsetMin = new Vector2(40, 24); stats.offsetMax = new Vector2(-40, -24);
+            var sh = stats.gameObject.AddComponent<HorizontalLayoutGroup>();
+            sh.childControlWidth = sh.childControlHeight = true; sh.childForceExpandWidth = sh.childForceExpandHeight = true;
+            TextMeshProUGUI Figure(string name, string key)
+            {
+                var col = Child<RectTransform>(stats, name);
+                var cv = col.gameObject.AddComponent<VerticalLayoutGroup>();
+                cv.spacing = 4; cv.childAlignment = TextAnchor.MiddleCenter;
+                cv.childControlWidth = cv.childControlHeight = true; cv.childForceExpandWidth = true; cv.childForceExpandHeight = false;
+                var label = Label(col, "Label", legendFont, 30, Ink);
+                label.text = UiStrings.Entries.First(e => e[0] == key)[1];
+                LocalizeEvents.BindText(label, Loc.Table, key);
+                var value = Label(col, "Value", valueFont, 58, MineInk);
+                value.text = "-";
+                return value;
+            }
+            var myRank = Figure("Rank", "leaderboard.mine");
+            var myPoints = Figure("Points", "leaderboard.points");
+            var myRate = Figure("WinRate", "leaderboard.winRate");
+            var other = Child<RectTransform>(box.transform, "Status");
+            Stretch(other); other.offsetMin = new Vector2(40, 22); other.offsetMax = new Vector2(-40, -22);
+            var ov = other.gameObject.AddComponent<VerticalLayoutGroup>();
+            ov.spacing = 10; ov.childAlignment = TextAnchor.MiddleCenter;
+            ov.childControlWidth = ov.childControlHeight = true; ov.childForceExpandWidth = false; ov.childForceExpandHeight = false;
+            var myStatus = Label(other, "Text", legendFont, 32, Ink);
+            myStatus.enableAutoSizing = true; myStatus.fontSizeMin = 22; myStatus.fontSizeMax = 32;
+            myStatus.gameObject.AddComponent<LayoutElement>().preferredHeight = 44;
+            myStatus.text = "";
+            var googleGo = UiPrefabBuilder.Place(UiPrefabBuilder.GooglePath, other, "SignIn");
+            var gle = googleGo.AddComponent<LayoutElement>(); gle.preferredWidth = GoogleButtonW; gle.preferredHeight = GoogleButtonH * 0.9f;
+            var google = UiPrefabBuilder.SetLabel(googleGo, "account.googleLogin");
+
+            // the column titles, over the rows' own columns
+            var head = Child<RectTransform>(content, "Head");
+            var hle = head.gameObject.AddComponent<LayoutElement>();
+            hle.preferredHeight = BoardHeadH; hle.flexibleHeight = 0;   // (its row layout would ask for a share of the height)
+            Columns(head, UiPrefabBuilder.ScrollbarW + UiPrefabBuilder.ScrollbarGap);
+            foreach (var (name, key, w) in new[] { ("Rank", "leaderboard.rank", ColRank), ("Name", "leaderboard.name", -1f), ("Points", "leaderboard.points", ColPoints), ("WinRate", "leaderboard.winRate", ColRate) })
+            {
+                var t = Label(head, name, legendFont, 30, Ink);
+                t.text = UiStrings.Entries.First(e => e[0] == key)[1];
+                LocalizeEvents.BindText(t, Loc.Table, key);
+                Column(t.gameObject, w);
+                if (w < 0) t.alignment = TextAlignmentOptions.MidlineLeft;
+            }
+
+            // the rows, scrolling
+            var scroll = UiPrefabBuilder.Place(UiPrefabBuilder.ScrollViewPath, content, "List");
+            scroll.AddComponent<LayoutElement>().flexibleHeight = 1;
+            var rowsParent = (RectTransform)scroll.transform.Find("Viewport/Content");
+            var rv = rowsParent.gameObject.AddComponent<VerticalLayoutGroup>();
+            rv.spacing = BoardRowGap; rv.padding = new RectOffset(0, 0, 2, 8);
+            rv.childControlWidth = rv.childControlHeight = true; rv.childForceExpandWidth = true; rv.childForceExpandHeight = false;
+            var listStatus = Label(scroll.transform, "Status", legendFont, 32, AccountValueInk);
+            Stretch(listStatus.rectTransform);
+            listStatus.textWrappingMode = TextWrappingModes.Normal;
+            listStatus.text = "";
+
+            var row = BuildLeaderboardRow(rowsParent, valueFont);
+
+            var popupComp = go.AddComponent<FlickCurling.Game.Online.LeaderboardPopup>();
+            var so = new SerializedObject(popupComp);
+            so.FindProperty("popup").objectReferenceValue = go.GetComponent<Popup>();
+            so.FindProperty("list").objectReferenceValue = rowsParent;
+            so.FindProperty("rowTemplate").objectReferenceValue = row;
+            so.FindProperty("listStatus").objectReferenceValue = listStatus;
+            so.FindProperty("mine").objectReferenceValue = stats.gameObject;
+            so.FindProperty("myRank").objectReferenceValue = myRank;
+            so.FindProperty("myPoints").objectReferenceValue = myPoints;
+            so.FindProperty("myRate").objectReferenceValue = myRate;
+            so.FindProperty("myStatus").objectReferenceValue = myStatus;
+            so.FindProperty("googleButton").objectReferenceValue = google;
+            so.ApplyModifiedPropertiesWithoutUndo();
+            go.SetActive(false);
+            return popupComp;
+        }
+
+        // a row's columns: the rank (or medal), the nickname taking the rest, the points and the win rate
+        static void Columns(RectTransform row, float rightPad)
+        {
+            var h = row.gameObject.AddComponent<HorizontalLayoutGroup>();
+            h.padding = new RectOffset((int)ColPad, (int)(ColPad + rightPad), 0, 0); h.spacing = 12;
+            h.childAlignment = TextAnchor.MiddleLeft;
+            h.childControlWidth = h.childControlHeight = true; h.childForceExpandWidth = false; h.childForceExpandHeight = true;
+        }
+
+        static void Column(GameObject go, float width)
+        {
+            var le = go.AddComponent<LayoutElement>();
+            if (width < 0) { le.flexibleWidth = 1; le.minWidth = 0; } else le.preferredWidth = le.minWidth = width;
+        }
+
+        static FlickCurling.Game.Online.LeaderboardRow BuildLeaderboardRow(RectTransform parent, TMP_FontAsset font)
+        {
+            var plateSprite = ImportSprite(LbArt + "row.png", new Vector4(64, 56, 64, 56), 1200);
+            var mineSprite = ImportSprite(LbArt + "row_mine.png", new Vector4(64, 56, 64, 56), 1200);
+            var medals = new[] { "gold", "silver", "bronze" }.Select(m => ImportSprite(LbArt + "medal_" + m + ".png", Vector4.zero, 256)).ToArray();
+
+            var plate = Child<Image>(parent, "RowTemplate");
+            plate.sprite = plateSprite; plate.type = Image.Type.Sliced;
+            plate.pixelsPerUnitMultiplier = plateSprite.rect.height / BoardRowH;
+            plate.raycastTarget = false;
+            plate.gameObject.AddComponent<LayoutElement>().preferredHeight = BoardRowH;
+            var rt = plate.rectTransform;
+            Columns(rt, 0);
+
+            var rankCell = Child<RectTransform>(rt, "Rank");
+            Column(rankCell.gameObject, ColRank);
+            var medal = Child<Image>(rankCell, "Medal");
+            Place(medal.rectTransform, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(MedalSize, MedalSize));
+            medal.preserveAspect = true; medal.raycastTarget = false;
+            var rank = Label(rankCell, "Number", font, 40, Ink);
+            Stretch(rank.rectTransform);
+            var name = Label(rt, "Name", font, 36, Ink);
+            name.alignment = TextAlignmentOptions.MidlineLeft;
+            name.overflowMode = TextOverflowModes.Ellipsis;
+            Column(name.gameObject, -1);
+            var points = Label(rt, "Points", font, 38, Ink);
+            Column(points.gameObject, ColPoints);
+            var rate = Label(rt, "WinRate", font, 34, Ink);
+            Column(rate.gameObject, ColRate);
+
+            var row = plate.gameObject.AddComponent<FlickCurling.Game.Online.LeaderboardRow>();
+            var so = new SerializedObject(row);
+            so.FindProperty("plate").objectReferenceValue = plate;
+            so.FindProperty("medal").objectReferenceValue = medal;
+            so.FindProperty("rank").objectReferenceValue = rank;
+            so.FindProperty("nickname").objectReferenceValue = name;
+            so.FindProperty("points").objectReferenceValue = points;
+            so.FindProperty("winRate").objectReferenceValue = rate;
+            so.FindProperty("plateSprite").objectReferenceValue = plateSprite;
+            so.FindProperty("mineSprite").objectReferenceValue = mineSprite;
+            var arr = so.FindProperty("medals");
+            arr.arraySize = medals.Length;
+            for (int i = 0; i < medals.Length; i++) arr.GetArrayElementAtIndex(i).objectReferenceValue = medals[i];
+            so.FindProperty("ink").colorValue = (Color)Ink;
+            so.FindProperty("mineInk").colorValue = (Color)MineInk;
+            so.ApplyModifiedPropertiesWithoutUndo();
+            return row;
         }
 
         public const string SettingsPrefabPath = "Assets/Resources/" + SettingsPanel.ResourcePath + ".prefab";   // the game loads it too

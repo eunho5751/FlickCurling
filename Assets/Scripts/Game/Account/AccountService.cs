@@ -91,7 +91,36 @@ namespace FlickCurling.Game.Account
             await auth.GetPlayerInfoAsync();
             PlayerId = auth.PlayerId ?? "";
             PlayerName = await auth.GetPlayerNameAsync();   // UGS makes one up the first time (Name#1234)
+            SyncRank();
         }
+
+        /// <summary>Whether the player is on the leaderboard (linked to an account); null until the server has said, and
+        /// while it is asked again. <see cref="RankSync"/> is that question.</summary>
+        public static bool? Ranked { get; private set; }
+        public static Task RankSync { get; private set; } = Task.CompletedTask;
+
+        // the server checks the player's linked accounts itself and puts them on the leaderboard or takes them off; asked
+        // after signing in and after linking or unlinking, but not for a guest who never was on it (nothing to change)
+        static void SyncRank()
+        {
+            var ids = AuthenticationService.Instance.PlayerInfo?.Identities;
+            bool linked = ids != null && ids.Count > 0;
+            string key = RankedKey + PlayerId;
+            if (!linked && PlayerPrefs.GetInt(key, 0) == 0) { Ranked = false; RankSync = Task.CompletedTask; return; }
+            Ranked = null;
+            RankSync = Ask();
+            async Task Ask()
+            {
+                string id = PlayerId;
+                bool? ranked = await Online.OnlineApi.SyncLeaderboard();
+                if (id != PlayerId) return;   // another player meanwhile
+                Ranked = ranked ?? linked;
+                PlayerPrefs.SetInt(key, Ranked == true ? 1 : 0);
+                Notify();
+            }
+        }
+
+        const string RankedKey = "account.ranked.";
 
         // who the account's player is, without losing this one: sign in as them under a scratch profile (its own session),
         // then come back to this player's session in the original profile
