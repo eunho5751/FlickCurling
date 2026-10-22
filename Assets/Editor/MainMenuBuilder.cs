@@ -449,6 +449,10 @@ namespace FlickCurling.EditorTools
             // the rows, scrolling
             var scroll = UiPrefabBuilder.Place(UiPrefabBuilder.ScrollViewPath, content, "List");
             scroll.AddComponent<LayoutElement>().flexibleHeight = 1;
+            // the rows always leave the scrollbar's room, shown or not, so their columns stay under the titles
+            var sr = scroll.GetComponent<ScrollRect>();
+            sr.verticalScrollbarVisibility = ScrollRect.ScrollbarVisibility.AutoHide;
+            ((RectTransform)sr.viewport).offsetMax = new Vector2(-(UiPrefabBuilder.ScrollbarW + UiPrefabBuilder.ScrollbarGap), 0);
             var rowsParent = (RectTransform)scroll.transform.Find("Viewport/Content");
             var rv = rowsParent.gameObject.AddComponent<VerticalLayoutGroup>();
             rv.spacing = BoardRowGap; rv.padding = new RectOffset(0, 0, 2, 8);

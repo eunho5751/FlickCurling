@@ -155,11 +155,12 @@ namespace FlickCurling.Game.Online
             catch (Exception) { return (0, 0, 0); }
         }
 
-        // wins out of every match played (draws included), whole per cent; "-" before any
+        // wins out of every match played (draws included), whole per cent; "-" before any. The number is what is centred:
+        // an invisible "%" in front balances the one after it
         static string WinRate(int w, int l, int d)
         {
             int n = w + l + d;
-            return n == 0 ? "-" : Mathf.RoundToInt(100f * w / n) + "%";
+            return n == 0 ? "-" : "<alpha=#00>%<alpha=#FF>" + Mathf.RoundToInt(100f * w / n) + "%";
         }
 
         // a guest signs in with Google here as in the settings: linked, the server ranks them (AccountService), and this
