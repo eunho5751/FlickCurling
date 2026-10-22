@@ -537,7 +537,7 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 2585780847300608
-    m_Localized: '{points} ({delta})'
+    m_Localized: '{points}P ({delta})'
     m_Metadata:
       m_Items:
       - rid: 4297768082125881572
@@ -583,6 +583,25 @@ MonoBehaviour:
     m_Localized: "\uC21C\uC704\uB97C \uBD88\uB7EC\uC624\uC9C0 \uBABB\uD588\uC5B4\uC694"
     m_Metadata:
       m_Items: []
+  - m_Id: 2745731632779264
+    m_Localized: "\uC751\uB2F5 \uAE30\uB2E4\uB9AC\uB294 \uC911\u2026"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2752037559128064
+    m_Localized: "<color=#d9a54c>\uC2B9\uB9AC!</color> ({score})"
+    m_Metadata:
+      m_Items:
+      - rid: 4297768082125881572
+  - m_Id: 2752037559128065
+    m_Localized: "\uD328\uBC30! ({score})"
+    m_Metadata:
+      m_Items:
+      - rid: 4297768082125881572
+  - m_Id: 2752037559128066
+    m_Localized: "<color=#d9a54c>\uBB34\uC2B9\uBD80</color> ({score})"
+    m_Metadata:
+      m_Items:
+      - rid: 4297768082125881572
   references:
     version: 2
     RefIds:
@@ -611,3 +630,6 @@ MonoBehaviour:
         - id: 1099965122138116
         - id: 1694707769856003
         - id: 2585780847300608
+        - id: 2752037559128064
+        - id: 2752037559128065
+        - id: 2752037559128066

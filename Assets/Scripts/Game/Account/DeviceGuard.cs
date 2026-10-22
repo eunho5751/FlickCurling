@@ -26,6 +26,9 @@ namespace FlickCurling.Game.Account
         public static string DeviceId => Online.OnlineLobby.DeviceId;
         /// <summary>Another device has the account now.</summary>
         public static bool Displaced { get; private set; }
+        /// <summary>Every push message the Cloud Code module sends this player (its type, then what it says), on the one
+        /// subscription the app keeps; this guard acts on its own type, others listen for theirs.</summary>
+        public static event Action<string, string> PlayerMessage;
 
         static DeviceGuard instance;
         string claimedFor = "";
@@ -39,7 +42,7 @@ namespace FlickCurling.Game.Account
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
         static void ResetStatics()
         {
-            Displaced = false; instance = null; quitting = false;
+            Displaced = false; instance = null; quitting = false; PlayerMessage = null;
             Application.quitting -= OnQuitting;
             Application.quitting += OnQuitting;
         }
@@ -93,7 +96,11 @@ namespace FlickCurling.Game.Account
             }
             var callbacks = new SubscriptionEventCallbacks();
             // whatever the message says, the note on the server decides (two devices claiming at once both hear a push)
-            callbacks.MessageReceived += e => { if (e.MessageType == MessageType) _ = CheckAsync(); };
+            callbacks.MessageReceived += e =>
+            {
+                if (e.MessageType == MessageType) _ = CheckAsync();
+                PlayerMessage?.Invoke(e.MessageType, e.Message);
+            };
             try
             {
                 subscription = await CloudCodeService.Instance.SubscribeToPlayerMessagesAsync(callbacks);

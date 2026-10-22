@@ -52,6 +52,8 @@ namespace FlickCurling.Game
 
         void StartOnline()
         {
+            Account.DeviceGuard.PlayerMessage -= OnPlayerMessage;
+            Account.DeviceGuard.PlayerMessage += OnPlayerMessage;
             awaitingState = false;
             playingMatch = OnlineLobby.MatchId;
             connect = OnlineLobby.Connecting;
@@ -66,7 +68,7 @@ namespace FlickCurling.Game
             playback = null;
             myReady.Clear(); oppReady.Clear(); oppDone.Clear(); held.Clear();
             waitingCard = null; commit = null; doneAt = -100;
-            reportTask = null; reportedMatch = "";
+            reportTask = null; reportedMatch = ""; points = null; toResult = false;
             published = (-1, -1, -1); myStamp = appliedStamp = 0; myData = null; resyncUntil = -1;
             arriving = false; oppArrived = false; oppSeen = false; oppFinished = false; playStart = null;
             myVsAt = oppVsAt = null;   // (the opponent's may come in before this device's panel is up)
@@ -227,6 +229,7 @@ namespace FlickCurling.Game
 
         void OnlineDestroy()
         {
+            Account.DeviceGuard.PlayerMessage -= OnPlayerMessage;
             rematch?.Cancel();
             rematch = null;
         }
@@ -783,7 +786,6 @@ namespace FlickCurling.Game
                 await OnlineApi.Acknowledge(id);
             }
             _ = OnlineLobby.LeaveSettledAsync();
-            FetchPoints(id, report: null);
             // who won by it, for the final result card it leads to
             Team me = OnlineLobby.MyTeam;
             Team? winnerTeam = titleKey == "online.forfeitLost" ? Sheet.Other(me) : me;
@@ -791,7 +793,7 @@ namespace FlickCurling.Game
             {
                 Eyebrow = Loc.T("over.eyebrow"),
                 Title = Loc.T(titleKey),
-                Buttons = { new CardButton(Loc.T("over.viewResult"), () => OnlineFinalCard(winnerTeam)) }
+                Buttons = { ResultButton(Loc.T("over.viewResult"), () => OnlineFinalCard(winnerTeam)) }
             });
         }
 
@@ -808,60 +810,73 @@ namespace FlickCurling.Game
                 if (report != null) await report;
                 if (!string.IsNullOrEmpty(id)) await OnlineApi.Acknowledge(id);
             }
-            FetchPoints(id, report);
             OnlineFinalCard(m.Winner);
         }
 
-        // the final result card, which every online match ends on (a forfeit's card leads to it): who won and the score,
-        // then the rating points the server now has for this player and what this match did to them, once known
+        // the final result card, which every online match ends on (a forfeit's card leads to it): this player's own result
+        // (won, lost or drawn), then the rating points the server now has for this player and what this match did to them (blank if they did not
+        // come in time)
         void OnlineFinalCard(Team? win)
         {
-            finalCard = FinalCard;
-            ShowCard(finalCard);
-            CardSpec FinalCard() => new CardSpec
+            ShowCard(() => new CardSpec
             {
                 Eyebrow = Loc.T("over.eyebrow"),
-                Title = win.HasValue
-                    ? Loc.T("over.win", ("name", SideOf(win.Value, 110)), ("score", Versus(110)))
-                    : Loc.T("over.draw", ("score", Versus(110))),
-                Head = points.HasValue ? Loc.T("over.points", ("points", points.Value.p), ("delta", Signed(points.Value.delta))) : "…",
+                Title = MyResult(win, OnlineLobby.MyTeam),
+                Head = points.HasValue ? Loc.T("over.points", ("points", points.Value.p), ("delta", Signed(points.Value.delta))) : "",
                 Buttons =
                 {
                     new CardButton(rematch != null ? Elapsed() : Loc.T("over.again"), ToggleRematch) { KeepOpen = true },
                     new CardButton(Loc.T("over.menu"), ToMenu)
                 }
-            };
+            });
         }
-        Func<CardSpec> finalCard;
-        (int p, int delta)? points;
+
+        (int p, int delta)? points;   // this player's rating points after the match just finished, and its change
 
         static string Signed(int n) => n > 0 ? "+" + n : n < 0 ? "−" + -n : "+0";
 
-        // the player's rating points after match id: the server writes them as it counts the result (whichever device's
-        // report that was), so they are read back (after this device's own report) until they are this match's
-        void FetchPoints(string id, Task report)
+        // the button that goes on to the final result card (the last end's card, a forfeit's card): straight on once the
+        // server has counted the match for this player; until then it says it is waiting and stays pressed, for the
+        // server's push (or SettleWait, after which it goes on without the points)
+        CardButton ResultButton(string label, Action go) => new CardButton(label, () => ToResult(go)) { KeepOpen = true };
+        bool toResult;
+
+        async void ToResult(Action go)
         {
-            points = null;
-            if (string.IsNullOrEmpty(id)) return;
-            Fetch().Forget();
-            async UniTaskVoid Fetch()
+            if (toResult) return;
+            string id = reportedMatch;
+            if (!points.HasValue && !string.IsNullOrEmpty(id))
             {
-                try { if (report != null) await report; } catch (Exception) { }
-                for (int tries = 0; tries < PointsTries; tries++)
-                {
-                    if (tries > 0) await UniTask.Delay(PointsRetryMs, ignoreTimeScale: true);
-                    if (!this) return;
-                    var s = await OnlineApi.MyStats(OnlineLobby.MyId);
-                    if (!this) return;
-                    if (s == null || s.LastMatch != id) continue;
-                    points = (s.P, s.LastDelta);
-                    // the final result card up: shown on it now
-                    if (hud.CardVisible && cardFactory == finalCard && finalCard != null) hud.ReplaceCard(finalCard(), null);
-                    return;
-                }
+                toResult = true;
+                hud.SetCardButton(0, Loc.T("over.waiting"), false);
+                float until = Time.unscaledTime + SettleWait;
+                // counted before the card (or the push missed): it is in this player's stats already
+                await ReadPoints(id);
+                while (this && !points.HasValue && Time.unscaledTime < until) await UniTask.Yield();
+                if (this && !points.HasValue) await ReadPoints(id);   // a last look before going on without them
+                toResult = false;
+                if (!this) return;
             }
+            go();
         }
-        const int PointsTries = 10, PointsRetryMs = 800;
+        const float SettleWait = 5;
+
+        async Task ReadPoints(string id)
+        {
+            var s = await OnlineApi.MyStats(OnlineLobby.MyId);
+            if (this && s != null && s.LastMatch == id) points = (s.P, s.LastDelta);
+        }
+
+        // the server's push as it counts this player's result (whichever device's report settled it)
+        void OnPlayerMessage(string type, string message)
+        {
+            if (type != SettledMessage || string.IsNullOrEmpty(message)) return;
+            Settled msg;
+            try { msg = JsonUtility.FromJson<Settled>(message); } catch (Exception) { return; }
+            if (msg != null && !string.IsNullOrEmpty(msg.m) && (msg.m == playingMatch || msg.m == reportedMatch)) points = (msg.p, msg.d);
+        }
+        const string SettledMessage = "matchSettled";   // (as the module sends it)
+        [Serializable] sealed class Settled { public string m = ""; public int p, d; }
 
         // play again: look for a new opponent (the button shows the time spent); pressed again, stop looking
         void ToggleRematch()

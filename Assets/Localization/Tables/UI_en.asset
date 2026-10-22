@@ -535,7 +535,7 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 2585780847300608
-    m_Localized: '{points} ({delta})'
+    m_Localized: '{points}P ({delta})'
     m_Metadata:
       m_Items:
       - rid: 4297768082125881571
@@ -579,6 +579,25 @@ MonoBehaviour:
     m_Localized: Could not load the rankings
     m_Metadata:
       m_Items: []
+  - m_Id: 2745731632779264
+    m_Localized: "Waiting for the server\u2026"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2752037559128064
+    m_Localized: <color=#d9a54c>Victory!</color> ({score})
+    m_Metadata:
+      m_Items:
+      - rid: 4297768082125881571
+  - m_Id: 2752037559128065
+    m_Localized: Defeat! ({score})
+    m_Metadata:
+      m_Items:
+      - rid: 4297768082125881571
+  - m_Id: 2752037559128066
+    m_Localized: <color=#d9a54c>Draw</color> ({score})
+    m_Metadata:
+      m_Items:
+      - rid: 4297768082125881571
   references:
     version: 2
     RefIds:
@@ -607,3 +626,6 @@ MonoBehaviour:
         - id: 1099965122138116
         - id: 1694707769856003
         - id: 2585780847300608
+        - id: 2752037559128064
+        - id: 2752037559128065
+        - id: 2752037559128066

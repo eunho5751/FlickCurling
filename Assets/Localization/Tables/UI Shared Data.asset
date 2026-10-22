@@ -543,6 +543,22 @@ MonoBehaviour:
     m_Key: leaderboard.failed
     m_Metadata:
       m_Items: []
+  - m_Id: 2745731632779264
+    m_Key: over.waiting
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2752037559128064
+    m_Key: over.myWin
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2752037559128065
+    m_Key: over.myLoss
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2752037559128066
+    m_Key: over.myDraw
+    m_Metadata:
+      m_Items: []
   m_Metadata:
     m_Items: []
   m_KeyGenerator:

@@ -85,6 +85,7 @@ public class OnlineMatch
     enum Outcome { Win, Draw, Loss }
     const int WinPoints = 10, LossPoints = 5;
     const string LeaderboardId = "rating";
+    const string SettledMessage = "matchSettled";   // push to a player whose result was just counted
 
     public class Integrity
     {
@@ -153,7 +154,7 @@ public class OnlineMatch
     /// it for both players; a later one is compared and only noted when it differs.
     /// </summary>
     [CloudCodeFunction("ReportResult")]
-    public async Task<MatchInfo> ReportResult(IExecutionContext ctx, string matchId, string winner, int[] score)
+    public async Task<MatchInfo> ReportResult(IExecutionContext ctx, IPushClient push, string matchId, string winner, int[] score)
     {
         string me = Require(ctx.PlayerId, "player");
         for (int attempt = 0; attempt < 4; attempt++)
@@ -183,7 +184,7 @@ public class OnlineMatch
 
             if (settles)
             {
-                await Count(ctx, matchId, uncounted, winner);
+                await Count(ctx, push, matchId, uncounted, winner);
                 await BumpIntegrity(ctx, me, i => i.FirstReports++);
             }
             if (differs)
@@ -203,7 +204,7 @@ public class OnlineMatch
     /// clean-up). A match already settled stays as it is.
     /// </summary>
     [CloudCodeFunction("ReportDropped")]
-    public async Task<MatchInfo> ReportDropped(IExecutionContext ctx, string matchId)
+    public async Task<MatchInfo> ReportDropped(IExecutionContext ctx, IPushClient push, string matchId)
     {
         string me = Require(ctx.PlayerId, "player");
         for (int attempt = 0; attempt < 4; attempt++)
@@ -220,7 +221,7 @@ public class OnlineMatch
                 rec.Status = "finished"; rec.Ending = "dropped"; rec.SettledBy = me; rec.FinishedAt = Now();
             }
             if (!await TrySaveMatch(ctx, matchId, rec, lockId)) continue;   // someone else wrote meanwhile: read again
-            foreach (var p in uncounted) await UpdateStats(ctx, p, Outcome.Loss, matchId);
+            foreach (var p in uncounted) await UpdateStats(ctx, push, p, Outcome.Loss, matchId);
             return Info(rec);
         }
         throw new Exception("could not save the report");
@@ -295,7 +296,7 @@ public class OnlineMatch
     /// <summary>The caller came back and the match's session is gone with the match still open: both players left, so
     /// both lose. A match that never started is deleted instead (nobody loses).</summary>
     [CloudCodeFunction("ResolveAbandoned")]
-    public async Task<MatchInfo> ResolveAbandoned(IExecutionContext ctx, string matchId)
+    public async Task<MatchInfo> ResolveAbandoned(IExecutionContext ctx, IPushClient push, string matchId)
     {
         string me = Require(ctx.PlayerId, "player");
         for (int attempt = 0; attempt < 4; attempt++)
@@ -308,7 +309,7 @@ public class OnlineMatch
             rec.Status = "finished"; rec.Ending = "abandoned"; rec.SettledBy = me; rec.FinishedAt = Now();
             var uncounted = MarkCounted(rec, rec.Players);
             if (!await TrySaveMatch(ctx, matchId, rec, lockId)) continue;
-            foreach (var p in uncounted) await UpdateStats(ctx, p, Outcome.Loss, matchId);
+            foreach (var p in uncounted) await UpdateStats(ctx, push, p, Outcome.Loss, matchId);
             return Info(rec);
         }
         throw new Exception("could not resolve the match");
@@ -411,7 +412,7 @@ public class OnlineMatch
                 rec.Status = "finished"; rec.Ending = "expired"; rec.FinishedAt = now;
                 var uncounted = MarkCounted(rec, rec.Players);
                 if (!await TrySaveMatch(ctx, key, rec, lockId)) continue;
-                foreach (var p in uncounted) await UpdateStats(ctx, p, Outcome.Loss, key);
+                foreach (var p in uncounted) await UpdateStats(ctx, null, p, Outcome.Loss, key);
                 expired++;
             }
         }
@@ -441,15 +442,15 @@ public class OnlineMatch
     }
 
     // the players' counts for a settled result: the winner a win, the other a loss, or a draw each
-    async Task Count(IExecutionContext ctx, string matchId, IEnumerable<string> players, string winner)
+    async Task Count(IExecutionContext ctx, IPushClient? push, string matchId, IEnumerable<string> players, string winner)
     {
         foreach (var p in players)
-            await UpdateStats(ctx, p, winner == "draw" ? Outcome.Draw : winner == p ? Outcome.Win : Outcome.Loss, matchId);
+            await UpdateStats(ctx, push, p, winner == "draw" ? Outcome.Draw : winner == p ? Outcome.Win : Outcome.Loss, matchId);
     }
 
     // one counted result: won/lost/drawn, the rating points (and how they moved, for the result screen), then the
-    // leaderboard if the player is on it
-    async Task UpdateStats(IExecutionContext ctx, string playerId, Outcome outcome, string matchId)
+    // leaderboard if the player is on it, and the player's device (no push from the daily clean-up: nobody waits there)
+    async Task UpdateStats(IExecutionContext ctx, IPushClient? push, string playerId, Outcome outcome, string matchId)
     {
         for (int attempt = 0; attempt < 4; attempt++)
         {
@@ -469,6 +470,12 @@ public class OnlineMatch
             }
             catch (ApiException e) when (Conflict(e)) { continue; }
             if (s.Ranked) await PostScore(ctx, playerId, s);
+            // the player's device is told at once (its final result card waits for this): the match, the points, the change
+            if (push != null)
+            {
+                try { await push.SendPlayerMessageAsync(ctx, JsonConvert.SerializeObject(new { m = matchId, p = s.P, d = s.LastDelta }), SettledMessage, playerId); }
+                catch (Exception e) { log.LogWarning("settled push to {Player} failed: {Error}", playerId, e.Message); }   // the device reads its stats too
+            }
             return;
         }
         log.LogError("could not update the stats of {Player}", playerId);

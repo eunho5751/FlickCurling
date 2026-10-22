@@ -573,7 +573,9 @@ namespace FlickCurling.Game
                     Body = step == AfterEnd.GameOver ? "" : Loc.T("end.nextHammer", ("name", SideOf(m.Hammer))),
                     Countdown = CardCountdown,
                     // the last end's card is not shared: each player goes on to the result alone
-                    Buttons = { step == AfterEnd.GameOver ? new CardButton(nextLabel, next) : SyncButton(CardEnd + end, nextLabel, next) }
+                    // (online, it goes on once the server has counted the match: the result card shows the points)
+                    Buttons = { step != AfterEnd.GameOver ? SyncButton(CardEnd + end, nextLabel, next)
+                        : mode == Mode.Online ? ResultButton(nextLabel, next) : new CardButton(nextLabel, next) }
                 };
             });
         }
@@ -584,10 +586,13 @@ namespace FlickCurling.Game
             var win = m.Winner;
             RenderHud();
             if (mode == Mode.Online) { OnlineGameOver(); return; }
+            // against the AI the player's own result; two players on one device, who won
+            bool vsAi = IsAI(Team.B) != IsAI(Team.W);
             ShowCard(() => new CardSpec
             {
                 Eyebrow = Loc.T("over.eyebrow"),
-                Title = win.HasValue
+                Title = vsAi ? MyResult(win, IsAI(Team.B) ? Team.W : Team.B)
+                    : win.HasValue
                     ? Loc.T("over.win", ("name", SideOf(win.Value, 110)), ("score", Versus(110)))
                     : Loc.T("over.draw", ("score", Versus(110))),
                 Buttons =
@@ -597,6 +602,10 @@ namespace FlickCurling.Game
                 }
             });
         }
+
+        // a player's own result on the final card: won, lost or drawn, with the score
+        string MyResult(Team? win, Team me) =>
+            Loc.T(!win.HasValue ? "over.myDraw" : win.Value == me ? "over.myWin" : "over.myLoss", ("score", Versus(110)));
 
         // back to the main menu scene, through the screen fade; whatever is under way here stops
         void ToMenu()
