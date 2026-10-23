@@ -190,7 +190,8 @@ namespace FlickCurling.Game
             Loc.Changed += OnLocaleChanged;
             Resize(true);
             // the match picked in the main menu, or (the scene opened straight in the editor) two players on the basic map
-            if (MatchLaunch.TakeOnline()) StartOnline();
+            if (MatchLaunch.TakeTutorial()) StartTutorial();
+            else if (MatchLaunch.TakeOnline()) StartOnline();
             else if (MatchLaunch.Take(out bool vsAi, out var level, out string map))
                 StartMatch(vsAi ? Mode.Easy + (int)level : Mode.Pvp, map);
             else StartMatch(Mode.Pvp, "base");
@@ -218,6 +219,7 @@ namespace FlickCurling.Game
                 go.AddComponent<UnityEngine.UI.GraphicRaycaster>();
                 settings = Instantiate(settingsPrefab, go.transform);
                 settings.ToMenu += RequestMenu;
+                if (InTutorial) settings.SetMenuKey("tutorial.skip");   // the tutorial's way out: skipping it
             }
             ResetShotInput();   // a pull under way is let go without a shot
             settings.Open(true);
@@ -480,6 +482,7 @@ namespace FlickCurling.Game
 
         void StartClock()
         {
+            if (InTutorial) { clock = -1; return; }   // no shot clock while learning
             clock = state == St.Aim || state == St.Remote ? ShotTime : -1;
             clockWait = ClockWait + (!m.InLsd && m.Shot == 0 ? 0.45f : 0);   // the end's first turn toast stays up longer
             if (mode == Mode.Online && clock >= 0) deadline = Now + clockWait + ShotTime;
@@ -548,12 +551,12 @@ namespace FlickCurling.Game
         {
             var sc = measure.Sc;
             Action next;
-            var step = m.NextStep();
+            var step = InTutorial ? AfterEnd.GameOver : m.NextStep();   // the tutorial's one end
             switch (step)
             {
                 case AfterEnd.NextEnd:
                 case AfterEnd.ExtraEnd: next = () => { m.End++; StartEnd(); }; break;
-                default: next = GameOver; OnlineReportResult(); break;
+                default: next = InTutorial ? TutorialEndCard : GameOver; OnlineReportResult(); break;
             }
             int end = m.End;
             state = St.EndCard;
@@ -790,14 +793,31 @@ namespace FlickCurling.Game
             else acc = 0;
             if (state == St.Restoring) { restore.T += dt / 0.9f; if (restore.T >= 1) FinishRestore(); }
             // the next turn waits until the last one's toasts have fully gone
-            if (state == St.Settle) { settleT -= dt; if (settleT <= 0 && !hud.ToastsUp && OnlineNextTurnReady()) { m.AdvanceShot(); PrepareShot(); } }
+            if (state == St.Settle)
+            {
+                settleT -= dt;
+                if (settleT <= 0 && !hud.ToastsUp && OnlineNextTurnReady())
+                {
+                    // a shot the tutorial threw: back to it, not on to the next turn
+                    if (tutorialSettled != null) { var a = tutorialSettled; tutorialSettled = null; state = St.Menu; a(); }
+                    else { m.AdvanceShot(); PrepareShot(); }
+                }
+            }
             if (laneTo.HasValue)
             {
                 double d = laneTo.Value - m.LaunchX, stp = 110 * dt;
                 if (Math.Abs(d) <= stp) { m.LaunchX = laneTo.Value; laneTo = null; } else m.LaunchX += Math.Sign(d) * stp;
             }
             if (state == St.AiPull) { aiPull.T += dt / 0.6f; if (aiPull.T >= 1.15f) Release(aiPull.Ang, aiPull.Pw); }
-            if (state == St.Measure) { measure.T += dt; if (measure.T >= measure.Dur) ShowEndCard(); }
+            if (state == St.Measure)
+            {
+                measure.T += dt;
+                if (measure.T >= measure.Dur)
+                {
+                    if (tutorialMeasured != null) { var a = tutorialMeasured; tutorialMeasured = null; state = St.EndCard; a(); }
+                    else ShowEndCard();
+                }
+            }
             if (state == St.LsdShow) { lsdShow.T += dt; if (lsdShow.T >= 1.8f && !hud.ToastsUp && OnlineNextTurnReady()) LsdNext(); }
             foreach (var f in fades) f.A -= dt / 0.5f;
             fades.RemoveAll(f => f.A <= 0);

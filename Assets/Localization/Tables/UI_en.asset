@@ -598,6 +598,95 @@ MonoBehaviour:
     m_Metadata:
       m_Items:
       - rid: 4297768082125881571
+  - m_Id: 3136817844899840
+    m_Localized: Welcome to Flick Curling!
+    m_Metadata:
+      m_Items: []
+  - m_Id: 3136817857482752
+    m_Localized: In Flick Curling you flick go stones to get them closer to the centre
+      of the house than your opponent's.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 3136817857482753
+    m_Localized: You and your opponent take turns throwing one stone each.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 3136817857482754
+    m_Localized: A stone that doesn't cross the min line doesn't count and is removed.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 3136817857482755
+    m_Localized: A stone that goes all the way past the out line doesn't count either.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 3136817857482756
+    m_Localized: When the end is over, you score one point for each of your stones
+      closer to the centre than your opponent's closest.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 3136817857482757
+    m_Localized: Now let's see how to throw a stone.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 3136817857482758
+    m_Localized: Below the min line, drag left or right on the left of the stone
+      to change the direction.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 3136817857482759
+    m_Localized: Drag up or down on the right of the stone to set the power, and
+      let go to throw.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 3136817861677056
+    m_Localized: Touch above the min line to aim straight at that spot. Drag and
+      the aim follows.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 3136817861677057
+    m_Localized: Your turn now! Play one end against the AI.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 3136817861677058
+    m_Localized: Tap to continue
+    m_Metadata:
+      m_Items: []
+  - m_Id: 3136817861677059
+    m_Localized: Skip the tutorial
+    m_Metadata:
+      m_Items: []
+  - m_Id: 3136817861677060
+    m_Localized: Tutorial
+    m_Metadata:
+      m_Items: []
+  - m_Id: 3136817861677061
+    m_Localized: Skip the tutorial?
+    m_Metadata:
+      m_Items: []
+  - m_Id: 3136817861677062
+    m_Localized: It won't be shown again.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 3136817861677063
+    m_Localized: Keep going
+    m_Metadata:
+      m_Items: []
+  - m_Id: 3136817861677064
+    m_Localized: Skip
+    m_Metadata:
+      m_Items: []
+  - m_Id: 3136817861677065
+    m_Localized: Tutorial complete
+    m_Metadata:
+      m_Items: []
+  - m_Id: 3136817861677066
+    m_Localized: Now take on the AI and players online!
+    m_Metadata:
+      m_Items: []
+  - m_Id: 3136817861677067
+    m_Localized: Let's go
+    m_Metadata:
+      m_Items: []
   references:
     version: 2
     RefIds:

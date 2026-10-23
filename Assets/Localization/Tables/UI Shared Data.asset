@@ -559,6 +559,90 @@ MonoBehaviour:
     m_Key: over.myDraw
     m_Metadata:
       m_Items: []
+  - m_Id: 3136817844899840
+    m_Key: tutorial.welcome
+    m_Metadata:
+      m_Items: []
+  - m_Id: 3136817857482752
+    m_Key: tutorial.about
+    m_Metadata:
+      m_Items: []
+  - m_Id: 3136817857482753
+    m_Key: tutorial.turns
+    m_Metadata:
+      m_Items: []
+  - m_Id: 3136817857482754
+    m_Key: tutorial.hog
+    m_Metadata:
+      m_Items: []
+  - m_Id: 3136817857482755
+    m_Key: tutorial.back
+    m_Metadata:
+      m_Items: []
+  - m_Id: 3136817857482756
+    m_Key: tutorial.score
+    m_Metadata:
+      m_Items: []
+  - m_Id: 3136817857482757
+    m_Key: tutorial.controls
+    m_Metadata:
+      m_Items: []
+  - m_Id: 3136817857482758
+    m_Key: tutorial.aim
+    m_Metadata:
+      m_Items: []
+  - m_Id: 3136817857482759
+    m_Key: tutorial.power
+    m_Metadata:
+      m_Items: []
+  - m_Id: 3136817861677056
+    m_Key: tutorial.spot
+    m_Metadata:
+      m_Items: []
+  - m_Id: 3136817861677057
+    m_Key: tutorial.play
+    m_Metadata:
+      m_Items: []
+  - m_Id: 3136817861677058
+    m_Key: tutorial.tap
+    m_Metadata:
+      m_Items: []
+  - m_Id: 3136817861677059
+    m_Key: tutorial.skip
+    m_Metadata:
+      m_Items: []
+  - m_Id: 3136817861677060
+    m_Key: tutorial.eyebrow
+    m_Metadata:
+      m_Items: []
+  - m_Id: 3136817861677061
+    m_Key: tutorial.skipTitle
+    m_Metadata:
+      m_Items: []
+  - m_Id: 3136817861677062
+    m_Key: tutorial.skipBody
+    m_Metadata:
+      m_Items: []
+  - m_Id: 3136817861677063
+    m_Key: tutorial.skipStay
+    m_Metadata:
+      m_Items: []
+  - m_Id: 3136817861677064
+    m_Key: tutorial.skipLeave
+    m_Metadata:
+      m_Items: []
+  - m_Id: 3136817861677065
+    m_Key: tutorial.doneEyebrow
+    m_Metadata:
+      m_Items: []
+  - m_Id: 3136817861677066
+    m_Key: tutorial.doneBody
+    m_Metadata:
+      m_Items: []
+  - m_Id: 3136817861677067
+    m_Key: tutorial.start
+    m_Metadata:
+      m_Items: []
   m_Metadata:
     m_Items: []
   m_KeyGenerator:

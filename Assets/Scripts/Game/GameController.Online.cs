@@ -701,6 +701,7 @@ namespace FlickCurling.Game
         /// asks first; otherwise straight to the menu.</summary>
         void RequestMenu()
         {
+            if (InTutorial) { RequestSkipTutorial(); return; }
             if (connecting) return;   // the match found is being connected: it cannot be left half way
             if (!MatchUnderWay) { ToMenu(); return; }
             var under = hud.CardVisible ? cardFactory : null;   // a card that was up comes back if the player stays

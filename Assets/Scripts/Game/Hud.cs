@@ -431,6 +431,16 @@ namespace FlickCurling.Game
 
         // up as far as the game is concerned (a card fading out is already gone)
         public bool CardVisible => cardShown;
+
+        /// <summary>A full-screen layer (css px) over the sheet, its labels and the score, under the toasts, cards and the
+        /// settings gear.</summary>
+        public RectTransform AddLayer(string name)
+        {
+            var rt = Ui.Rect(root, name);
+            Ui.Stretch(rt);
+            rt.SetSiblingIndex(toastLayer.GetSiblingIndex());
+            return rt;
+        }
         bool cardShown;
         CanvasGroup cardGroup;
         float cardPop = 1;   // the entrance's grow, on top of the fit-to-screen scale

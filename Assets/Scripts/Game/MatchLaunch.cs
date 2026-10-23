@@ -26,6 +26,18 @@ namespace FlickCurling.Game
         /// <summary>Queues the online match <see cref="Online.OnlineLobby"/> has just set up.</summary>
         public static void SetOnline() { online = true; pending = false; }
 
+        static bool tutorial;
+
+        /// <summary>Queues the tutorial (the game scene runs it instead of a match).</summary>
+        public static void SetTutorial() { tutorial = true; pending = false; online = false; }
+
+        public static bool TakeTutorial()
+        {
+            if (!tutorial) return false;
+            tutorial = false;
+            return true;
+        }
+
         static bool searchAgain;
 
         /// <summary>The online match found could not be connected: the main menu, back, looks for another one at once.</summary>

@@ -66,6 +66,15 @@ namespace FlickCurling.Game
             popup.Show();
         }
 
+        /// <summary>The way-out button's label (string table key): "back to the main menu" unless changed (the tutorial's
+        /// "skip the tutorial").</summary>
+        public void SetMenuKey(string key)
+        {
+            var loc = toMenu.GetComponentInChildren<UnityEngine.Localization.Components.LocalizeStringEvent>(true);
+            if (loc) { loc.StringReference.TableEntryReference = key; loc.RefreshString(); }
+            else { var t = toMenu.GetComponentInChildren<TextMeshProUGUI>(true); if (t) t.text = Loc.T(key); }
+        }
+
         void Show()
         {
             musicValue.text = Mathf.RoundToInt(music.value * 100).ToString();

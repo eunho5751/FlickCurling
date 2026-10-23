@@ -228,6 +228,8 @@ namespace FlickCurling.Game
             // nor while the screen fades, while an online match is being taken from the opponent's device, or while the
             // network popup is up
             if (ScreenFader.Busy || awaitingState || Account.NetworkGuard.Blocking) { mouseWasDown = false; ResetShotInput(); return; }
+            // the tutorial shows the controls itself until the player's own end
+            if (TutorialBlocksInput) { mouseWasDown = false; return; }
             bool touched = false;
             foreach (var t in ETouch.activeTouches)
             {
