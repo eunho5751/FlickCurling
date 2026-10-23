@@ -99,14 +99,18 @@ namespace FlickCurling.Game.Account
         public static bool? Ranked { get; private set; }
         public static Task RankSync { get; private set; } = Task.CompletedTask;
 
-        // the server checks the player's linked accounts itself and puts them on the leaderboard or takes them off; asked
-        // after signing in and after linking or unlinking, but not for a guest who never was on it (nothing to change)
+        // the server checks the player's linked accounts itself and puts them on the leaderboard or takes them off. It is
+        // asked only when that could change something: when whether the player is linked (known here from the sign-in)
+        // differs from what the server last said (kept on the device), as just after linking or unlinking, or the first
+        // time a linked player signs in on this device. A failed ask keeps the last answer, so it is asked again next time
         static void SyncRank()
         {
             var ids = AuthenticationService.Instance.PlayerInfo?.Identities;
             bool linked = ids != null && ids.Count > 0;
             string key = RankedKey + PlayerId;
-            if (!linked && PlayerPrefs.GetInt(key, 0) == 0) { Ranked = false; RankSync = Task.CompletedTask; return; }
+            int saved = PlayerPrefs.GetInt(key, -1);   // the server's last answer: 1 ranked, 0 not, -1 never asked
+            bool? last = saved < 0 ? (bool?)null : saved == 1;
+            if (last == linked || (last == null && !linked)) { Ranked = linked; RankSync = Task.CompletedTask; return; }
             Ranked = null;
             RankSync = Ask();
             async Task Ask()
@@ -114,8 +118,8 @@ namespace FlickCurling.Game.Account
                 string id = PlayerId;
                 bool? ranked = await Online.OnlineApi.SyncLeaderboard();
                 if (id != PlayerId) return;   // another player meanwhile
-                Ranked = ranked ?? linked;
-                PlayerPrefs.SetInt(key, Ranked == true ? 1 : 0);
+                Ranked = ranked ?? last ?? false;
+                if (ranked.HasValue) PlayerPrefs.SetInt(key, ranked.Value ? 1 : 0);
                 Notify();
             }
         }

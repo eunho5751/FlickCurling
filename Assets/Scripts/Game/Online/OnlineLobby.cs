@@ -93,7 +93,7 @@ namespace FlickCurling.Game.Online
         {
             Session = null; MatchId = MyId = OpponentId = MyName = OpponentName = ""; Map = "base"; Seed = 0;
             MyTeam = Team.B; MyStats = OpponentStats = null; Inbox.Clear();
-            hooked = false; joinsInFlight = 0; Joining = false; Connecting = Task.FromResult(true); connectingNow = 0; mine = null; BestRegion = null; regionAt = -1; measuring = null; finding = false; settling = Task.CompletedTask; leaving = Task.CompletedTask;
+            hooked = false; joinsInFlight = 0; Joining = false; Connecting = Task.FromResult(true); connectingNow = 0; mine = null; mineAfter = null; BestRegion = null; regionAt = -1; measuring = null; finding = false; settling = Task.CompletedTask; leaving = Task.CompletedTask;
         }
 
         static bool hooked;
@@ -162,7 +162,6 @@ namespace FlickCurling.Game.Online
         {
             TraceSearchStart();
             MeasureRegion();   // if not measured lately: ready by the time a match is found, usually
-            mine = null;
             while (true)
             {
                 bool found = await FindOnceAsync(ct);
@@ -181,7 +180,36 @@ namespace FlickCurling.Game.Online
         static int joinsInFlight;
         static bool finding;
         static int connectingNow;   // connections under way (their session is this match's, not a stray to leave)
-        static OnlineApi.PlayerStats mine;   // this player's record as the search started (null: not read)
+        // this player's record for the ticket: read with the start-up data, then each match's result push brings the new
+        // one (a fresh object: the one a match shows stays as it was); read again at a search only when it is missing,
+        // another player's, or a match since has not brought it (mineAfter)
+        static OnlineApi.PlayerStats mine;
+        static string mineAfter;   // the match whose result the record still waits for
+
+        /// <summary>This player's record as the server has it now (read or pushed).</summary>
+        public static void TakeRecord(OnlineApi.PlayerStats s)
+        {
+            if (s == null) return;
+            mine = s; mineAfter = null;
+        }
+
+        /// <summary>A match of this player's is under way: until its result comes, the record is not the latest.</summary>
+        public static void AwaitRecord(string matchId) => mineAfter = matchId;
+
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
+        static void ListenForRecord()
+        {
+            Account.DeviceGuard.PlayerMessage -= OnPlayerMessage;
+            Account.DeviceGuard.PlayerMessage += OnPlayerMessage;
+        }
+
+        // any counted result of this player's carries the whole record as it now is, so the latest is always taken
+        static void OnPlayerMessage(string type, string message)
+        {
+            var s = OnlineApi.ParseSettled(type, message);
+            if (s == null || !s.HasRecord) return;
+            TakeRecord(new OnlineApi.PlayerStats { PlayerId = AuthenticationService.Instance.PlayerId, W = s.w, L = s.l, D = s.dr, P = s.p, LastMatch = s.m, LastDelta = s.d });
+        }
 
         /// <summary>Whether a match has been found and the opponent is being looked up (cancelling is not possible).</summary>
         public static bool Joining { get; private set; }
@@ -195,9 +223,10 @@ namespace FlickCurling.Game.Online
             if (AccountService.Status != AccountService.State.Ready) return false;
             Hook();
             EnsureNetworkManager();
-            // this player's record, for the ticket (the opponent shows it from there); read once a search, as it only
-            // changes when a match ends
-            mine ??= await OnlineApi.MyStats(AuthenticationService.Instance.PlayerId);
+            // this player's record, for the ticket (the opponent shows it from there): kept from the start and from each
+            // match's result; read only when that is not to be had
+            string pid = AuthenticationService.Instance.PlayerId;
+            if (mine == null || mine.PlayerId != pid || mineAfter != null) TakeRecord(await OnlineApi.MyStats(pid));
             finding = true;
             try { return await FindCoreAsync(ct); }
             finally

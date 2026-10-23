@@ -17,7 +17,7 @@ namespace FlickCurlingModule;
 /// <summary>
 /// Online match bookkeeping (Docs/OnlineMatch.md): a match's record in the private Game Data item "matches" (one key
 /// per match id), each player's current match id and won/lost/drawn in their protected data (they can read it, only
-/// this module writes it), and integrity counters in their private data. The first result report settles a match; a
+/// this module writes it), and a count of their reports that differed from the result in their private data. The first result report settles a match; a
 /// second one is only compared. A player dropped from the match's network loses at once (ReportDropped); the other's
 /// result waits for their own report (both dropped: both lose). Records go once both players have acknowledged, or in
 /// the daily clean-up. Every counted result also moves the player's rating points (a win +10, a draw 0, a loss -5, never
@@ -89,8 +89,7 @@ public class OnlineMatch
 
     public class Integrity
     {
-        public int Mismatch { get; set; }
-        public int FirstReports { get; set; }
+        public int Mismatch { get; set; }   // reports that differed from the settled result
     }
 
     public class MatchInfo
@@ -151,7 +150,8 @@ public class OnlineMatch
 
     /// <summary>
     /// A player still in the match reports how it ended, the moment it ends. The first report settles it and counts
-    /// it for both players; a later one is compared and only noted when it differs.
+    /// it for both players; a later one is compared and only noted when it differs. Reporting is also seeing the
+    /// result (as Acknowledge): it is no longer the player's current match, and the record goes once both have.
     /// </summary>
     [CloudCodeFunction("ReportResult")]
     public async Task<MatchInfo> ReportResult(IExecutionContext ctx, IPushClient push, string matchId, string winner, int[] score)
@@ -164,29 +164,27 @@ public class OnlineMatch
             if (!rec.Players.Contains(me)) throw new Exception("not a player of this match");
             if (winner != "draw" && !rec.Players.Contains(winner)) throw new Exception("bad winner");
             if (score == null || score.Length != 2 || score.Any(s => s < 0 || s > 99)) throw new Exception("bad score");
-            if (rec.Reports.ContainsKey(me)) return Info(rec);   // the same player again (a retry)
-
-            var report = new Report { Winner = winner, Score = score, At = Now() };
-            rec.Reports[me] = report;
-            bool settles = rec.Status == "ongoing";
-            bool differs = false;
+            bool settles = false, differs = false;
             var uncounted = new List<string>();
-            if (settles)
+            if (!rec.Reports.ContainsKey(me))   // (else the same player again: a retry, only seen again)
             {
-                rec.Status = "finished"; rec.Ending = "reported"; rec.Result = report; rec.SettledBy = me; rec.FinishedAt = Now();
-                uncounted = MarkCounted(rec, rec.Players);   // (one who reported being dropped has their loss already)
+                var report = new Report { Winner = winner, Score = score, At = Now() };
+                rec.Reports[me] = report;
+                settles = rec.Status == "ongoing";
+                if (settles)
+                {
+                    rec.Status = "finished"; rec.Ending = "reported"; rec.Result = report; rec.SettledBy = me; rec.FinishedAt = Now();
+                    uncounted = MarkCounted(rec, rec.Players);   // (one who reported being dropped has their loss already)
+                }
+                else if (rec.Result != null && (rec.Result.Winner != winner || !rec.Result.Score.SequenceEqual(score)))
+                {
+                    rec.Mismatch = differs = true;
+                }
             }
-            else if (rec.Result != null && (rec.Result.Winner != winner || !rec.Result.Score.SequenceEqual(score)))
-            {
-                rec.Mismatch = differs = true;
-            }
-            if (!await TrySaveMatch(ctx, matchId, rec, lockId)) continue;   // someone else wrote meanwhile: read again
+            if (!await TryCommitSeen(ctx, matchId, rec, lockId, me)) continue;   // someone else wrote meanwhile: read again
+            await ClearActive(ctx, me, matchId);
 
-            if (settles)
-            {
-                await Count(ctx, push, matchId, uncounted, winner);
-                await BumpIntegrity(ctx, me, i => i.FirstReports++);
-            }
+            if (settles) await Count(ctx, push, matchId, uncounted, winner);
             if (differs)
             {
                 log.LogWarning("match {MatchId}: {Player} reported {Winner} {Score}, settled as {Settled}", matchId, me, winner, string.Join(":", score), rec.Result?.Winner);
@@ -198,7 +196,8 @@ public class OnlineMatch
     }
 
     /// <summary>
-    /// The caller was dropped from the match's network (or closed the app in it): they have lost, counted at once. The
+    /// The caller was dropped from the match's network (or closed the app in it): they have lost, counted at once (and
+    /// it is no longer their current match; once the match is over, they have seen it, as Acknowledge). The
     /// opponent's result is their own report's (still connected, they report a win) or, if they were dropped as well,
     /// a loss: when both have reported being dropped the match is over with no winner (nobody reporting: the daily
     /// clean-up). A match already settled stays as it is.
@@ -212,15 +211,19 @@ public class OnlineMatch
             var (rec, lockId) = await LoadMatch(ctx, matchId);
             if (rec == null) throw new Exception("no such match");
             if (!rec.Players.Contains(me)) throw new Exception("not a player of this match");
-            if (rec.Status != "ongoing" || rec.Dropped.Contains(me)) return Info(rec);   // settled already, or a retry
-
-            rec.Dropped.Add(me);
-            var uncounted = MarkCounted(rec, new[] { me });
-            if (rec.Players.All(rec.Dropped.Contains))
+            var uncounted = new List<string>();
+            // settled already, or a retry: only seen
+            if (rec.Status == "ongoing" && !rec.Dropped.Contains(me))
             {
-                rec.Status = "finished"; rec.Ending = "dropped"; rec.SettledBy = me; rec.FinishedAt = Now();
+                rec.Dropped.Add(me);
+                uncounted = MarkCounted(rec, new[] { me });
+                if (rec.Players.All(rec.Dropped.Contains))
+                {
+                    rec.Status = "finished"; rec.Ending = "dropped"; rec.SettledBy = me; rec.FinishedAt = Now();
+                }
             }
-            if (!await TrySaveMatch(ctx, matchId, rec, lockId)) continue;   // someone else wrote meanwhile: read again
+            if (!await TryCommitSeen(ctx, matchId, rec, lockId, me)) continue;   // someone else wrote meanwhile: read again
+            await ClearActive(ctx, me, matchId);
             foreach (var p in uncounted) await UpdateStats(ctx, push, p, Outcome.Loss, matchId);
             return Info(rec);
         }
@@ -470,10 +473,11 @@ public class OnlineMatch
             }
             catch (ApiException e) when (Conflict(e)) { continue; }
             if (s.Ranked) await PostScore(ctx, playerId, s);
-            // the player's device is told at once (its final result card waits for this): the match, the points, the change
+            // the player's device is told at once (its final result card waits for this): the match, the points, the change,
+            // and the whole record (the device keeps it for its next ticket)
             if (push != null)
             {
-                try { await push.SendPlayerMessageAsync(ctx, JsonConvert.SerializeObject(new { m = matchId, p = s.P, d = s.LastDelta }), SettledMessage, playerId); }
+                try { await push.SendPlayerMessageAsync(ctx, JsonConvert.SerializeObject(new { m = matchId, p = s.P, d = s.LastDelta, w = s.W, l = s.L, dr = s.D }), SettledMessage, playerId); }
                 catch (Exception e) { log.LogWarning("settled push to {Player} failed: {Error}", playerId, e.Message); }   // the device reads its stats too
             }
             return;
@@ -541,6 +545,18 @@ public class OnlineMatch
     async Task<bool> TrySaveMatch(IExecutionContext ctx, string matchId, MatchRecord rec, string? lockId)
     {
         try { await SaveMatch(ctx, matchId, rec, lockId); return true; }
+        catch (ApiException e) when (Conflict(e)) { return false; }
+    }
+
+    // a report written back with the reporter having seen the match once it is over (as Acknowledge): the record is saved,
+    // or deleted once both players have seen it. False if someone else wrote it meanwhile
+    async Task<bool> TryCommitSeen(IExecutionContext ctx, string matchId, MatchRecord rec, string? lockId, string me)
+    {
+        if (rec.Status != "finished") return await TrySaveMatch(ctx, matchId, rec, lockId);
+        if (!rec.Acks.Contains(me)) rec.Acks.Add(me);
+        if (!rec.Players.All(rec.Acks.Contains)) return await TrySaveMatch(ctx, matchId, rec, lockId);
+        try { await api.CloudSaveData.DeletePrivateCustomItemAsync(ctx, ctx.ServiceToken, ctx.ProjectId, MatchesId, matchId, lockId); return true; }
+        catch (ApiException e) when (NotFound(e)) { return true; }
         catch (ApiException e) when (Conflict(e)) { return false; }
     }
 

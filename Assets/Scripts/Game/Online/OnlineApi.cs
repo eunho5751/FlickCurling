@@ -135,8 +135,8 @@ namespace FlickCurling.Game.Online
             {
                 var items = await CloudSaveService.Instance.Data.Player.LoadAsync(new HashSet<string> { StatsKey },
                     new LoadOptions(new ProtectedReadAccessClassOptions()));
-                var s = items.TryGetValue(StatsKey, out var item) ? item.Value.GetAs<PlayerStats>() : null;
-                return new PlayerStats { PlayerId = playerId, W = s?.W ?? 0, L = s?.L ?? 0, D = s?.D ?? 0, P = s?.P ?? 0, LastMatch = s?.LastMatch ?? "", LastDelta = s?.LastDelta ?? 0 };
+                var s = items.TryGetValue(StatsKey, out var item) ? ReadStats(item.Value) : null;
+                return Stats(playerId, s);
             }
             catch (Exception e)
             {
@@ -153,28 +153,64 @@ namespace FlickCurling.Game.Online
         /// </summary>
         public static async Task SettleLeftMatch()
         {
-            string id = await ActiveMatchId();
+            string me = Unity.Services.Authentication.AuthenticationService.Instance.PlayerId;
+            var (id, stats) = await StartupData(me);
+            if (stats != null) OnlineLobby.TakeRecord(stats);   // the record for this run's tickets, read with it
             if (string.IsNullOrEmpty(id)) return;
             var info = await GetMatch(id);
             if (info == null) return;   // the server cannot be reached: left for next time
-            if (info.Exists && info.Status == "ongoing" && !await CancelMatch(id)) await ReportDropped(id);
-            await Acknowledge(id);
+            if (info.Exists && info.Status == "ongoing")
+            {
+                // called off (nobody's match any more), or left: lost (no longer the player's match either)
+                if (!await CancelMatch(id)) await ReportDropped(id);
+                return;
+            }
+            await Acknowledge(id);   // over (or gone): seen
         }
 
-        /// <summary>The match the signed-in player is in, as the module last noted it (protected player data), or null.</summary>
-        public static async Task<string> ActiveMatchId()
+        /// <summary>The match the signed-in player is in, as the module last noted it, and their record (both protected
+        /// player data, read together); (null, null) if they could not be read.</summary>
+        public static async Task<(string active, PlayerStats stats)> StartupData(string playerId)
         {
             try
             {
-                var items = await CloudSaveService.Instance.Data.Player.LoadAsync(new HashSet<string> { ActiveKey },
+                var items = await CloudSaveService.Instance.Data.Player.LoadAsync(new HashSet<string> { ActiveKey, StatsKey },
                     new LoadOptions(new ProtectedReadAccessClassOptions()));
-                return items.TryGetValue(ActiveKey, out var item) ? item.Value.GetAs<string>() : null;
+                string active = items.TryGetValue(ActiveKey, out var a) ? a.Value.GetAs<string>() : null;
+                var s = items.TryGetValue(StatsKey, out var st) ? ReadStats(st.Value) : null;
+                return (active, Stats(playerId, s));
             }
             catch (Exception e)
             {
-                Debug.LogWarning("FlickCurling: reading the active match failed: " + e.Message);
-                return null;
+                Debug.LogWarning("FlickCurling: reading the player's data failed: " + e.Message);
+                return (null, null);
             }
+        }
+
+        // the record as the module stores it: it keeps more fields than the device reads (the leaderboard standing), which
+        // fail the default strict reading, so those are ignored
+        static PlayerStats ReadStats(Unity.Services.CloudSave.Internal.Http.IDeserializable value) =>
+            value.GetAs<PlayerStats>(new Unity.Services.CloudSave.Internal.Http.DeserializationSettings
+                { MissingMemberHandling = Unity.Services.CloudSave.Internal.Http.MissingMemberHandling.Ignore });
+
+        static PlayerStats Stats(string playerId, PlayerStats s) =>
+            new PlayerStats { PlayerId = playerId, W = s?.W ?? 0, L = s?.L ?? 0, D = s?.D ?? 0, P = s?.P ?? 0, LastMatch = s?.LastMatch ?? "", LastDelta = s?.LastDelta ?? 0 };
+
+        /// <summary>The module's push as it counts this player's result: the match, the rating points and their change,
+        /// and the whole record after it.</summary>
+        [Serializable] public sealed class Settled
+        {
+            public string m = ""; public int p, d;
+            public int w = -1, l = -1, dr = -1;   // (-1: a push without the record, from a module before it carried it)
+            public bool HasRecord => w >= 0 && l >= 0 && dr >= 0;
+        }
+        public const string SettledType = "matchSettled";
+
+        public static Settled ParseSettled(string type, string message)
+        {
+            if (type != SettledType || string.IsNullOrEmpty(message)) return null;
+            try { var s = JsonUtility.FromJson<Settled>(message); return s == null || string.IsNullOrEmpty(s.m) ? null : s; }
+            catch (Exception) { return null; }
         }
 
         /// <summary>What the module decides for a match (the turn order shot's first thrower, the seed), worked out here

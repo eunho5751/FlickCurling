@@ -36,6 +36,21 @@ namespace FlickCurling.Game.Online
 
         readonly List<LeaderboardRow> rows = new List<LeaderboardRow>();
         int loading;
+        // what was read last, shown again without reading if the popup opens again within CacheSeconds for the same player
+        // (others' changes show that much later); this player's own result coming in clears it (Invalidate)
+        static Shown cache;
+        sealed class Shown
+        {
+            public string Player; public bool? Ranked; public float At;
+            public List<LeaderboardEntry> Entries; public MineState State; public LeaderboardEntry Mine;
+        }
+        const float CacheSeconds = 30;
+
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        static void ResetStatics() => cache = null;
+
+        /// <summary>This player's points or rank have changed (a match of theirs was counted): read afresh next time.</summary>
+        public static void Invalidate() => cache = null;
 
         void Awake()
         {
@@ -49,15 +64,34 @@ namespace FlickCurling.Game.Online
         public void Open()
         {
             popup.Show();
+            var c = cache;
+            if (c != null && c.Player == AccountService.PlayerId && c.Ranked == AccountService.Ranked
+                && Time.unscaledTime - c.At < CacheSeconds)
+            {
+                loading++;   // (a load still under way is not wanted)
+                Fill(c.Entries);
+                ShowMine(c.State, c.Mine);
+                return;
+            }
             Load();
         }
 
-        // signed in again, linked: the player may be ranked now
-        void OnAccount() { if (gameObject.activeInHierarchy) Load(); }
+        // read again only when it can change what is shown: another player, or this one on the leaderboard now (or off
+        // it); otherwise (signing in, busy linking) only the Google button follows
+        void OnAccount()
+        {
+            if (!gameObject.activeInHierarchy) return;
+            // (a standing still being asked when this load began is waited for by the load itself)
+            bool rankedChanged = loadedFor.ranked.HasValue && AccountService.Ranked != loadedFor.ranked;
+            if (AccountService.PlayerId != loadedFor.player || rankedChanged) Load();
+            else googleButton.interactable = !AccountService.Busy;
+        }
+        (string player, bool? ranked) loadedFor;
 
         async void Load()
         {
             int ticket = ++loading;
+            loadedFor = (AccountService.PlayerId, AccountService.Ranked);
             ShowMine(MineState.Loading);
             listStatus.text = Loc.T("leaderboard.loading");
             listStatus.gameObject.SetActive(rows.Count == 0);
@@ -74,6 +108,10 @@ namespace FlickCurling.Game.Online
 
             Fill(entries);
             ShowMine(state, entry);
+            // kept only when both came, for the player and standing they were read for
+            loadedFor = (AccountService.PlayerId, AccountService.Ranked);
+            cache = entries == null || state == MineState.Failed ? null
+                : new Shown { Player = loadedFor.player, Ranked = loadedFor.ranked, At = Time.unscaledTime, Entries = entries, State = state, Mine = entry };
         }
 
         static async Task<List<LeaderboardEntry>> ReadTop()

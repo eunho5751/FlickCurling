@@ -54,6 +54,8 @@ namespace FlickCurling.Game
         {
             Account.DeviceGuard.PlayerMessage -= OnPlayerMessage;
             Account.DeviceGuard.PlayerMessage += OnPlayerMessage;
+            LeaderboardPopup.Invalidate();   // this match will change this player's points
+            OnlineLobby.AwaitRecord(playingMatch);   // and record
             awaitingState = false;
             playingMatch = OnlineLobby.MatchId;
             connect = OnlineLobby.Connecting;
@@ -725,11 +727,7 @@ namespace FlickCurling.Game
             leaveSoon = true;   // a moment for that message to go out before the session is left
             reportedMatch = id;
             Settle().Forget();
-            async UniTaskVoid Settle()
-            {
-                await OnlineApi.ReportResult(id, winner, score);
-                await OnlineApi.Acknowledge(id);
-            }
+            async UniTaskVoid Settle() => await OnlineApi.ReportResult(id, winner, score);   // (seen with it)
             ToMenu();
         }
 
@@ -781,9 +779,10 @@ namespace FlickCurling.Game
             Settle().Forget();
             async UniTaskVoid Settle()
             {
+                // a report is seeing the result too; with nothing to report (the opponent's report settles it), only seen
                 if (dropped) await OnlineApi.ReportDropped(id);
                 else if (winner != null) await OnlineApi.ReportResult(id, winner, score);
-                await OnlineApi.Acknowledge(id);
+                else await OnlineApi.Acknowledge(id);
             }
             _ = OnlineLobby.LeaveSettledAsync();
             // who won by it, for the final result card it leads to
@@ -799,17 +798,9 @@ namespace FlickCurling.Game
 
         void OnlineGameOver()
         {
-            OnlineReportResult();
-            string id = reportedMatch;
-            var report = reportTask;
-            // out of the session now (play again finds a new one), and seen: told to the server after the report
+            OnlineReportResult();   // (reported as the last end's card came up; the report is seeing it too)
+            // out of the session now (play again finds a new one)
             _ = OnlineLobby.LeaveAsync();
-            Ack().Forget();
-            async UniTaskVoid Ack()
-            {
-                if (report != null) await report;
-                if (!string.IsNullOrEmpty(id)) await OnlineApi.Acknowledge(id);
-            }
             OnlineFinalCard(m.Winner);
         }
 
@@ -864,19 +855,19 @@ namespace FlickCurling.Game
         async Task ReadPoints(string id)
         {
             var s = await OnlineApi.MyStats(OnlineLobby.MyId);
-            if (this && s != null && s.LastMatch == id) points = (s.P, s.LastDelta);
+            if (s == null || s.LastMatch != id) return;
+            OnlineLobby.TakeRecord(s);
+            if (this) points = (s.P, s.LastDelta);
         }
 
         // the server's push as it counts this player's result (whichever device's report settled it)
         void OnPlayerMessage(string type, string message)
         {
-            if (type != SettledMessage || string.IsNullOrEmpty(message)) return;
-            Settled msg;
-            try { msg = JsonUtility.FromJson<Settled>(message); } catch (Exception) { return; }
-            if (msg != null && !string.IsNullOrEmpty(msg.m) && (msg.m == playingMatch || msg.m == reportedMatch)) points = (msg.p, msg.d);
+            var msg = OnlineApi.ParseSettled(type, message);
+            if (msg == null) return;
+            if (msg.m == playingMatch || msg.m == reportedMatch) points = (msg.p, msg.d);
+            LeaderboardPopup.Invalidate();
         }
-        const string SettledMessage = "matchSettled";   // (as the module sends it)
-        [Serializable] sealed class Settled { public string m = ""; public int p, d; }
 
         // play again: look for a new opponent (the button shows the time spent); pressed again, stop looking
         void ToggleRematch()
