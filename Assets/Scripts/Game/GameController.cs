@@ -639,13 +639,15 @@ namespace FlickCurling.Game
 
         void RenderHud()
         {
-            bool hammerKnown = state != St.Menu && !(m.InLsd && m.Lsd != null && m.Lsd.Idx < m.Lsd.Order.Length);
+            // (the tutorial's showing part, before the match against the AI: only the score, no end or hammer)
+            bool scoreOnly = InTutorial && !tutorialInput;
+            bool hammerKnown = !scoreOnly && state != St.Menu && !(m.InLsd && m.Lsd != null && m.Lsd.Idx < m.Lsd.Order.Length);
             string hammer = Loc.T("hud.hammer");
             string Hm(Team t) => hammerKnown && m.Hammer == t ? $"<color=#d9a54c><size=10> {hammer}</size></color>" : "";
             string B(int v) => $"<color=#d9a54c><size=19><b>{v}</b></size></color>";
             // "B" here is the side on the left (black on screen), "W" the one on the right
             int tB = m.Total(Left), tW = m.Total(Right);
-            string end = $"<color=#b39f84><size=12>{(state == St.Menu ? Loc.T("hud.idle") : EndLabel(m.End))} </size><size=9>▼</size></color>";
+            string end = scoreOnly ? "" : $"<color=#b39f84><size=12>{(state == St.Menu ? Loc.T("hud.idle") : EndLabel(m.End))} </size><size=9>▼</size></color>";
             string iconB = Ui.Icon(Left, 140), iconW = Ui.Icon(Right, 140);
             if (hud.SideMode)
             {
