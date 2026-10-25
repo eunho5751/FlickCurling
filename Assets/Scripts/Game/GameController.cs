@@ -392,6 +392,7 @@ namespace FlickCurling.Game
         {
             m.StartEnd();
             fades.Clear(); measure = null;
+            if (TutorialHoldsEnd()) return;   // (the tutorial's end: the bonus guard pointed out first)
             PrepareShot();
         }
 

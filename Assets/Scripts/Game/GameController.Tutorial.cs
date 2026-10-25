@@ -6,14 +6,16 @@ namespace FlickCurling.Game
 {
     // The tutorial (Docs/Tutorial.md): the game scene opened for it, run by a TutorialDirector. The match here only does
     // what the director asks (shots thrown for it, stones placed, an end measured, the aim and power moved), with the
-    // player's input off, until the last step: one end against the easy AI, the player with the last stone. No shot
-    // clock, no turn order draw, no extra end. The settings popup's way out is "skip the tutorial".
+    // player's input off, until the last step: a match against the easy AI as any starts, with the turn order shot (the
+    // player's own first throws), then one end, the director first pointing out the bonus guard it starts with. No shot
+    // clock, no extra end. The settings popup's way out is "skip the tutorial".
     public sealed partial class GameController
     {
         TutorialDirector tutorial;
         bool tutorialInput;          // the player's own end: input as in any match
         Action tutorialSettled;      // the director waits for the shot it had thrown to come to rest
         Action tutorialMeasured;     // ... or for an end's measuring to finish
+        Action<Action> tutorialBeforeEnd;   // ... or to say something as the end starts (given how to go on)
 
         bool InTutorial => tutorial != null;
         bool TutorialBlocksInput => InTutorial && !tutorialInput;
@@ -111,6 +113,7 @@ namespace FlickCurling.Game
             {
                 0 => Rect.MinMaxRect(Inset, top, stoneX, bottom),
                 1 => Rect.MinMaxRect(stoneX, top, cw - Inset, bottom),
+                3 => TutorialGuardArea(),
                 _ => Rect.MinMaxRect(Inset, topPx, cw - Inset, hog - Inset),
             };
         }
@@ -130,15 +133,41 @@ namespace FlickCurling.Game
 
         /// <summary>The player's own end against the easy AI: the player has the last stone (the AI starts, with the
         /// bonus guard).</summary>
-        internal void TutorialPlay()
+        internal void TutorialPlay(Action<Action> beforeEnd)
         {
             tutorialInput = true;
+            tutorialBeforeEnd = beforeEnd;
             int seed = fx.Next();
             m = new Match(Maps.Build(mapKey), PhysicsParams.Default, seed) { Listener = new LiveEvents(this) };
             brain = new Ai(seed ^ 0x5bd1e995);
-            m.Hammer = Team.B;
+            m.StartMatch();   // the turn order shot first, as in any match (its card, then each side's draw)
             fades.Clear(); floats.Clear(); measure = null;
-            StartEnd();
+            ShowField(m.Field);
+            userMoved = false;
+            state = St.Coin;
+            RenderHud();
+            CamTo(AimView(1), 3.5f);
+            LsdStartCard();
+        }
+
+        // the end has started (its bonus guard down): the director says its piece before the first throw
+        bool TutorialHoldsEnd()
+        {
+            if (tutorialBeforeEnd == null) return false;
+            var a = tutorialBeforeEnd; tutorialBeforeEnd = null;
+            state = St.Coin;
+            RenderHud();
+            CamTo(HouseView(zoom), 4);
+            a(PrepareShot);
+            return true;
+        }
+
+        /// <summary>Round the bonus guard (css px), for the director to frame.</summary>
+        internal Rect TutorialGuardArea()
+        {
+            var g = m.Stones.Find(st => st.Placed);
+            float x = X((float)(g?.X ?? Sheet.PlaceGuardX)), y = Y((float)(g?.Y ?? Sheet.PlaceGuardY)), r = SR * s + 12;
+            return Rect.MinMaxRect(x - r, y - r, x + r, y + r);
         }
 
         // the end's card leads to the tutorial's last card

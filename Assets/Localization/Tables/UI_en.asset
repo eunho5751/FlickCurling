@@ -635,10 +635,6 @@ MonoBehaviour:
       the aim follows.
     m_Metadata:
       m_Items: []
-  - m_Id: 3136817861677057
-    m_Localized: Your turn now! Play one end against the AI.
-    m_Metadata:
-      m_Items: []
   - m_Id: 3136817861677058
     m_Localized: Tap to continue
     m_Metadata:
@@ -682,6 +678,18 @@ MonoBehaviour:
   - m_Id: 3162040900177920
     m_Localized: A stone that doesn't cross the min line, or goes all the way past
       the out line, doesn't count and is removed.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 3994885692510208
+    m_Localized: 'Your turn now! A match starts with the turn order shot: each side
+      throws one stone at the centre of the house, and whoever gets closer throws
+      last.'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 3994885776396288
+    m_Localized: The side that throws first starts with a bonus guard in front of
+      the house, to make up for the other side having the last stone. Now beat the
+      AI!
     m_Metadata:
       m_Items: []
   references:

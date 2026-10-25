@@ -23,7 +23,8 @@ namespace FlickCurling.Game
         Image[] edges;
         TextMeshProUGUI text, hint;
         bool hintUp, tapped;
-        int spot = -1;   // the part of the screen shown (GameController.TutorialArea), the rest dimmed; -1 none
+        int spot = -1;
+        const int Guard = 3;   // spot: round the bonus guard   // the part of the screen shown (GameController.TutorialArea), the rest dimmed; -1 none
 
         const float BubbleW = 420, Margin = 14;   // css px
         const float HandW = 50, HandH = 72, ArrowLong = 96, ArrowShort = 27;
@@ -97,12 +98,28 @@ namespace FlickCurling.Game
                 await Say("tutorial.aim", AimDemo, area: 0);
                 await Say("tutorial.power", PowerDemo, area: 1);
                 await Say("tutorial.spot", SpotDemo, area: 2);
-                await Say("tutorial.play");
+                // on to a real start: the turn order shot, which the player throws themselves
+                await Say("tutorial.lsd");
             }
             catch (OperationCanceledException) { return; }
-            // the player's own end: the layer goes, the match takes the input
+            // the match as any starts (its card, the draws, the result), the input the player's; the layer comes back
+            // as the end starts, for the bonus guard
             layer.gameObject.SetActive(false);
-            game.TutorialPlay();
+            game.TutorialPlay(go => GuardNote(go).Forget());
+        }
+
+        // the end has started with the first thrower's bonus guard in front of the house: pointed out, then play
+        async UniTaskVoid GuardNote(Action go)
+        {
+            try
+            {
+                await Wait(0.45f);   // the turn order result's card fading out first, and the camera on its way to the house
+                layer.gameObject.SetActive(true);
+                await Say("tutorial.guard", area: Guard);
+            }
+            catch (OperationCanceledException) { return; }
+            layer.gameObject.SetActive(false);
+            go();
         }
 
         // a line in the box (with one part of the screen framed, if given) while what it shows plays; a tap goes on once

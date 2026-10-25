@@ -591,10 +591,6 @@ MonoBehaviour:
     m_Key: tutorial.spot
     m_Metadata:
       m_Items: []
-  - m_Id: 3136817861677057
-    m_Key: tutorial.play
-    m_Metadata:
-      m_Items: []
   - m_Id: 3136817861677058
     m_Key: tutorial.tap
     m_Metadata:
@@ -637,6 +633,14 @@ MonoBehaviour:
       m_Items: []
   - m_Id: 3162040900177920
     m_Key: tutorial.void
+    m_Metadata:
+      m_Items: []
+  - m_Id: 3994885692510208
+    m_Key: tutorial.lsd
+    m_Metadata:
+      m_Items: []
+  - m_Id: 3994885776396288
+    m_Key: tutorial.guard
     m_Metadata:
       m_Items: []
   m_Metadata:
