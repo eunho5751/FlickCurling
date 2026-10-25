@@ -17,11 +17,13 @@ namespace FlickCurling.Game
         Action tutorialMeasured;     // ... or for an end's measuring to finish
         Action<Action> tutorialBeforeEnd;   // ... or to say something as the end starts (given how to go on)
 
-        bool InTutorial => tutorial != null;
+        bool inTutorial;   // from the start of StartTutorial, before its director is up (the HUD is drawn first)
+        bool InTutorial => inTutorial;
         bool TutorialBlocksInput => InTutorial && !tutorialInput;
 
         void StartTutorial()
         {
+            inTutorial = true;
             token++;
             hud.HideCard();
             mode = Mode.Easy; mapKey = "base";
