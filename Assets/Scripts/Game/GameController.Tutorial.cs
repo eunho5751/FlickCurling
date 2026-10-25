@@ -102,20 +102,31 @@ namespace FlickCurling.Game
         /// line (aim), right of it (power), and above the min line (aim at a spot).</summary>
         internal Rect TutorialArea(int which)
         {
+            const float Inset = 4;   // css px off the screen's edges
             float hog = Mathf.Clamp(Y(HOG), 0, ch), stoneX = Mathf.Clamp(X((float)m.LaunchX), 0, cw);
+            float top = hog + Inset, bottom = ch - Inset;
+            // the two sides below the min line meet at the stone's centre (the frame's lines leave the stone out:
+            // TutorialStoneClear)
             return which switch
             {
-                0 => new Rect(0, hog, stoneX, ch - hog),
-                1 => new Rect(stoneX, hog, cw - stoneX, ch - hog),
-                _ => new Rect(0, 0, cw, hog),
+                0 => Rect.MinMaxRect(Inset, top, stoneX, bottom),
+                1 => Rect.MinMaxRect(stoneX, top, cw - Inset, bottom),
+                _ => Rect.MinMaxRect(Inset, topPx, cw - Inset, hog - Inset),
             };
         }
+
+        /// <summary>The launch stone with its power ring and a little room (centre and radius, css px): a frame's lines
+        /// are cut where they would cross it.</summary>
+        internal (Vector2 c, float r) TutorialStoneClear =>
+            (new Vector2(X((float)m.LaunchX), Y(LY)), Mathf.Max(SR * s, launchRingRadius * s + launchRingWidth) + 6);
 
         internal Vector2 TutorialStone() => new Vector2(X((float)m.LaunchX), Y(LY));
         internal Vector2 TutorialPoint(float x, float y) => new Vector2(X(x), Y(y));
         internal float TutorialPowerPx => maxPx;   // a full pull, in css px
         internal Vector2 TutorialView => new Vector2(cw, ch);
         internal float TutorialTopRoom => topPx;   // the score row's height at the top
+        // where the box goes: where the toasts stand (just above the min line), over any toast up now
+        internal float TutorialBoxBottom => hud.ToastY - hud.ToastStackHeight;
 
         /// <summary>The player's own end against the easy AI: the player has the last stone (the AI starts, with the
         /// bonus guard).</summary>

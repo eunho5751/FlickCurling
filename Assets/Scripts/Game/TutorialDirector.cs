@@ -1,4 +1,6 @@
-using System.Collections;
+using System;
+using System.Threading;
+using Cysharp.Threading.Tasks;
 using FlickCurling.Core;
 using TMPro;
 using UnityEngine;
@@ -9,8 +11,8 @@ namespace FlickCurling.Game
     /// <summary>
     /// Runs the tutorial (Docs/Tutorial.md) over the game scene: one line of explanation at a time in a box (a tap goes
     /// on, once what it shows has finished), with the match showing it — shots thrown for both sides, a stone short of
-    /// the min line and one past the out line, an end measured — then the controls, each with the rest of the screen
-    /// dimmed and a hand acting it out while the aim or the power follows, and last the player's own end against the
+    /// the min line and one past the out line, an end measured — then the controls, each with its part of the screen
+    /// framed (clear of the stone) and a hand acting it out while the aim or the power follows, and last the player's own end against the
     /// AI. Its layer sits in the HUD under the toasts, cards and the settings gear, which stay usable (the settings
     /// popup is where it is skipped).
     /// </summary>
@@ -18,13 +20,13 @@ namespace FlickCurling.Game
     {
         GameController game;
         RectTransform layer, bubble, hand, arrowH, arrowV;
-        Image[] dims, edges;
+        Image[] edges;
         TextMeshProUGUI text, hint;
-        bool hintUp, tapped, bubbleTop;
+        bool hintUp, tapped;
         int spot = -1;   // the part of the screen shown (GameController.TutorialArea), the rest dimmed; -1 none
 
-        const float BubbleW = 420, Margin = 14, BottomRoom = 24;   // css px
-        const float HandW = 46, HandH = 76, ArrowLong = 96, ArrowShort = 27;
+        const float BubbleW = 420, Margin = 14;   // css px
+        const float HandW = 50, HandH = 72, ArrowLong = 96, ArrowShort = 27;
         const float Edge = 3;
 
         internal void Begin(GameController g, RectTransform hudLayer)
@@ -37,20 +39,14 @@ namespace FlickCurling.Game
             catcher.gameObject.AddComponent<Button>().onClick.AddListener(() => { if (hintUp) tapped = true; });
             catcher.gameObject.AddComponent<NoClickSound>();
 
-            dims = new Image[4];
-            for (int i = 0; i < 4; i++)
-            {
-                dims[i] = Ui.Rect(layer, "Dim" + i).gameObject.AddComponent<Image>();
-                dims[i].color = new Color(0, 0, 0, 0.62f); dims[i].raycastTarget = false;
-            }
-            edges = new Image[4];
-            for (int i = 0; i < 4; i++)
+            edges = new Image[8];   // four sides, each in up to two pieces round the stone
+            for (int i = 0; i < edges.Length; i++)
             {
                 edges[i] = Ui.Rect(layer, "Edge" + i).gameObject.AddComponent<Image>();
                 edges[i].color = Palette.Gold; edges[i].raycastTarget = false;
             }
 
-            var box = Ui.Panel(layer, "Bubble", Palette.Panel, Palette.Line, 12);
+            var box = Ui.Panel(layer, "Bubble", Palette.WithA(Palette.Panel, 0.78f), Palette.Line, 12);   // the sheet shows through
             box.raycastTarget = false;
             bubble = box.rectTransform;
             text = Ui.Label(bubble, "", 16, Palette.Text);
@@ -59,11 +55,11 @@ namespace FlickCurling.Game
             hint = Ui.Label(bubble, Loc.T("tutorial.tap"), 11, Palette.Brass, false, TextAnchor.LowerRight, "Hint");
             hint.raycastTarget = false;
 
-            hand = Sprite(layer, "Hand", "Tutorial/hand", new Vector2(0.25f, 1));   // the fingertip is the point
+            hand = Sprite(layer, "Hand", "Tutorial/hand", new Vector2(0.38f, 1));   // the fingertip is the point
             arrowH = Sprite(layer, "ArrowH", "Tutorial/arrow_h", new Vector2(0.5f, 0.5f));
             arrowV = Sprite(layer, "ArrowV", "Tutorial/arrow_v", new Vector2(0.5f, 0.5f));
             ShowHand(false);
-            StartCoroutine(Run());
+            Run().Forget();
         }
 
         static RectTransform Sprite(RectTransform parent, string name, string path, Vector2 pivot)
@@ -79,128 +75,145 @@ namespace FlickCurling.Game
 
         // ---------------- the steps ----------------
 
-        IEnumerator Run()
+        // (UniTask: the steps wait on the game's scaled clock, so the network popup's pause stops them too, and stop when
+        // this goes)
+        CancellationToken Ct => destroyCancellationToken;
+        UniTask Frame() => UniTask.Yield(PlayerLoopTiming.Update, Ct);
+        UniTask Wait(float seconds) => UniTask.Delay(TimeSpan.FromSeconds(seconds), DelayType.DeltaTime, PlayerLoopTiming.Update, Ct);
+
+        async UniTaskVoid Run()
         {
-            yield return Say("tutorial.welcome");
-            yield return Say("tutorial.about");
-            // the rules, each shown by the match
-            yield return Say("tutorial.turns", Turns());
-            yield return Say("tutorial.hog", Throw(Team.B, 44, 0, 0.36));
-            yield return Say("tutorial.back", Throw(Team.W, 37, 0, 0.86));
-            yield return Say("tutorial.score", Score());
-            // the controls, on the player's stone (their own input still off)
-            game.TutorialReadyToAim();
-            yield return Say("tutorial.controls");
-            yield return Say("tutorial.aim", AimDemo(), area: 0, top: true);
-            yield return Say("tutorial.power", PowerDemo(), area: 1, top: true);
-            yield return Say("tutorial.spot", SpotDemo(), area: 2);
-            yield return Say("tutorial.play");
+            try
+            {
+                await Say("tutorial.welcome");
+                await Say("tutorial.about");
+                // the rules, each shown by the match
+                await Say("tutorial.turns", Turns);
+                await Say("tutorial.void", Void);
+                await Say("tutorial.score", Score);
+                // the controls, on the player's stone (their own input still off)
+                game.TutorialReadyToAim();
+                await Say("tutorial.controls");
+                await Say("tutorial.aim", AimDemo, area: 0);
+                await Say("tutorial.power", PowerDemo, area: 1);
+                await Say("tutorial.spot", SpotDemo, area: 2);
+                await Say("tutorial.play");
+            }
+            catch (OperationCanceledException) { return; }
             // the player's own end: the layer goes, the match takes the input
             layer.gameObject.SetActive(false);
             game.TutorialPlay();
         }
 
-        // a line in the box (with the screen dimmed round one part, if given) while what it shows plays; a tap goes on
-        // once that has finished
-        IEnumerator Say(string key, IEnumerator show = null, int area = -1, bool top = false)
+        // a line in the box (with one part of the screen framed, if given) while what it shows plays; a tap goes on once
+        // that has finished
+        async UniTask Say(string key, Func<UniTask> show = null, int area = -1)
         {
             text.text = Loc.T(key);
-            bubbleTop = top;
             hintUp = false; tapped = false;
             spot = area;
-            if (show != null) yield return show;
+            if (show != null) await show();
             hintUp = true;
-            while (!tapped) yield return null;
+            while (!tapped) await Frame();
             spot = -1;
             ShowHand(false);
         }
 
-        IEnumerator Turns()
+        async UniTask Turns()
         {
-            yield return Throw(Team.B, 50, 0, 0.70);
-            yield return new WaitForSeconds(0.3f);
-            yield return Throw(Team.W, 60, 0, 0.66);
+            await Throw(Team.B, 50, 0, 0.70);
+            await Wait(0.3f);
+            await Throw(Team.W, 60, 0, 0.66);
         }
 
-        IEnumerator Throw(Team team, double lane, double ang, double pw)
+        // a stone short of the min line, then one past the out line: both gone
+        async UniTask Void()
+        {
+            await Throw(Team.B, 44, 0, 0.36);
+            await Wait(0.3f);
+            await Throw(Team.W, 37, 0, 0.86);
+        }
+
+        async UniTask Throw(Team team, double lane, double ang, double pw)
         {
             bool done = false;
             game.TutorialThrow(team, lane, ang, pw, () => done = true);
-            while (!done) yield return null;
+            while (!done) await Frame();
         }
 
         // one more of the player's stones nearer the centre than the AI's, then the end measured: two points
-        IEnumerator Score()
+        async UniTask Score()
         {
             game.TutorialPlace(Team.B, 43, 165);
-            yield return new WaitForSeconds(0.4f);
+            await Wait(0.4f);
             bool done = false;
             game.TutorialMeasure(() => done = true);
-            while (!done) yield return null;
+            while (!done) await Frame();
         }
 
         // left of the stone: a finger sliding sideways turns the aim with it
-        IEnumerator AimDemo()
+        async UniTask AimDemo()
         {
-            var a = game.TutorialArea(spot);
-            var at = new Vector2(a.x + a.width * 0.5f, a.y + a.height * 0.55f);
+            // (where, worked out every frame from the area: it follows the screen)
+            Vector2 At() { var a = game.TutorialArea(spot); return new Vector2(a.x + a.width * 0.5f, a.y + a.height * 0.55f); }
             ShowHand(true, arrowH);
             const float Swing = 60, Turns = 2, Dur = 3.2f;
             for (float t = 0; t < Dur; t += Time.deltaTime)
             {
                 float dx = Mathf.Sin(t / Dur * Turns * 2 * Mathf.PI) * Swing;
-                PlaceHand(at + new Vector2(dx, 0), arrowH, new Vector2(0, ArrowShort));   // the arrow over the fingertip
+                PlaceHand(At() + new Vector2(dx, 0), arrowH, new Vector2(0, ArrowShort));   // the arrow over the fingertip
                 game.TutorialSetAim(dx / Swing * 0.3);
-                yield return null;
+                await Frame();
             }
             game.TutorialSetAim(0);
             ShowHand(false);
         }
 
         // right of the stone: a finger pulling down (or up) from where it touched fills the power
-        IEnumerator PowerDemo()
+        async UniTask PowerDemo()
         {
-            var a = game.TutorialArea(spot);
-            var at = new Vector2(a.x + a.width * 0.45f, a.y + a.height * 0.25f);
+            Vector2 At() { var a = game.TutorialArea(spot); return new Vector2(a.x + a.width * 0.6f, a.y + a.height * 0.25f); }
+            float Full() => Mathf.Min(game.TutorialPowerPx * 0.85f, game.TutorialArea(spot).height * 0.6f);   // (kept on the screen)
+            var arrowAt = new Vector2(-(ArrowShort + 14), -HandH * 0.5f);
             ShowHand(true, arrowV);
-            float full = game.TutorialPowerPx * 0.85f;
             for (int k = 0; k < 2; k++)
             {
                 for (float t = 0; t < 1.3f; t += Time.deltaTime)
                 {
                     float p = Mathf.SmoothStep(0, 1, t / 1.3f);
-                    PlaceHand(at + new Vector2(0, p * full), arrowV, new Vector2(HandW + 18, -HandH * 0.5f));
+                    float full = Full();
+                    PlaceHand(At() + new Vector2(0, p * full), arrowV, arrowAt);
                     game.TutorialSetPower(p * full / game.TutorialPowerPx);
-                    yield return null;
+                    await Frame();
                 }
-                yield return new WaitForSeconds(0.35f);
+                await Wait(0.35f);
                 game.TutorialSetPower(-1);
-                PlaceHand(at, arrowV, new Vector2(HandW + 18, -HandH * 0.5f));
-                yield return new WaitForSeconds(0.45f);
+                PlaceHand(At(), arrowV, arrowAt);
+                await Wait(0.45f);
             }
             ShowHand(false);
         }
 
         // above the min line: a touch turns the aim to that spot at once, and a drag takes it along
-        IEnumerator SpotDemo()
+        async UniTask SpotDemo()
         {
             var from = game.TutorialPoint(30, (float)Sheet.TeeY - 8);
             var to = game.TutorialPoint(72, (float)Sheet.TeeY + 12);
             ShowHand(true);
             PlaceHand(from, null, Vector2.zero);
-            yield return new WaitForSeconds(0.5f);
+            await Wait(0.5f);
             // the touch: the hand presses, the aim jumps there
-            for (float t = 0; t < 0.25f; t += Time.deltaTime) { hand.localScale = Vector3.one * (1 - 0.15f * t / 0.25f); yield return null; }
+            for (float t = 0; t < 0.25f; t += Time.deltaTime) { hand.localScale = Vector3.one * (1 - 0.15f * t / 0.25f); await Frame(); }
             game.TutorialAimAt(from);
-            yield return new WaitForSeconds(0.6f);
+            await Wait(0.6f);
             for (float t = 0; t < 1.6f; t += Time.deltaTime)
             {
                 var p = Vector2.Lerp(from, to, Mathf.SmoothStep(0, 1, t / 1.6f));
                 PlaceHand(p, null, Vector2.zero);
                 game.TutorialAimAt(p);
-                yield return null;
+                await Frame();
             }
-            yield return new WaitForSeconds(0.4f);
+            await Wait(0.4f);
             hand.localScale = Vector3.one;
             game.TutorialSetAim(0);
             ShowHand(false);
@@ -220,7 +233,7 @@ namespace FlickCurling.Game
         void PlaceHand(Vector2 p, RectTransform arrow, Vector2 arrowOffset)
         {
             Ui.TopLeft(hand, p.x, p.y, HandW, HandH);
-            hand.pivot = new Vector2(0.25f, 1);
+            hand.pivot = new Vector2(0.38f, 1);
             hand.anchoredPosition = new Vector2(p.x, -p.y);
             if (!arrow) return;
             bool wide = arrow == arrowH;
@@ -228,35 +241,56 @@ namespace FlickCurling.Game
             arrow.anchoredPosition = new Vector2(p.x + arrowOffset.x, -(p.y - arrowOffset.y));
         }
 
-        void Update()
+        // laid out after the steps have run this frame: a step that has just changed the line, the framed part or the hint
+        // shows it at once, not with last frame's layout
+        void LateUpdate()
         {
             if (!game || !layer.gameObject.activeSelf) return;
             var view = game.TutorialView;
-            // the box: across the bottom (or the top, under the score row, when the bottom is being shown)
+            // the box: where the toasts stand, just above the min line (over a toast that is up), clear of the stone
             float w = Mathf.Min(BubbleW, view.x - 2 * Margin);
             float th = text.GetPreferredValues(text.text, w - 28, 0).y;
             float h = th + 46;
-            float y = bubbleTop ? game.TutorialTopRoom + 6 : view.y - h - BottomRoom;
+            float y = Mathf.Max(game.TutorialTopRoom, game.TutorialBoxBottom - h);
             Ui.TopLeft(bubble, (view.x - w) / 2, y, w, h);
             Ui.TopLeft(text.rectTransform, 14, 12, w - 28, th + 4);
             Ui.TopLeft(hint.rectTransform, 14, h - 24, w - 28, 16);
             hint.gameObject.SetActive(hintUp);
             if (hintUp) hint.alpha = 0.55f + 0.45f * Mathf.Cos(Time.time * 4);
 
-            // the dim round the part being shown (four pieces round a hole), with a gold edge on the hole
-            bool on = spot >= 0;
-            foreach (var d in dims) d.gameObject.SetActive(on);
-            foreach (var e in edges) e.gameObject.SetActive(on);
-            if (!on) return;
-            var r = game.TutorialArea(spot);
-            Ui.TopLeft(dims[0].rectTransform, 0, 0, view.x, r.yMin);                         // above
-            Ui.TopLeft(dims[1].rectTransform, 0, r.yMax, view.x, view.y - r.yMax);           // below
-            Ui.TopLeft(dims[2].rectTransform, 0, r.yMin, r.xMin, r.height);                  // left
-            Ui.TopLeft(dims[3].rectTransform, r.xMax, r.yMin, view.x - r.xMax, r.height);    // right
-            Ui.TopLeft(edges[0].rectTransform, r.xMin, r.yMin, r.width, Edge);
-            Ui.TopLeft(edges[1].rectTransform, r.xMin, r.yMax - Edge, r.width, Edge);
-            Ui.TopLeft(edges[2].rectTransform, r.xMin, r.yMin, Edge, r.height);
-            Ui.TopLeft(edges[3].rectTransform, r.xMax - Edge, r.yMin, Edge, r.height);
+            // a gold frame round the part being shown, its lines cut where they would cross the stone
+            used = 0;
+            if (spot >= 0)
+            {
+                var r = game.TutorialArea(spot);
+                var (c, cr) = game.TutorialStoneClear;
+                Line(r.yMin, r.xMin, r.xMax, true, c, cr);
+                Line(r.yMax - Edge, r.xMin, r.xMax, true, c, cr);
+                Line(r.xMin, r.yMin, r.yMax, false, c, cr);
+                Line(r.xMax - Edge, r.yMin, r.yMax, false, c, cr);
+            }
+            for (int i = 0; i < edges.Length; i++) edges[i].gameObject.SetActive(i < used);
+        }
+
+        int used;
+
+        // one side of the frame from a to b (along x if horizontal, else along y) at the other coordinate at, less the
+        // part inside the circle (c, cr)
+        void Line(float at, float a, float b, bool horizontal, Vector2 c, float cr)
+        {
+            float mid = at + Edge / 2, d = horizontal ? mid - c.y : mid - c.x;
+            if (Mathf.Abs(d) >= cr) { Piece(at, a, b, horizontal); return; }
+            float half = Mathf.Sqrt(cr * cr - d * d), cc = horizontal ? c.x : c.y;
+            Piece(at, a, Mathf.Min(b, cc - half), horizontal);
+            Piece(at, Mathf.Max(a, cc + half), b, horizontal);
+        }
+
+        void Piece(float at, float a, float b, bool horizontal)
+        {
+            if (b - a < 1 || used >= edges.Length) return;
+            var rt = edges[used++].rectTransform;
+            if (horizontal) Ui.TopLeft(rt, a, at, b - a, Edge);
+            else Ui.TopLeft(rt, at, a, Edge, b - a);
         }
     }
 }

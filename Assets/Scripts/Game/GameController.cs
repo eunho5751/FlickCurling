@@ -735,6 +735,7 @@ namespace FlickCurling.Game
             if (mode == Mode.Online) return OnlineSideName(t);
             if (mode == Mode.Pvp) return Loc.T(t == Team.B ? "hud.player1" : "hud.player2");
             if (t == Team.W) return Loc.T("hud.ai");
+            if (InTutorial) return Loc.T("hud.player");   // the tutorial's player is just "the player"
             string nick = Account.Nickname.Display(Account.AccountService.PlayerName);
             return string.IsNullOrEmpty(nick) ? Loc.T("hud.player") : nick;
         }

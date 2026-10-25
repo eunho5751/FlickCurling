@@ -202,10 +202,8 @@ namespace FlickCurling.Game
             {
                 // top-left corner: the pill as wide as its text (measured when the text changes), wrapping only if the
                 // row is narrower
-                if (pillTextW < 0) pillTextW = scorePill.GetPreferredValues(scorePill.text).x;
-                float rowW = sw - 20;
-                float pillW = Mathf.Min(pillTextW + 18 + 2, rowW);
-                SetSize(leftCol, new Vector2(pillW, leftCol.sizeDelta.y));
+                pillRowW = sw - 20;
+                FitPill();
             }
             float cardW = CardWidth(sw);
             SetSize(cardRt, new Vector2(cardW, cardRt.sizeDelta.y));
@@ -220,7 +218,17 @@ namespace FlickCurling.Game
             SetPos(sp, new Vector2(10, -(10 + under + 4)));
         }
 
-        float pillTextW = -1;
+        float pillTextW = -1, pillRowW = -1;   // the pill's text width (measured when it changes) and the row's room
+
+        // the pill as wide as its text, wrapping only if the row is narrower; done as soon as the text changes, so the
+        // layout never runs with new text in the old width (it would wrap for a frame, the row grow, and the camera,
+        // which keeps the far end clear of the row, jump with it)
+        void FitPill()
+        {
+            if (sideMode || pillRowW < 0) return;
+            if (pillTextW < 0) pillTextW = scorePill.GetPreferredValues(scorePill.text).x;
+            SetSize(leftCol, new Vector2(Mathf.Min(pillTextW + 18 + 2, pillRowW), leftCol.sizeDelta.y));
+        }
 
         public bool HudVisible { set { hudShown = value; ApplyHudVisibility(); if (!value) scorePanel.gameObject.SetActive(false); } }
 
@@ -274,7 +282,7 @@ namespace FlickCurling.Game
             scorePanel.gameObject.SetActive(false);
         }
 
-        public void SetScorePill(string rich) { if (scorePill.text != rich) { scorePill.text = rich; pillTextW = -1; } }
+        public void SetScorePill(string rich) { if (scorePill.text != rich) { scorePill.text = rich; pillTextW = -1; FitPill(); } }
 
         string lastTable;
 
@@ -416,13 +424,25 @@ namespace FlickCurling.Game
             }
         }
 
+        /// <summary>Where the toasts stand (css px from the top: the bottom of their stack), and how tall the stack is now.</summary>
+        public float ToastY => Mathf.Clamp(toastY < 0 ? viewH * 0.6f : toastY, insT + 140, viewH - insB - 12);
+        public float ToastStackHeight
+        {
+            get
+            {
+                float h = 0;
+                foreach (var t in toasts) if (!t.Leaving) h += t.Rt.rect.height + 8;
+                return h;
+            }
+        }
+
         void TickToasts()
         {
             if (toasts.Count == 0) return;
             float now = Time.time;
             foreach (var t in toasts.ToArray()) if (!t.Leaving && now > t.Until) Leave(t);
             // just above the fuse; kept on screen when the camera has taken the min line off it
-            float y = Mathf.Clamp(toastY < 0 ? viewH * 0.6f : toastY, insT + 140, viewH - insB - 12);
+            float y = ToastY;
             float x = (insL - insR) / 2;
             foreach (var t in toasts) t.Rt.anchoredPosition = new Vector2(x, -y + t.Off);
         }

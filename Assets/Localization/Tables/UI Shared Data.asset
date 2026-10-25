@@ -571,14 +571,6 @@ MonoBehaviour:
     m_Key: tutorial.turns
     m_Metadata:
       m_Items: []
-  - m_Id: 3136817857482754
-    m_Key: tutorial.hog
-    m_Metadata:
-      m_Items: []
-  - m_Id: 3136817857482755
-    m_Key: tutorial.back
-    m_Metadata:
-      m_Items: []
   - m_Id: 3136817857482756
     m_Key: tutorial.score
     m_Metadata:
@@ -641,6 +633,10 @@ MonoBehaviour:
       m_Items: []
   - m_Id: 3136817861677067
     m_Key: tutorial.start
+    m_Metadata:
+      m_Items: []
+  - m_Id: 3162040900177920
+    m_Key: tutorial.void
     m_Metadata:
       m_Items: []
   m_Metadata:

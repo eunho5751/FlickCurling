@@ -611,14 +611,6 @@ MonoBehaviour:
     m_Localized: You and your opponent take turns throwing one stone each.
     m_Metadata:
       m_Items: []
-  - m_Id: 3136817857482754
-    m_Localized: A stone that doesn't cross the min line doesn't count and is removed.
-    m_Metadata:
-      m_Items: []
-  - m_Id: 3136817857482755
-    m_Localized: A stone that goes all the way past the out line doesn't count either.
-    m_Metadata:
-      m_Items: []
   - m_Id: 3136817857482756
     m_Localized: When the end is over, you score one point for each of your stones
       closer to the centre than your opponent's closest.
@@ -685,6 +677,11 @@ MonoBehaviour:
       m_Items: []
   - m_Id: 3136817861677067
     m_Localized: Let's go
+    m_Metadata:
+      m_Items: []
+  - m_Id: 3162040900177920
+    m_Localized: A stone that doesn't cross the min line, or goes all the way past
+      the out line, doesn't count and is removed.
     m_Metadata:
       m_Items: []
   references:
