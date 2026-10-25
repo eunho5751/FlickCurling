@@ -65,17 +65,16 @@ namespace FlickCurling.Game
 
         static async Task ForgetAsync()
         {
-            try
-            {
-                await CloudSaveService.Instance.Data.Player.DeleteAsync(CloudKey, new Unity.Services.CloudSave.Models.Data.Player.DeleteOptions());
-                PlayerPrefs.DeleteKey(ForgetCloud);
-                PlayerPrefs.Save();
-            }
-            catch (Exception e) { Debug.LogWarning("FlickCurling: forgetting the tutorial's progress failed: " + e.Message); }
+            try { await CloudSaveService.Instance.Data.Player.DeleteAsync(CloudKey, new Unity.Services.CloudSave.Models.Data.Player.DeleteOptions()); }
+            catch (CloudSaveException e) when (e.Reason == CloudSaveExceptionReason.NotFound) { }   // never noted: nothing to forget
+            catch (Exception e) { Debug.LogWarning("FlickCurling: forgetting the tutorial's progress failed: " + e.Message); return; }
+            PlayerPrefs.DeleteKey(ForgetCloud);
+            PlayerPrefs.Save();
         }
 
         static void Remember(bool unsaved)
         {
+            PlayerPrefs.DeleteKey(ForgetCloud);   // (done again after a reset: nothing left to forget)
             PlayerPrefs.SetInt(DoneHere, 1);
             PlayerPrefs.SetInt(Unsaved, unsaved ? 1 : 0);
             PlayerPrefs.Save();
