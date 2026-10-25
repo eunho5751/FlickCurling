@@ -33,13 +33,6 @@ namespace FlickCurling.Game
         internal void Begin(GameController g, RectTransform hudLayer)
         {
             game = g; layer = hudLayer;
-            // taps anywhere go on (when the line allows it)
-            var catcher = Ui.Rect(layer, "Tap").gameObject.AddComponent<Image>();
-            Ui.Stretch(catcher.rectTransform);
-            catcher.color = new Color(0, 0, 0, 0);
-            catcher.gameObject.AddComponent<Button>().onClick.AddListener(() => { if (hintUp) tapped = true; });
-            catcher.gameObject.AddComponent<NoClickSound>();
-
             edges = new Image[8];   // four sides, each in up to two pieces round the stone
             for (int i = 0; i < edges.Length; i++)
             {
@@ -127,6 +120,7 @@ namespace FlickCurling.Game
         async UniTask Say(string key, Func<UniTask> show = null, int area = -1)
         {
             text.text = Loc.T(key);
+            game.TutorialPop();   // a line coming up sounds like a card
             hintUp = false; tapped = false;
             spot = area;
             if (show != null) await show();
@@ -263,6 +257,11 @@ namespace FlickCurling.Game
         void LateUpdate()
         {
             if (!game || !layer.gameObject.activeSelf) return;
+            // a tap anywhere but on UI (the settings gear, a card) goes on, when the line allows it; it clicks like any
+            // tap on the background (UiClickSound)
+            if (hintUp)
+                foreach (var p in UiClickSound.NewPresses())
+                    if (!UiClickSound.OverUi(p)) { tapped = true; break; }
             var view = game.TutorialView;
             // the box: where the toasts stand, just above the min line (over a toast that is up), clear of the stone
             float w = Mathf.Min(BubbleW, view.x - 2 * Margin);

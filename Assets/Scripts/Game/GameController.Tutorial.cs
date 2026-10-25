@@ -98,6 +98,7 @@ namespace FlickCurling.Game
             CamTo(AimView(1), 3.5f);
         }
 
+        internal void TutorialPop() => sfx.Pop();
         internal void TutorialSetAim(double ang) => aimAng = Math.Max(-AimMax, Math.Min(AimMax, ang));
         internal void TutorialSetPower(float p) => power = p;   // (below 0: no gauge)
         internal void TutorialAimAt(Vector2 css) { if (OnSheet(css)) AimAt(World(css)); }

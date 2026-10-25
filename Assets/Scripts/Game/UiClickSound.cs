@@ -10,14 +10,16 @@ namespace FlickCurling.Game
     /// <summary>
     /// The click every button makes when pressed, in every scene, with nothing to add to the buttons: one object, made at
     /// start-up and kept across scenes, looks under each new press (mouse or touch) and plays a soft wooden "tok" if the
-    /// topmost UI there is an interactable button, toggle or dropdown (dropdown rows included). Sliders stay quiet. A
-    /// <see cref="NoClickSound"/> on a button turns it off for that one. Follows the sound effect volume.
+    /// topmost UI there is an interactable button, toggle or dropdown (dropdown rows included), and the same click, a little
+    /// softer, for a press on the background (no UI under it at all: the sheet, the menu's board). Sliders and other UI
+    /// stay quiet. A <see cref="NoClickSound"/> on a button turns it off for that one. Follows the sound effect volume.
     /// </summary>
     public sealed class UiClickSound : MonoBehaviour
     {
         const int Rate = 44100;
         AudioSource src;
         AudioClip clip;
+        const float BackgroundVolume = 0.7f;   // of a button's click
         static readonly List<RaycastResult> hits = new List<RaycastResult>();
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
@@ -59,12 +61,16 @@ namespace FlickCurling.Game
         void Update()
         {
             foreach (var p in NewPresses())
+            {
                 if (PressesButton(p)) { src.PlayOneShot(clip, GameSettings.SfxVolume); break; }
+                if (!OverUi(p)) { src.PlayOneShot(clip, GameSettings.SfxVolume * BackgroundVolume); break; }
+            }
         }
 
-        readonly List<Vector2> presses = new List<Vector2>();
+        static readonly List<Vector2> presses = new List<Vector2>();
 
-        List<Vector2> NewPresses()
+        /// <summary>Where presses began this frame (screen px): every new touch, else a mouse button going down.</summary>
+        public static List<Vector2> NewPresses()
         {
             presses.Clear();
             var ts = Touchscreen.current;
@@ -74,6 +80,16 @@ namespace FlickCurling.Game
             if (presses.Count == 0 && Mouse.current != null && Mouse.current.leftButton.wasPressedThisFrame)
                 presses.Add(Mouse.current.position.ReadValue());
             return presses;
+        }
+
+        /// <summary>Whether any UI that takes presses is under this screen point.</summary>
+        public static bool OverUi(Vector2 screen)
+        {
+            var es = EventSystem.current;
+            if (es == null) return false;
+            hits.Clear();
+            es.RaycastAll(new PointerEventData(es) { position = screen }, hits);
+            return hits.Count > 0;
         }
 
         static bool PressesButton(Vector2 screen)
