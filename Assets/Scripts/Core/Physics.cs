@@ -29,9 +29,9 @@ namespace FlickCurling.Core
             double qx = g.X1 + t * dx, qy = g.Y1 + t * dy;
             double nx = s.X - qx, ny = s.Y - qy;
             double d = Sheet.Hypot(nx, ny);
-            if (d >= Sheet.SR || d == 0) return;
+            if (d >= s.Rad || d == 0) return;
             nx /= d; ny /= d;
-            s.X = qx + nx * Sheet.SR; s.Y = qy + ny * Sheet.SR;
+            s.X = qx + nx * s.Rad; s.Y = qy + ny * s.Rad;
             double vn = s.Vx * nx + s.Vy * ny;
             if (vn < 0)
             {
@@ -51,7 +51,7 @@ namespace FlickCurling.Core
         static void HitPost(Stone s, in Post p, PhysicsParams pp, IPhysicsEvents ev)
         {
             double nx = s.X - p.X, ny = s.Y - p.Y;
-            double d = Sheet.Hypot(nx, ny), min = Sheet.SR + p.R;
+            double d = Sheet.Hypot(nx, ny), min = s.Rad + p.R;
             if (d >= min || d == 0) return;
             nx /= d; ny /= d;
             s.X = p.X + nx * min; s.Y = p.Y + ny * min;
@@ -66,7 +66,7 @@ namespace FlickCurling.Core
         static void HitPair(Stone a, Stone b, PhysicsParams p, IPhysicsEvents ev)
         {
             double nx = b.X - a.X, ny = b.Y - a.Y;
-            double d2 = nx * nx + ny * ny, min = 2 * Sheet.SR;
+            double d2 = nx * nx + ny * ny, min = a.Rad + b.Rad;
             if (d2 >= min * min) return;
             double d = Math.Sqrt(d2);
             if (d == 0) d = 1e-6;
@@ -111,7 +111,7 @@ namespace FlickCurling.Core
             {
                 if (!s.Live) continue;
                 // off the far end, or wholly back past the launch end (there is no wall there)
-                if (s.Y - Sheet.SR > Sheet.L + 1 || s.Y + Sheet.SR < 0) { s.Live = false; s.Flew = true; s.Vx = 0; s.Vy = 0; }
+                if (s.Y - s.Rad > Sheet.L + 1 || s.Y + s.Rad < 0) { s.Live = false; s.Flew = true; s.Vx = 0; s.Vy = 0; }
             }
         }
 

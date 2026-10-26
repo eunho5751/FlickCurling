@@ -13,7 +13,7 @@ namespace FlickCurling.Game
     public static class RulesFigures
     {
         static Texture2D board, stoneB, stoneW, disc;
-        static Sprite arrowH, arrowV, hand;
+        static Sprite arrowH, arrowV, hand, orbB, orbW, bomb;
 
         // the accent of the items' labels (on the cream), and the marks and ink on the wood
         static readonly Color Accent = new Color32(0xb0, 0x4a, 0x1c, 0xff);
@@ -28,12 +28,17 @@ namespace FlickCurling.Game
             _ => 330,
         };
 
-        /// <summary>Draws the page's figure into <paramref name="area"/> (emptied first).</summary>
+        /// <summary>Draws the page's figure into <paramref name="area"/> (emptied first), at its top (the area may be
+        /// taller: the room left goes under the picture).</summary>
         public static void Draw(RectTransform area, string page, TMP_FontAsset font)
         {
             for (int i = area.childCount - 1; i >= 0; i--) Object.Destroy(area.GetChild(i).gameObject);
             Load();
-            var f = new Fig(area, font, Height(page));
+            var top = new GameObject("Picture", typeof(RectTransform)).GetComponent<RectTransform>();
+            top.SetParent(area, false);
+            top.anchorMin = new Vector2(0, 1); top.anchorMax = new Vector2(1, 1); top.pivot = new Vector2(0.5f, 1);
+            top.anchoredPosition = Vector2.zero; top.sizeDelta = new Vector2(0, Height(page));
+            var f = new Fig(top, font, Height(page));
             switch (page)
             {
                 case "game":
@@ -78,6 +83,26 @@ namespace FlickCurling.Game
                     foreach (var s in stones) { f.Stone(s.t, s.x, s.y); if (s.n > 0) f.Number(s.x, s.y, s.n); }
                     break;
                 }
+                case "itemkinds":
+                {
+                    // a giant stone, a mini one and a bomb on the sheet
+                    f.Crop(80, 140, 0);
+                    f.Stone(Team.B, 30, 110, size: (float)Sheet.GiantSize);
+                    f.Stone(Team.W, 52, 108, size: (float)Sheet.MiniSize);
+                    f.Stone(Team.B, 72, 110);
+                    f.Sized(bomb, 72, 110, (float)Sheet.SR * 2 * 1.3f / 2);
+                    break;
+                }
+                case "items":
+                {
+                    // a stone of one side on its way into its own orb, the other side's orb beside
+                    f.Crop(70, 140, 0);
+                    float d = (float)(2 * Sheet.ItemBoxR);
+                    f.Line(50, 78, 38, 112, 4, Mark);
+                    f.Stone(Team.B, 50, 78);
+                    f.Sized(orbB, 38, 112, d); f.Sized(orbW, 66, 124, d);
+                    break;
+                }
                 case "order":
                 {
                     f.Crop(112, 206, -110);
@@ -102,6 +127,9 @@ namespace FlickCurling.Game
             arrowH = Resources.Load<Sprite>("Tutorial/arrow_h");
             arrowV = Resources.Load<Sprite>("Tutorial/arrow_v");
             hand = Resources.Load<Sprite>("Tutorial/hand");
+            orbB = Resources.Load<Sprite>("Items/box_b");
+            orbW = Resources.Load<Sprite>("Items/box_w");
+            bomb = Resources.Load<Sprite>("Items/bomb");
         }
 
         // one figure: the sheet from y0 to y1 at the figure's height, its centre shifted sideways by dx (room for notes)
@@ -128,12 +156,12 @@ namespace FlickCurling.Game
             Vector2 P(float x, float y) => new Vector2(cx + (x - (BoardPainter.X0 + BoardPainter.X1) / 2) * scale, (y - y0) * scale - h / 2);
             float HalfW => (BoardPainter.X1 - BoardPainter.X0) / 2 * scale;
 
-            public void Stone(Team t, float x, float y, bool faded = false)
+            public void Stone(Team t, float x, float y, bool faded = false, float size = 1)
             {
                 var img = New<RawImage>("Stone");
                 img.texture = t == Team.B ? stoneB : stoneW;
                 if (faded) img.color = new Color(1, 1, 1, 0.5f);
-                float d = (float)Sheet.SR * 2 * scale;
+                float d = (float)Sheet.SR * 2 * size * scale;
                 Place(img.rectTransform, P(x, y), new Vector2(d, d));
             }
 
@@ -147,6 +175,9 @@ namespace FlickCurling.Game
                 Place(rt, (a + b) / 2, new Vector2((b - a).magnitude, width));
                 rt.localRotation = Quaternion.Euler(0, 0, Mathf.Atan2(b.y - a.y, b.x - a.x) * Mathf.Rad2Deg);
             }
+
+            // a picture as wide as this many sheet units
+            public void Sized(Sprite s, float x, float y, float units) => Picture(s, x, y, units * scale, units * scale);
 
             public void Picture(Sprite s, float x, float y, float w, float hgt, Vector2? pivot = null)
             {

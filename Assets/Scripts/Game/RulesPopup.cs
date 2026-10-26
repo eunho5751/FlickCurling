@@ -22,7 +22,18 @@ namespace FlickCurling.Game
 
         // each page: its key in the string table ("rules.<id>.title", "rules.<id>.<n>.k" / ".t") and how many items it has
         static readonly (string id, int items)[] Pages =
-            { ("game", 4), ("sheet", 5), ("out", 3), ("score", 5), ("order", 4), ("controls", 5) };
+            { ("game", 4), ("sheet", 5), ("out", 3), ("score", 5), ("order", 4), ("controls", 5), ("items", 2), ("itemkinds", 5) };
+
+        // items shown with a picture before their label (page id, item number from 1): the item mode's orb and items
+        static string IconOf(string page, int n) => (page, n) switch
+        {
+            ("items", 1) => "Items/box_b",
+            ("itemkinds", 1) => "Items/giant", ("itemkinds", 2) => "Items/mini", ("itemkinds", 3) => "Items/bomb",
+            ("itemkinds", 4) => "Items/magnet", ("itemkinds", 5) => "Items/protractor",
+            _ => null
+        };
+        const float IconSize = 64, IconGap = 14;
+        const float FigureGap = 26;   // more room between a page's picture and its items than between the items
         public static int PageCount => Pages.Length;
         public static string TitleKey(int page) => "rules." + Pages[page].id + ".title";
 
@@ -37,7 +48,7 @@ namespace FlickCurling.Game
         [SerializeField] RectTransform hint, hintHand;   // the swipe hint: the hand (and the arrow over it) inside hint
         [SerializeField] LocalizeStringEvent titleLoc;   // the popup's title: the rules, or the page's
         [SerializeField] Sprite icon;
-        [SerializeField] Vector2 sizeList = new Vector2(900, 1040), sizePage = new Vector2(900, 1660);
+        [SerializeField] Vector2 sizeList = new Vector2(900, 1200), sizePage = new Vector2(900, 1660);
         [SerializeField] float flingSpeed = 900, turnShare = 0.18f;   // a turn: a quick flick, or past this share of the width
 
         RectTransform cur, other;   // the page shown and the one beside it while swiping
@@ -135,12 +146,13 @@ namespace FlickCurling.Game
             var cfg = GameConfig.Load();
             var args = new (string, object)[]
             {
-                ("ends", cfg.ends), ("shots", cfg.shotsPerTeam), ("seconds", Mathf.RoundToInt(cfg.turnSeconds))
+                ("ends", cfg.ends), ("shots", cfg.shotsPerTeam), ("seconds", Mathf.RoundToInt(cfg.turnSeconds)),
+                ("giant", cfg.giantSize), ("mini", cfg.miniSize)
             };
             var figure = (RectTransform)target.GetChild(0);
             var template = target.GetChild(1);
             var labelFont = template.GetChild(0).GetComponent<TextMeshProUGUI>().font;
-            figure.GetComponent<LayoutElement>().preferredHeight = RulesFigures.Height(Pages[p].id);
+            figure.GetComponent<LayoutElement>().preferredHeight = RulesFigures.Height(Pages[p].id) + FigureGap;   // (the picture at its top)
             RulesFigures.Draw(figure, Pages[p].id, labelFont);
             const int First = 2;   // (the figure and the template come first)
             int n = Pages[p].items;
@@ -149,10 +161,34 @@ namespace FlickCurling.Game
                 var item = First + i < target.childCount ? target.GetChild(First + i) : Instantiate(template, target);
                 item.gameObject.SetActive(true);
                 string key = "rules." + Pages[p].id + "." + (i + 1);
-                item.GetChild(0).GetComponent<TextMeshProUGUI>().text = Loc.T(key + ".k");
+                var label = item.GetChild(0).GetComponent<TextMeshProUGUI>();
+                string icon = IconOf(Pages[p].id, i + 1);
+                label.text = icon != null ? $"<indent={IconSize + IconGap}>{Loc.T(key + ".k")}</indent>" : Loc.T(key + ".k");
+                SetIcon(label, icon);
                 item.GetChild(1).GetComponent<TextMeshProUGUI>().text = Loc.T(key + ".t", args);
             }
             for (int i = First + n; i < target.childCount; i++) target.GetChild(i).gameObject.SetActive(false);
+        }
+
+        // a picture at the label's left (made the first time; hidden on items without one)
+        void SetIcon(TextMeshProUGUI label, string path)
+        {
+            var t = label.transform.Find("Icon");
+            if (path == null) { if (t) t.gameObject.SetActive(false); return; }
+            Image img;
+            if (t) img = t.GetComponent<Image>();
+            else
+            {
+                img = new GameObject("Icon", typeof(RectTransform)).AddComponent<Image>();
+                img.transform.SetParent(label.transform, false);
+                img.raycastTarget = false; img.preserveAspect = true;
+                var rt = img.rectTransform;
+                rt.anchorMin = rt.anchorMax = rt.pivot = new Vector2(0, 0.5f);
+                rt.sizeDelta = new Vector2(IconSize, IconSize);
+                rt.anchoredPosition = Vector2.zero;
+            }
+            img.sprite = Resources.Load<Sprite>(path);
+            img.gameObject.SetActive(true);
         }
 
         // ---------------- swiping ----------------

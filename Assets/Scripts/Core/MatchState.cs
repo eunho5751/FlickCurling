@@ -28,8 +28,13 @@ namespace FlickCurling.Core
         public double?[] LsdDist = new double?[2];
         public double[] LsdRestX = new double[2], LsdRestY = new double[2];
         public ulong RngState;
+        // item mode
+        public List<ItemBox> Boxes = new List<ItemBox>(), BoxSnapshot = new List<ItemBox>();
+        public ItemKind[] Held = new ItemKind[2 * Sheet.ItemSlots], HeldSnapshot = new ItemKind[2 * Sheet.ItemSlots];   // B's hands, then W's
+        public ItemKind Armed;
+        public int NextBoxId;
 
-        const int Version = 3;
+        const int Version = 5;
 
         public byte[] ToBytes()
         {
@@ -60,6 +65,10 @@ namespace FlickCurling.Core
             w.Write(InLsd); w.Write(LsdIdx);
             for (int i = 0; i < 2; i++) { w.Write(LsdDist[i].HasValue); w.Write(LsdDist[i] ?? 0); w.Write(LsdRestX[i]); w.Write(LsdRestY[i]); }
             w.Write(RngState);
+            WriteBoxes(w, Boxes); WriteBoxes(w, BoxSnapshot);
+            foreach (var k in Held) w.Write((byte)k);
+            foreach (var k in HeldSnapshot) w.Write((byte)k);
+            w.Write((byte)Armed); w.Write(NextBoxId);
         }
 
         public static MatchState Read(BinaryReader r)
@@ -81,6 +90,10 @@ namespace FlickCurling.Core
                 s.LsdRestX[i] = r.ReadDouble(); s.LsdRestY[i] = r.ReadDouble();
             }
             s.RngState = r.ReadUInt64();
+            s.Boxes = ReadBoxes(r); s.BoxSnapshot = ReadBoxes(r);
+            for (int i = 0; i < s.Held.Length; i++) s.Held[i] = (ItemKind)r.ReadByte();
+            for (int i = 0; i < s.HeldSnapshot.Length; i++) s.HeldSnapshot[i] = (ItemKind)r.ReadByte();
+            s.Armed = (ItemKind)r.ReadByte(); s.NextBoxId = r.ReadInt32();
             return s;
         }
 
@@ -92,7 +105,22 @@ namespace FlickCurling.Core
                 w.Write(s.Id); w.Write((byte)s.Team);
                 w.Write(s.X); w.Write(s.Y); w.Write(s.Vx); w.Write(s.Vy);
                 w.Write(s.Live); w.Write(s.Flew); w.Write(s.Placed);
+                w.Write(s.Size); w.Write(s.Bomb); w.Write(s.Magnet);
             }
+        }
+
+        static void WriteBoxes(BinaryWriter w, List<ItemBox> list)
+        {
+            w.Write(list.Count);
+            foreach (var b in list) { w.Write(b.Id); w.Write((byte)b.Team); w.Write(b.X); w.Write(b.Y); }
+        }
+
+        static List<ItemBox> ReadBoxes(BinaryReader r)
+        {
+            int n = r.ReadInt32();
+            var list = new List<ItemBox>(n);
+            for (int i = 0; i < n; i++) list.Add(new ItemBox { Id = r.ReadInt32(), Team = (Team)r.ReadByte(), X = r.ReadDouble(), Y = r.ReadDouble() });
+            return list;
         }
 
         static List<Stone> ReadStones(BinaryReader r)
@@ -105,6 +133,7 @@ namespace FlickCurling.Core
                     Id = r.ReadInt32(), Team = (Team)r.ReadByte(),
                     X = r.ReadDouble(), Y = r.ReadDouble(), Vx = r.ReadDouble(), Vy = r.ReadDouble(),
                     Live = r.ReadBoolean(), Flew = r.ReadBoolean(), Placed = r.ReadBoolean(),
+                    Size = r.ReadDouble(), Bomb = r.ReadBoolean(), Magnet = r.ReadBoolean(),
                 });
             return list;
         }
@@ -136,6 +165,9 @@ namespace FlickCurling.Core
             LsdRestX = Lsd != null ? (double[])Lsd.RestX.Clone() : new double[2],
             LsdRestY = Lsd != null ? (double[])Lsd.RestY.Clone() : new double[2],
             RngState = rng.State,
+            Boxes = Boxes.Select(b => b.Clone()).ToList(), BoxSnapshot = boxSnapshot.Select(b => b.Clone()).ToList(),
+            Held = Held[0].Concat(Held[1]).ToArray(), HeldSnapshot = heldSnapshot[0].Concat(heldSnapshot[1]).ToArray(),
+            Armed = Armed, NextBoxId = nextBoxId,
         };
 
         /// <summary>Puts the match back to <paramref name="s"/> exactly (the field stays this match's own).</summary>
@@ -160,6 +192,14 @@ namespace FlickCurling.Core
             }
             else Lsd = null;
             rng.State = s.RngState;
+            Boxes = s.Boxes.Select(b => b.Clone()).ToList();
+            boxSnapshot = s.BoxSnapshot.Select(b => b.Clone()).ToList();
+            for (int t = 0; t < 2; t++)
+            {
+                Array.Copy(s.Held, t * Sheet.ItemSlots, Held[t], 0, Sheet.ItemSlots);
+                Array.Copy(s.HeldSnapshot, t * Sheet.ItemSlots, heldSnapshot[t], 0, Sheet.ItemSlots);
+            }
+            Armed = s.Armed; nextBoxId = s.NextBoxId;
         }
     }
 }

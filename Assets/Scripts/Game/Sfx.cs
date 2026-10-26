@@ -55,7 +55,7 @@ namespace FlickCurling.Game
             return env * (Mathf.Sin(ph) + Mathf.Sin(3 * ph) / 5 + Mathf.Sin(5 * ph) / 12);
         }
 
-        AudioClip turnClip, popClip, endClip, voidClip, warnClip;
+        AudioClip turnClip, popClip, endClip, voidClip, warnClip, itemGetClip, itemUseClip, boxBreakClip, boxMoveClip, boomClip;
         readonly AudioClip[] takeoutClips = new AudioClip[3];
 
         void Play(ref AudioClip clip, Func<AudioClip> make)
@@ -109,6 +109,57 @@ namespace FlickCurling.Game
             float a = t < 0.07f ? t : t > 0.13f && t < 0.2f ? t - 0.13f : -1;
             return a < 0 ? 0 : 0.28f * Mathf.Sin(2 * Mathf.PI * 1318 * t) * Mathf.Min(1, a / 0.004f) * Mathf.Min(1, (0.07f - a) / 0.01f);
         }));
+
+        // ---- item mode ----
+
+        /// <summary>An item taken from a box: a quick sparkling run up, E G C E, bright on top.</summary>
+        public void ItemGet() => Play(ref itemGetClip, () => Make("itemGet", 0.75f, t =>
+            0.15f * (Bell(t, 1319, 0.2f) + Bell(t - 0.06f, 1568, 0.2f) + Bell(t - 0.12f, 2093, 0.25f) + Bell(t - 0.18f, 2637, 0.5f)
+                     + 0.5f * Bell(t - 0.18f, 5274, 0.3f))));
+
+        /// <summary>An item put on the stone: a reedy swell rising an octave, with a bell as it lands.</summary>
+        public void ItemUse() => Play(ref itemUseClip, () => Make("itemUse", 0.55f, t =>
+            0.16f * (Reed(t, 330, 660, 0.28f) + 0.8f * Bell(t - 0.24f, 1320, 0.3f))));
+
+        /// <summary>The other side broke a box: a dry wooden crack.</summary>
+        public void BoxBreak() => Play(ref boxBreakClip, () =>
+        {
+            var r = new System.Random(11);
+            return Make("boxBreak", 0.3f, t =>
+            {
+                float n = (float)(r.NextDouble() * 2 - 1);
+                float env = Mathf.Pow(0.001f, t / 0.12f) + 0.4f * (t > 0.05f ? Mathf.Pow(0.001f, (t - 0.05f) / 0.1f) : 0);
+                return 0.3f * env * (0.6f * n + 0.4f * Mathf.Sin(2 * Mathf.PI * 220 * t));
+            });
+        });
+
+        /// <summary>A box moves elsewhere (its side's hands were full): a soft poof and a pop.</summary>
+        public void BoxMove() => Play(ref boxMoveClip, () =>
+        {
+            var r = new System.Random(12);
+            return Make("boxMove", 0.4f, t =>
+            {
+                float n = (float)(r.NextDouble() * 2 - 1) * Mathf.Pow(0.001f, t / 0.15f);
+                float u = Mathf.Clamp01((t - 0.18f) / 0.06f);
+                float pop = t > 0.18f ? Mathf.Sin(2 * Mathf.PI * (500 * t + 400 * t * u)) * Mathf.Pow(0.01f, (t - 0.18f) / 0.15f) : 0;
+                return 0.18f * n + 0.25f * pop;
+            });
+        });
+
+        /// <summary>A bomb goes off: a low noisy boom that drops and rumbles away.</summary>
+        public void Boom() => Play(ref boomClip, () =>
+        {
+            var r = new System.Random(13);
+            float lp = 0;
+            return Make("boom", 1.2f, t =>
+            {
+                float n = (float)(r.NextDouble() * 2 - 1);
+                lp += (n - lp) * 0.08f;   // a crude low-pass: the rumble
+                float env = Mathf.Min(1, t / 0.004f) * Mathf.Pow(0.001f, t / 1.1f);
+                float thump = Mathf.Sin(2 * Mathf.PI * (90 * t - 30 * t * t)) * Mathf.Pow(0.001f, t / 0.4f);
+                return 0.55f * env * (2.2f * lp + 0.6f * thump) + 0.2f * n * Mathf.Pow(0.001f, t / 0.08f);
+            });
+        });
 
         AudioClip Blip(int freq, float q, float len)
         {

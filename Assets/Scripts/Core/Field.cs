@@ -56,7 +56,8 @@ namespace FlickCurling.Core
 
     public static class Maps
     {
-        public static readonly string[] Keys = { "base", "bumper", "zones", "kink" };
+        public static readonly string[] Keys = { "base", "bumper", "zones", "kink", ItemKey };
+        public const string ItemKey = "item";   // item mode: the basic sheet, with item boxes (Match.Items)
         const double TopY = Sheet.L + 60;
 
 

@@ -239,7 +239,7 @@ namespace FlickCurling.EditorTools
             var level = Toggle(levelRow, new[] { "level.easy", "level.normal", "level.hard" }, 1);
             var mapRow = Row(content, "MapRow");
             Legend(mapRow, legendFont, "matchsetup.mode");
-            var map = Toggle(mapRow, new[] { "map.base" }, 0);
+            var map = Toggle(mapRow, new[] { "map.base", "map.item" }, 0);
 
             // OK, centred under the toggles; the space above it soaks up the rest of the window
             var spacer = Child<RectTransform>(content, "Spacer");
@@ -292,7 +292,7 @@ namespace FlickCurling.EditorTools
             var mode = Toggle(modeRow, new[] { "online.random" }, 0);
             var mapRow = Row(content, "MapRow");
             Legend(mapRow, legendFont, "matchsetup.mode");
-            var map = Toggle(mapRow, new[] { "map.base" }, 0);
+            var map = Toggle(mapRow, new[] { "map.base", "map.item" }, 0);
 
             var spacer = Child<RectTransform>(content, "Spacer");
             spacer.gameObject.AddComponent<LayoutElement>().flexibleHeight = 1;
@@ -594,7 +594,7 @@ namespace FlickCurling.EditorTools
         // close button's sibling) at the title bar's left end, and the swipe hint (the tutorial's hand and arrow) ----
 
         public const string RulesPrefabPath = "Assets/Resources/" + RulesPopup.ResourcePath + ".prefab";
-        const float RulesW = 900, RulesListH = 1040, RulesPageH = 1660, RulesButtonW = 620, RulesButtonH = 108, RulesCounterH = 48;
+        const float RulesW = 900, RulesListH = 1200, RulesPageH = 1660, RulesButtonW = 620, RulesButtonH = 108, RulesCounterH = 48;
         const float RulesHandW = 120, RulesHandH = 172, RulesArrowW = 250, RulesArrowH = 69;
         static readonly Color32 RulesAccent = new Color32(0xb0, 0x4a, 0x1c, 0xff);
 

@@ -71,7 +71,7 @@ namespace FlickCurling.Game
             myReady.Clear(); oppReady.Clear(); oppDone.Clear(); held.Clear();
             waitingCard = null; commit = null; doneAt = -100;
             reportTask = null; reportedMatch = ""; points = null; toResult = false;
-            published = (-1, -1, -1); myStamp = appliedStamp = 0; myData = null; resyncUntil = -1;
+            published = (-1, -1, -1, -1); myStamp = appliedStamp = 0; myData = null; resyncUntil = -1;
             arriving = false; oppArrived = false; oppSeen = false; oppFinished = false; playStart = null;
             myVsAt = oppVsAt = null;   // (the opponent's may come in before this device's panel is up)
             // who is playing, kept for the whole match (the lobby forgets the opponent once the session is left)
@@ -499,6 +499,11 @@ namespace FlickCurling.Game
                     if (state != St.Remote) return turnOver;
                     deadline = msg.A;
                     return true;
+                case OnlineMsg.UseItem:
+                    if (state != St.Remote) return turnOver;
+                    var k = m.UseItem(m.Cur, (int)msg.A);
+                    if (k != ItemKind.None) ItemUsed(m.Cur, k);
+                    return true;
                 case OnlineMsg.Void:
                     if (m.InLsd && LsdDuel) return true;   // (the draw thrown together: each side sends its own, LsdThrow)
                     // their time ran out (or, from the waiting side, it called this turn lost)
@@ -583,7 +588,7 @@ namespace FlickCurling.Game
         // ---------------- this device's card ----------------
 
         // where the match is, written on this device's card at every steady point (a turn not yet thrown, or a card)
-        (int phase, int seq, int end) published = (-1, -1, -1);
+        (int phase, int seq, int end, int armed) published = (-1, -1, -1, -1);   // (armed: an item put on the stone writes it again)
         double myStamp;
         byte[] myData;
 
@@ -592,7 +597,7 @@ namespace FlickCurling.Game
             if (awaitingState) return;
             var phase = SteadyPhase();
             if (!phase.HasValue) return;
-            var key = ((int)phase.Value, TurnSeq, m.End);
+            var key = ((int)phase.Value, TurnSeq, m.End, (int)m.Armed);
             if (key == published) return;
             var data = m.Capture().ToBytes();
             double stamp = OnlinePlayerState.Publish((int)phase.Value, deadline, data);
@@ -626,7 +631,7 @@ namespace FlickCurling.Game
             playback = null; playStart = null; commit = null; waitingCard = null;
             m.Restore(st);
             fades.Clear(); measure = null; lsdShow = null;
-            published = (-1, -1, -1);   // (written again from here)
+            published = (-1, -1, -1, -1);   // (written again from here)
             switch ((Phase)snap.Phase)
             {
                 case Phase.LsdStartCard:

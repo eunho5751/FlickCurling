@@ -56,6 +56,30 @@ namespace FlickCurling.Game
         [Tooltip("Where the target's centre may be put, up the sheet: from (x) .. to (y), 0 the min line, 1 the out line")]
         public Vector2 lsdTargetY = new Vector2(0.15f, 0.93f);
 
+        [Header("Item mode")]
+        [Tooltip("Each side's item boxes on the sheet as an end starts (the ones left from the end before count)")]
+        [Range(0, 6)] public int itemBoxes = 2;
+        [Tooltip("An item box's half size, in sheet units (a stone's radius is 4)")]
+        [Range(1.5f, 6f)] public float itemBoxSize = 3.2f;
+        [Tooltip("How far apart the boxes are put, centre to centre, in sheet units, where there is room (otherwise as far apart as they can be); a box goes anywhere else in its area at random")]
+        [Range(0f, 60f)] public float itemBoxSpacing = 25;
+        [Tooltip("Where a box's centre may be put, across the sheet: from (x) .. to (y), 0 the left rail, 1 the right")]
+        public Vector2 itemBoxX = new Vector2(0f, 1f);
+        [Tooltip("Where a box's centre may be put, up the sheet: from (x) .. to (y), 0 the min line, 1 the house's centre")]
+        public Vector2 itemBoxY = new Vector2(0f, 1f);
+        [Tooltip("A giant stone's radius against a stone's")]
+        [Range(1f, 2.5f)] public float giantSize = 1.5f;
+        [Tooltip("A mini stone's radius against a stone's")]
+        [Range(0.3f, 1f)] public float miniSize = 0.6f;
+        [Tooltip("How far a bomb reaches from its centre, in sheet units (the house's radius is 28); it goes off when it hits another stone")]
+        [Range(5f, 60f)] public float bombRadius = 20;
+        [Tooltip("The speed a bomb gives a stone right beside it (less further off; a full throw is 197)")]
+        [Range(10f, 200f)] public float bombPush = 80;
+        [Tooltip("How far a magnet pulls from its centre, in sheet units, while it moves")]
+        [Range(5f, 60f)] public float magnetRadius = 20;
+        [Tooltip("A magnet's grip on a stone right beside it: how quickly that stone takes the magnet's way, per second (less further off)")]
+        [Range(1f, 40f)] public float magnetPull = 8;
+
         public void Apply()
         {
             Sheet.Configure(ends, shotsPerTeam, stoneRadius, cushionTickets, unlimitedTickets);
@@ -63,6 +87,9 @@ namespace FlickCurling.Game
             double X(float v) => v * Sheet.W;
             double Y(float v) => Sheet.Hog + v * (Sheet.Back - Sheet.Hog);
             Sheet.ConfigureLsdTarget(X(lsdTargetX.x), X(lsdTargetX.y), Y(lsdTargetY.x), Y(lsdTargetY.y));
+            // (0..1 from the min line to the house's centre)
+            double BoxY(float v) => Sheet.Hog + v * (Sheet.TeeY - Sheet.Hog);
+            Sheet.ConfigureItems(itemBoxes, itemBoxSize, X(itemBoxX.x), X(itemBoxX.y), BoxY(itemBoxY.x), BoxY(itemBoxY.y), giantSize, miniSize, bombRadius, bombPush, magnetRadius, magnetPull, itemBoxSpacing);
         }
 
         /// <summary>The project's config (Resources/GameConfig), or the defaults if it is missing.</summary>

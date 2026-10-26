@@ -36,6 +36,9 @@ namespace FlickCurling.Game.Online
         public static string MyName { get; private set; } = "";
         public static string OpponentName { get; private set; } = "";
         public static string Map { get; private set; } = "base";
+        /// <summary>The map (mode) looked for: the matchmaker pairs only players looking for the same one (its ticket's
+        /// "map", the queue's pools), and the match is played on it.</summary>
+        public static string SearchMap = "base";
         public static int Seed { get; private set; }
         /// <summary>The side this device plays inside the match (black throws the turn order shot first); on screen this
         /// device is always black.</summary>
@@ -277,8 +280,8 @@ namespace FlickCurling.Game.Online
             MatchId = matchId;   // (the session id is the match id)
             // the match's settings straight from its id, as the server works them out too: the game starts without
             // waiting for it; its record is made meanwhile
-            Settle(OnlineApi.LocalInfo(MatchId, MyId, OpponentId));
-            OnlineApi.RecordReady = OnlineApi.StartMatch(MatchId, OpponentId, "base");
+            Settle(OnlineApi.LocalInfo(MatchId, MyId, OpponentId, SearchMap));
+            OnlineApi.RecordReady = OnlineApi.StartMatch(MatchId, OpponentId, SearchMap);
             Trace("opponent " + OpponentId + " (" + OpponentName + "), connecting");
             Connecting = ConnectAsync(matchId, sessionOptions, true, connectBy);
             return true;
@@ -377,8 +380,8 @@ namespace FlickCurling.Game.Online
                     OpponentId = opp.Id;
                     OpponentName = NameOf(opp);
                     MatchId = s.Properties.TryGetValue(MatchKey, out var mk) && !string.IsNullOrEmpty(mk.Value) ? mk.Value : s.Id;
-                    Settle(OnlineApi.LocalInfo(MatchId, MyId, OpponentId));
-                    OnlineApi.RecordReady = OnlineApi.StartMatch(MatchId, OpponentId, "base");
+                    Settle(OnlineApi.LocalInfo(MatchId, MyId, OpponentId, SearchMap));
+                    OnlineApi.RecordReady = OnlineApi.StartMatch(MatchId, OpponentId, SearchMap);
                     FetchStats();
                 }
                 Watch(s);
@@ -406,7 +409,7 @@ namespace FlickCurling.Game.Online
             {
                 ticket = (await mm.CreateTicketAsync(new List<Unity.Services.Matchmaker.Models.Player> { new Unity.Services.Matchmaker.Models.Player(MyId,
                     new TicketData { nick = MyName, w = mine?.W ?? 0, l = mine?.L ?? 0, d = mine?.D ?? 0 }) },
-                    new CreateTicketOptions(Queue, new Dictionary<string, object>()))).Id;
+                    new CreateTicketOptions(Queue, new Dictionary<string, object> { [MapAttribute] = SearchMap }))).Id;
                 Trace("ticket " + ticket + " created");
             }
             catch (Exception e)
@@ -443,6 +446,7 @@ namespace FlickCurling.Game.Online
             }
         }
         const int TicketPoll = 1000;
+        const string MapAttribute = "map";   // the ticket attribute the queue's pools filter on (Assets/Online/Deploy/QuickMatch.mmq)
         /// <summary>
         /// The matchmaking steps, in the log (to follow a match from both devices' logs), each with the time since the
         /// search started and since the match was found, and the time the step took (since the step before).

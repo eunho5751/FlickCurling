@@ -215,7 +215,7 @@ namespace FlickCurling.Game.Online
 
         /// <summary>What the module decides for a match (the turn order shot's first thrower, the seed), worked out here
         /// the same way, so the game starts at once. Keep it the same as OnlineMatch.StartMatch in the Cloud Code module.</summary>
-        public static MatchInfo LocalInfo(string matchId, string a, string b)
+        public static MatchInfo LocalInfo(string matchId, string a, string b, string map = "base")
         {
             var players = string.CompareOrdinal(a, b) <= 0 ? new[] { a, b } : new[] { b, a };
             using (var sha = SHA256.Create())
@@ -223,7 +223,7 @@ namespace FlickCurling.Game.Online
                 var h = sha.ComputeHash(Encoding.UTF8.GetBytes(matchId));
                 return new MatchInfo
                 {
-                    Exists = false, Status = "ongoing", Players = players, Map = "base",
+                    Exists = false, Status = "ongoing", Players = players, Map = map,
                     FirstThrower = players[h[0] & 1], Seed = BitConverter.ToInt32(h, 1) & 0x7fffffff,
                 };
             }

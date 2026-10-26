@@ -1,5 +1,6 @@
 using System.Threading;
 using Cysharp.Threading.Tasks;
+using FlickCurling.Core;
 using TMPro;
 using UnityEngine;
 using UnityEngine.Localization.Components;
@@ -19,6 +20,9 @@ namespace FlickCurling.Game.Online
         [SerializeField] Popup popup;
         [SerializeField] SegmentedToggle mode;
         [SerializeField] SegmentedToggle map;
+
+        // the maps (modes), in the toggle's order
+        static readonly string[] MapKeys = { "base", Maps.ItemKey };
         [SerializeField] Button ok;
 
         CancellationTokenSource search;
@@ -68,6 +72,7 @@ namespace FlickCurling.Game.Online
 
         async UniTaskVoid Find(CancellationTokenSource cts)
         {
+            OnlineLobby.SearchMap = MapKeys[Mathf.Clamp(map.Selected, 0, MapKeys.Length - 1)];
             bool found = await OnlineLobby.FindAsync(cts.Token, retry: true);
             if (!this || search != cts) return;
             search = null;

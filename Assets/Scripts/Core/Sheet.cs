@@ -26,6 +26,37 @@ namespace FlickCurling.Core
         public static double LsdTargetYMax { get; private set; } = Back - 10;
         public const double LsdTargetR = 6.75;   // its radius (three quarters of the house's button)
 
+        // ---- item mode (ConfigureItems) ----
+        public const int ItemSlots = 2;                                  // the items a side can hold
+        public static int ItemBoxes { get; private set; } = 2;           // each side's boxes on the sheet as an end starts
+        public static double ItemBoxR { get; private set; } = 3.2;       // a box's half size (it is touched as a circle)
+        public static double ItemBoxSpacing { get; private set; } = 25;  // how far apart boxes are put where they can be (centre to centre)
+        public static double ItemXMin { get; private set; } = 0;         // where a box's centre may be put, across the sheet
+        public static double ItemXMax { get; private set; } = W;
+        public static double ItemYMin { get; private set; } = Hog;       // and up it
+        public static double ItemYMax { get; private set; } = TeeY;
+        public static double GiantSize { get; private set; } = 1.5;      // a giant / mini stone's radius against a stone's
+        public static double MiniSize { get; private set; } = 0.6;
+        public static double BombR { get; private set; } = 20;           // how far a bomb reaches (from its centre; it goes off on a stone)
+        public static double BombPush { get; private set; } = 80;        // the speed it gives a stone beside it (less further off)
+        public static double MagnetR { get; private set; } = 20;         // how far a magnet pulls (from its centre)
+        public static double MagnetPull { get; private set; } = 8;       // its grip on a stone right beside it (how fast that takes the magnet's way, per second; less further off)
+        // the corners just above the min line where each side's stones left are printed: no box is put there
+        public const double ItemKeepOutW = 24, ItemKeepOutH = 9;
+
+        public static void ConfigureItems(int boxes, double boxR, double xMin, double xMax, double yMin, double yMax, double giant, double mini, double bombR, double bombPush,
+                                          double magnetR = 20, double magnetPull = 8, double spacing = 25)
+        {
+            ItemBoxSpacing = Math.Max(0, spacing);
+            MagnetR = Math.Max(0, magnetR); MagnetPull = Math.Max(0, magnetPull);
+            ItemXMin = Math.Min(xMin, xMax); ItemXMax = Math.Max(xMin, xMax);
+            ItemBoxes = Math.Max(0, boxes);
+            ItemBoxR = Clamp(boxR, 1, 10);
+            ItemYMin = Math.Min(yMin, yMax); ItemYMax = Math.Max(yMin, yMax);
+            GiantSize = Clamp(giant, 0.2, 3); MiniSize = Clamp(mini, 0.2, 3);
+            BombR = Math.Max(0, bombR); BombPush = Math.Max(0, bombPush);
+        }
+
         public static void ConfigureLsdTarget(double xMin, double xMax, double yMin, double yMax)
         {
             LsdTargetXMin = Math.Min(xMin, xMax); LsdTargetXMax = Math.Max(xMin, xMax);
@@ -69,6 +100,11 @@ namespace FlickCurling.Core
         public bool Live = true;
         public bool Flew;    // went off the sheet (past the far end, or back past the launch end)
         public bool Placed;  // bonus guard
+        public double Size = 1;   // item mode: a giant or mini stone's radius against the usual one
+        public bool Bomb;         // item mode: goes off the first time it hits another stone
+        public bool Magnet;       // item mode: pulls the stones near it along while it moves (this shot)
+
+        public double Rad => Sheet.SR * Size;
 
         public Stone Clone() => (Stone)MemberwiseClone();
         public bool IsMoving => Vx != 0 || Vy != 0;

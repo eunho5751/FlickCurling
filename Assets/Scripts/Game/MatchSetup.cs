@@ -20,7 +20,7 @@ namespace FlickCurling.Game
         [SerializeField] Vector2 sizeAi = new Vector2(860, 940), sizeLocal = new Vector2(860, 764);
 
         // the maps, in the toggle's order
-        static readonly string[] MapKeys = { "base" };
+        static readonly string[] MapKeys = { "base", Maps.ItemKey };
 
         bool VsAi => mode.Selected == 0;
 

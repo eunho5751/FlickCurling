@@ -939,6 +939,98 @@ MonoBehaviour:
     m_Key: tutorial.target
     m_Metadata:
       m_Items: []
+  - m_Id: 4351939456192512
+    m_Key: map.item
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4351939523301376
+    m_Key: item.giant
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4351939523301377
+    m_Key: item.mini
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4351939523301378
+    m_Key: item.bomb
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4351939523301379
+    m_Key: item.got
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4396563457560576
+    m_Key: rules.items.title
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4396563583389696
+    m_Key: rules.items.1.k
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4396563583389697
+    m_Key: rules.items.1.t
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4396563583389698
+    m_Key: rules.items.2.k
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4396563583389699
+    m_Key: rules.items.2.t
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4406000448622592
+    m_Key: rules.itemkinds.title
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4406000457011200
+    m_Key: rules.itemkinds.1.k
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4406000457011201
+    m_Key: rules.itemkinds.1.t
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4406000457011202
+    m_Key: rules.itemkinds.2.k
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4406000457011203
+    m_Key: rules.itemkinds.2.t
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4406000457011204
+    m_Key: rules.itemkinds.3.k
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4406000457011205
+    m_Key: rules.itemkinds.3.t
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4415052822007808
+    m_Key: item.magnet
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4415052826202112
+    m_Key: item.protractor
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4415052830396416
+    m_Key: rules.itemkinds.4.k
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4415052830396417
+    m_Key: rules.itemkinds.4.t
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4415052830396418
+    m_Key: rules.itemkinds.5.k
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4415052830396419
+    m_Key: rules.itemkinds.5.t
+    m_Metadata:
+      m_Items: []
   m_Metadata:
     m_Items: []
   m_KeyGenerator:

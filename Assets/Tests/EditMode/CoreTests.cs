@@ -421,6 +421,244 @@ namespace FlickCurling.Tests
         }
     }
 
+    public class ItemTests
+    {
+        // the rules as they ship (the editor may have applied a local GameConfig to these statics)
+        [SetUp]
+        public void Defaults()
+        {
+            Sheet.Configure();
+            Sheet.ConfigureItems(2, 3.2, 0, Sheet.W, Sheet.Hog, Sheet.TeeY, 1.5, 0.6, 20, 80, 20, 8);
+        }
+
+        // an end in item mode, its turn begun, the sheet cleared of the guard and the boxes for the test to set
+        static Match ItemEnd(int seed = 1)
+        {
+            var m = new Match(Maps.Build(Maps.ItemKey), PhysicsParams.Default, seed) { Hammer = Team.W };
+            m.StartEnd();
+            m.Stones.Clear(); m.Boxes.Clear();
+            m.BeginShot();
+            return m;
+        }
+
+        static ItemBox Box(Match m, Team t, double x, double y, int id = 50)
+        {
+            var b = new ItemBox { Id = id, Team = t, X = x, Y = y };
+            m.Boxes.Add(b);
+            return b;
+        }
+
+        [Test]
+        public void BoxesArePutInTheirBandApartFromEverything()
+        {
+            for (int seed = 0; seed < 100; seed++)
+            {
+                var m = new Match(Maps.Build(Maps.ItemKey), PhysicsParams.Default, seed) { Hammer = Team.W };
+                m.StartEnd();
+                foreach (var t in new[] { Team.B, Team.W }) Assert.AreEqual(Sheet.ItemBoxes, m.Boxes.Count(b => b.Team == t));
+                double r = Sheet.ItemBoxR;
+                foreach (var b in m.Boxes)
+                {
+                    Assert.That(b.Y, Is.InRange(Sheet.Hog + r, Math.Max(Sheet.Hog + r, Sheet.ItemYMax)), "between the min line and the house's centre");
+                    Assert.That(b.X, Is.InRange(r, Sheet.W - r));
+                    bool corner = b.Y < Sheet.Hog + Sheet.ItemKeepOutH + r && (b.X < Sheet.ItemKeepOutW + r || b.X > Sheet.W - Sheet.ItemKeepOutW - r);
+                    Assert.IsFalse(corner, "not where the stones left are printed");
+                    foreach (var s in m.Stones) Assert.Greater(Sheet.Dist(s.X, s.Y, b.X, b.Y), s.Rad + r);
+                    foreach (var o in m.Boxes) if (o != b) Assert.Greater(Sheet.Dist(o.X, o.Y, b.X, b.Y), 2 * r);
+                }
+                // the next end puts out a fresh set (none of these left)
+                var before = m.Boxes.ToList();
+                m.Boxes.RemoveAt(m.Boxes.Count - 1);
+                m.StartEnd();
+                Assert.AreEqual(2 * Sheet.ItemBoxes, m.Boxes.Count);
+                Assert.IsFalse(m.Boxes.Any(before.Contains));
+            }
+            // the basic map has none
+            var b0 = new Match(Maps.Build("base"), PhysicsParams.Default, 1) { Hammer = Team.W };
+            b0.StartEnd();
+            Assert.AreEqual(0, b0.Boxes.Count);
+        }
+
+        [Test]
+        public void TakenAndBrokenBoxesComeBackAfterARound()
+        {
+            var m = new Match(Maps.Build(Maps.ItemKey), PhysicsParams.Default, 4) { Hammer = Team.W };
+            m.StartEnd();
+            var gone = m.Boxes.Where(b => b.Team == Team.B).ToList();
+            m.Boxes.Remove(gone[0]);
+            m.Boxes.RemoveAll(b => b.Team == Team.W);
+            int left = m.Boxes.Count;
+            m.AdvanceShot();
+            Assert.AreEqual(left, m.Boxes.Count, "not before the round is over");
+            m.AdvanceShot();
+            foreach (var t in new[] { Team.B, Team.W }) Assert.AreEqual(Sheet.ItemBoxes, m.Boxes.Count(b => b.Team == t), "back after both have thrown");
+            Assert.IsTrue(m.Boxes.Contains(gone[1]), "the one left stays");
+        }
+
+        [Test]
+        public void OwnStoneTakesTheBoxOthersBreakIt()
+        {
+            var m = ItemEnd();
+            var me = m.Cur;
+            Box(m, me, 50, 100);
+            m.Release(0, 0.7);
+            m.RunToRest();
+            Assert.AreEqual(0, m.Boxes.Count);
+            Assert.AreNotEqual(ItemKind.None, m.Held[(int)me][0], "taken into the first hand");
+            Assert.AreEqual(ItemKind.None, m.Held[(int)me][1]);
+
+            var o = ItemEnd();
+            Box(o, Sheet.Other(o.Cur), 50, 100);
+            o.Release(0, 0.7);
+            o.RunToRest();
+            Assert.AreEqual(0, o.Boxes.Count, "broken");
+            Assert.IsTrue(o.Held.All(h => h.All(k => k == ItemKind.None)));
+        }
+
+        [Test]
+        public void FullHandsMoveTheBoxElsewhere()
+        {
+            var m = ItemEnd();
+            var me = m.Cur;
+            m.Held[(int)me][0] = ItemKind.Bomb; m.Held[(int)me][1] = ItemKind.Mini;
+            var b = Box(m, me, 50, 100);
+            m.Release(0, 0.7);
+            m.RunToRest();
+            Assert.AreEqual(1, m.Boxes.Count);
+            Assert.IsFalse(b.X == 50 && b.Y == 100, "moved");
+            Assert.Greater(Sheet.Dist(b.X, b.Y, 50, 100), Sheet.ItemBoxR);
+            CollectionAssert.AreEqual(new[] { ItemKind.Bomb, ItemKind.Mini }, m.Held[(int)me]);
+        }
+
+        [Test]
+        public void AnItemGoesOnTheStoneAboutToBeThrown()
+        {
+            var m = ItemEnd();
+            var me = m.Cur;
+            m.Held[(int)me][1] = ItemKind.Giant;
+            Assert.IsFalse(m.CanUseItem(Sheet.Other(me), 1), "only on its own turn");
+            Assert.IsFalse(m.CanUseItem(me, 0), "an empty hand");
+            Assert.AreEqual(ItemKind.Giant, m.UseItem(me, 1));
+            Assert.AreEqual(ItemKind.None, m.Held[(int)me][1]);
+            Assert.AreEqual(Sheet.SR * Sheet.GiantSize, m.ArmedRad, 1e-9);
+            m.Held[(int)me][0] = ItemKind.Mini;
+            Assert.IsFalse(m.CanUseItem(me, 0), "one a turn");
+            var s = m.Release(0, 0.7);
+            Assert.AreEqual(Sheet.GiantSize, s.Size);
+            Assert.AreEqual(ItemKind.None, m.Armed);
+            m.RunToRest();
+            // it stays giant, and counts as one in the house
+            Assert.AreEqual(Sheet.GiantSize, m.ShotStone.Size);
+            var sc = Rules.Scoring(m.Stones);
+            Assert.AreEqual(me, sc.Team);
+            // a stone it rests against is a giant's radius plus a stone's away
+            var t = new List<Stone> { new Stone { Id = 1, X = 50, Y = 100, Size = Sheet.GiantSize }, new Stone { Id = 2, X = 50, Y = 103 } };
+            Sim.Step(t, m.Field, m.P);
+            Assert.AreEqual(Sheet.SR * (Sheet.GiantSize + 1), Sheet.Dist(t[0].X, t[0].Y, t[1].X, t[1].Y), 1e-9);
+        }
+
+        [Test]
+        public void ABombPushesTheStonesNearItAway()
+        {
+            double Pushed(bool bomb)
+            {
+                var m = ItemEnd();
+                m.Stones.Add(new Stone { Id = 90, Team = Team.W, X = 50, Y = 120 });
+                m.Stones.Add(new Stone { Id = 91, Team = Team.W, X = 62, Y = 122 });
+                m.Snapshot = m.Stones.Select(s => s.Clone()).ToList();
+                if (bomb) { m.Held[(int)m.Cur][0] = ItemKind.Bomb; m.UseItem(m.Cur, 0); }
+                var shot = m.Release(0, 0.65);
+                Assert.AreEqual(bomb, shot.Bomb);
+                m.RunToRest();
+                Assert.IsFalse(m.Stones.Any(s => s.Bomb), "gone off once");
+                var side = m.Stones.FirstOrDefault(s => s.Id == 91);
+                return side == null || !side.Live ? 999 : Sheet.Dist(side.X, side.Y, 62, 122);
+            }
+            Assert.AreEqual(0, Pushed(false), 1e-9, "without a bomb the stone beside is not touched");
+            Assert.Greater(Pushed(true), 5, "the bomb throws it away");
+
+            // a rail does not set it off: only a stone does
+            var w = ItemEnd();
+            w.Held[(int)w.Cur][0] = ItemKind.Bomb; w.UseItem(w.Cur, 0);
+            w.Release(-Math.PI / 4, 0.75);
+            w.RunToRest();
+            Assert.IsTrue(w.ShotStone.Bomb, "still to go off while it moves");
+            w.ResolveShot();
+            Assert.IsFalse(w.Stones.Any(s => s.Bomb), "spent once the shot has stopped");
+        }
+
+        [Test]
+        public void AMagnetDragsTheStonesNearItsWay()
+        {
+            double Moved(bool magnet)
+            {
+                var m = ItemEnd();
+                m.Stones.Add(new Stone { Id = 90, Team = Team.W, X = 61, Y = 100 });
+                if (magnet) { m.Held[(int)m.Cur][0] = ItemKind.Magnet; m.UseItem(m.Cur, 0); }
+                var shot = m.Release(0, 0.7);
+                Assert.AreEqual(magnet, shot.Magnet);
+                m.RunToRest();
+                var o = m.Stones.First(s => s.Id == 90);
+                m.ResolveShot();
+                Assert.IsFalse(m.Stones.Any(s => s.Magnet), "spent with the shot");
+                return Sheet.Dist(o.X, o.Y, 61, 100);
+            }
+            Assert.AreEqual(0, Moved(false), 1e-9, "a plain stone passes it by");
+            Assert.Greater(Moved(true), 3, "the magnet drags it along");
+        }
+
+        [Test]
+        public void ItemsTravelWithTheStateAndTheRecord()
+        {
+            var m = ItemEnd(3);
+            var me = m.Cur;
+            Box(m, me, 50, 90, 7);
+            Box(m, Sheet.Other(me), 30, 150, 8);
+            m.Held[(int)Sheet.Other(me)][1] = ItemKind.Bomb;
+            m.Held[(int)me][1] = ItemKind.Mini;
+            m.UseItem(me, 1);
+            var bytes = m.Capture().ToBytes();
+            var back = new Match(Maps.Build(Maps.ItemKey), PhysicsParams.Default, 3);
+            back.Restore(MatchState.FromBytes(bytes));
+            CollectionAssert.AreEqual(bytes, back.Capture().ToBytes());
+            Assert.AreEqual(ItemKind.Mini, back.Armed);
+
+            // recorded on one match and played on another: the same boxes and hands along the way and at the end
+            var before = m.Capture();
+            m.Release(0, 0.7);
+            var rec = ShotRecord.FromBytes(ShotRecord.Record(m).ToBytes());
+            var played = new Match(Maps.Build(Maps.ItemKey), PhysicsParams.Default, 3);
+            played.Restore(before);
+            played.Release(0, 0.7);
+            var pb = new ShotPlayback(played, rec);
+            bool seen = false;
+            while (!pb.Done)
+            {
+                pb.Advance(0.05);
+                if (!pb.Done && played.Held[(int)me][0] != ItemKind.None) seen = true;
+            }
+            Assert.IsTrue(seen, "the box is taken during the playback");
+            CollectionAssert.AreEqual(m.Capture().ToBytes(), played.Capture().ToBytes());
+            Assert.AreEqual(1, played.Boxes.Count);
+        }
+
+        [Test]
+        public void AFoulPutsTheBoxesAndHandsBack()
+        {
+            var m = ItemEnd();
+            var me = m.Cur;
+            m.Tickets[(int)me] = 0;
+            Box(m, me, 20, 44);   // on the way to the left rail, low
+            m.BeginShot();
+            m.Release(-Math.PI / 4, 0.75);
+            m.RunToRest();
+            Assert.IsTrue(m.ResolveShot().Foul);
+            m.ApplyRestore();
+            Assert.AreEqual(1, m.Boxes.Count);
+            Assert.IsTrue(m.Held[(int)me].All(k => k == ItemKind.None));
+        }
+    }
+
     public class AiTests
     {
         static AiInput Input(AiLevel lvl, int shot = 3)

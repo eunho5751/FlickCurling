@@ -1006,6 +1006,109 @@ MonoBehaviour:
       at this target at the same time, and whoever gets closer throws last.'
     m_Metadata:
       m_Items: []
+  - m_Id: 4351939456192512
+    m_Localized: Items
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4351939523301376
+    m_Localized: Giant Stone
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4351939523301377
+    m_Localized: Mini Stone
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4351939523301378
+    m_Localized: Bomb
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4351939523301379
+    m_Localized: '{team} got a {item}!'
+    m_Metadata:
+      m_Items:
+      - rid: 4297768082125881571
+  - m_Id: 4396563457560576
+    m_Localized: Item Mode
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4396563583389696
+    m_Localized: Getting items
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4396563583389697
+    m_Localized: When one of your stones touches an orb of your colour, you get an
+      item; you find out which as you get it. An opponent's stone breaks it; taken
+      or broken, a new one turns up elsewhere once both sides have thrown.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4396563583389698
+    m_Localized: Using items
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4396563583389699
+    m_Localized: You can hold two. On your turn, tap one to put it on the stone you're
+      about to throw, one a turn.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4406000448622592
+    m_Localized: Items
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4406000457011200
+    m_Localized: Giant Stone
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4406000457011201
+    m_Localized: Your stone grows {giant} times as big, for as long as it stays on
+      the sheet.
+    m_Metadata:
+      m_Items:
+      - rid: 4297768082125881571
+  - m_Id: 4406000457011202
+    m_Localized: Mini Stone
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4406000457011203
+    m_Localized: 'Your stone shrinks to {mini} times its size: it slips through gaps
+      and is hard to hit.'
+    m_Metadata:
+      m_Items:
+      - rid: 4297768082125881571
+  - m_Id: 4406000457011204
+    m_Localized: Bomb
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4406000457011205
+    m_Localized: It goes off the first time it hits another stone, pushing every
+      other stone nearby away. If it hits none, it fizzles out.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4415052822007808
+    m_Localized: Magnet
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4415052826202112
+    m_Localized: Protractor
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4415052830396416
+    m_Localized: Magnet
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4415052830396417
+    m_Localized: While it moves, it pulls the stones around it and drags them along.
+      Once it stops, it's over.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4415052830396418
+    m_Localized: Protractor
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4415052830396419
+    m_Localized: Shows where the aim line goes after it meets a wall or a stone.
+      Only on your screen, until you throw.
+    m_Metadata:
+      m_Items: []
   references:
     version: 2
     RefIds:
@@ -1040,3 +1143,6 @@ MonoBehaviour:
         - id: 4139052028579843
         - id: 4139052028579876
         - id: 4139052028579896
+        - id: 4351939523301379
+        - id: 4406000457011201
+        - id: 4406000457011203

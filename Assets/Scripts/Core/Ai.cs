@@ -17,13 +17,15 @@ namespace FlickCurling.Core
         public int[] Tickets;
         public Team Hammer;
         public int Shot, End, Diff;
+        public double ShotSize = 1;   // item mode: the stone it throws is a giant or mini one
 
         public static AiInput From(Match m, Team team, AiLevel lvl) => new AiInput
         {
             Field = m.Field, P = m.P, Team = team, Level = lvl,
             Stones = m.Stones.Where(s => s.Live).Select(s => s.Clone()).ToList(),
             Tickets = Sheet.UnlimitedTickets ? new[] { 99, 99 } : (int[])m.Tickets.Clone(),   // unlimited: the AI banks freely Hammer = m.Hammer, Shot = m.Shot, End = m.End,
-            Diff = m.Total(team) - m.Total(Sheet.Other(team))
+            Diff = m.Total(team) - m.Total(Sheet.Other(team)),
+            ShotSize = m.ArmedRad / Sheet.SR
         };
     }
 
@@ -89,6 +91,8 @@ namespace FlickCurling.Core
         Field map;
         PhysicsParams P;
         int[] tickets;
+        Team me;
+        double shotSize = 1;   // its own stone's (a giant or mini one in item mode)
 
         public Ai(int seed) { rng = new Random(seed); }
 
@@ -357,7 +361,7 @@ namespace FlickCurling.Core
             var st = bas.Select(s => s.Clone()).ToList();
             double v = c.Pw * P.VMax;
             int newId = -1 - st.Count;
-            st.Add(new Stone { Id = newId, Team = team, X = c.Lx, Y = LY, Vx = Math.Sin(c.Ang) * v, Vy = Math.Cos(c.Ang) * v });
+            st.Add(new Stone { Id = newId, Team = team, X = c.Lx, Y = LY, Vx = Math.Sin(c.Ang) * v, Vy = Math.Cos(c.Ang) * v, Size = team == me ? shotSize : 1 });
             Sim.Simulate(st, map, P);
             var gone = new HashSet<int>(Rules.Judge(st, newId).Select(r => r.Stone.Id));
             return st.Where(s => s.Live && !gone.Contains(s.Id)).ToList();
@@ -426,7 +430,7 @@ namespace FlickCurling.Core
         {
             var st = bas.Select(s => s.Clone()).ToList();
             double v = c.Pw * P.VMax;
-            st.Add(new Stone { Id = -1, Team = team, X = c.Lx, Y = LY, Vx = Math.Sin(c.Ang) * v, Vy = Math.Cos(c.Ang) * v });
+            st.Add(new Stone { Id = -1, Team = team, X = c.Lx, Y = LY, Vx = Math.Sin(c.Ang) * v, Vy = Math.Cos(c.Ang) * v, Size = team == me ? shotSize : 1 });
             var ev = new CushionProbe();
             Sim.Simulate(st, map, P, ev);
             if (ev.Cushioned && tickets[(int)team] <= 0) return -1e9;   // would foul
@@ -443,6 +447,7 @@ namespace FlickCurling.Core
         public AiDecision Decide(AiInput inp)
         {
             map = inp.Field; P = inp.P; tickets = inp.Tickets;
+            me = inp.Team; shotSize = inp.ShotSize;
             var team = inp.Team; var lvl = inp.Level;
             var bas = inp.Stones;
             var cands = Candidates(lvl, bas, team);
@@ -504,6 +509,34 @@ namespace FlickCurling.Core
             double fa = best.Ang + rng.Gauss() * n.a;
             double fp = Sheet.Clamp(best.Pw + rng.Gauss() * n.p, 0.1, 1);
             return new AiDecision { Ang = fa, Pw = fp, Lx = lx0, Intent = label };
+        }
+
+        /// <summary>
+        /// Item mode: which of its hands the AI uses on the stone it is about to throw (-1: none yet). A bomb or a giant
+        /// stone or a magnet when the other side is counting (the bomb when that is two or more, or this is its last stone); a mini
+        /// stone, hard to hit, when it is counting itself; and anything still held on its last stone. The easy AI
+        /// passes now and then.
+        /// </summary>
+        public int ChooseItem(Match m, Team team, AiLevel lvl)
+        {
+            if (!m.Items || m.InLsd || m.Armed != ItemKind.None) return -1;
+            var hands = m.Held[(int)team];
+            int Slot(ItemKind k) => Array.IndexOf(hands, k);
+            if (Array.TrueForAll(hands, k => k == ItemKind.None)) return -1;
+            if (lvl == AiLevel.Easy && rng.NextDouble() < 0.4) return -1;
+            int myLeft = 0;
+            for (int k = m.Shot; k < Sheet.Shots; k++) if (m.ShooterAt(k) == team) myLeft++;
+            var sc = Rules.Scoring(m.Stones);
+            bool theirs = sc.Team.HasValue && sc.Team.Value != team, mine = sc.Team.HasValue && sc.Team.Value == team;
+            if (theirs && (sc.Points >= 2 || myLeft <= 1) && Slot(ItemKind.Bomb) >= 0) return Slot(ItemKind.Bomb);
+            if (theirs && Slot(ItemKind.Giant) >= 0) return Slot(ItemKind.Giant);
+            if (theirs && Slot(ItemKind.Magnet) >= 0) return Slot(ItemKind.Magnet);
+            if (Slot(ItemKind.Protractor) >= 0) return Slot(ItemKind.Protractor);   // (it only shows the way: no use to the AI, it frees the hand)
+            if (mine && Slot(ItemKind.Mini) >= 0) return Slot(ItemKind.Mini);
+            if (myLeft <= 1)
+                for (int i = 0; i < hands.Length; i++)
+                    if (hands[i] != ItemKind.None && (hands[i] != ItemKind.Bomb || sc.Team.HasValue)) return i;
+            return -1;
         }
 
         /// <summary>Last stone draw: straight at the target from the centre lane, with this level's error.</summary>

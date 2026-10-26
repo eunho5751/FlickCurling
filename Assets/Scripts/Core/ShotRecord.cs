@@ -5,7 +5,7 @@ using System.Linq;
 
 namespace FlickCurling.Core
 {
-    public enum ShotEventKind : byte { StoneHit, PostHit, WallHit, Ticket, Cushion, DeadRail, Flew }
+    public enum ShotEventKind : byte { StoneHit, PostHit, WallHit, Ticket, Cushion, DeadRail, Flew, Box, Bomb }
 
     /// <summary>Something that happened during a recorded shot, at a step of the simulation (1/180 s each).</summary>
     public struct ShotEvent
@@ -13,8 +13,16 @@ namespace FlickCurling.Core
         public int Step;
         public ShotEventKind Kind;
         public int A, B;          // stone ids (B: the other stone of a hit)
-        public double Value;      // impulse / speed into the wall or post / cushion number / 1 = ticket used
-        public Seg Wall;          // the wall of a WallHit
+        public double Value;      // impulse / speed into the wall or post / cushion number / 1 = ticket used / a box's what, kind and slot
+        public Seg Wall;          // the wall of a WallHit; a box's place now (X1, Y1) and before (X2, Y2)
+
+        // a Box event's Value: what became of it, the item taken and the hand it went into
+        public static double PackBox(BoxEvent what, ItemKind kind, int slot) => (int)what * 100 + (int)kind * 10 + (slot + 1);
+        public static (BoxEvent what, ItemKind kind, int slot) UnpackBox(double v)
+        {
+            int n = (int)Math.Round(v);
+            return ((BoxEvent)(n / 100), (ItemKind)(n / 10 % 10), n % 10 - 1);
+        }
     }
 
     /// <summary>One stone's path: its position every few steps from the sample it first moved in, in 0.01 units.</summary>
@@ -119,6 +127,9 @@ namespace FlickCurling.Core
             public void OnTicket(Stone s, bool used) => Add(ShotEventKind.Ticket, s.Id, 0, used ? 1 : 0);
             public void OnCushion(Stone s, int n) => Add(ShotEventKind.Cushion, s.Id, 0, n);
             public void OnDeadRail(Stone s) => Add(ShotEventKind.DeadRail, s.Id);
+            public void OnBox(Stone s, ItemBox box, BoxEvent what, double fromX, double fromY, ItemKind kind, int slot) =>
+                Add(ShotEventKind.Box, s.Id, box.Id, ShotEvent.PackBox(what, kind, slot), new Seg(box.X, box.Y, fromX, fromY));
+            public void OnBomb(Stone s) => Add(ShotEventKind.Bomb, s.Id);
         }
 
         // ---- bytes ----
@@ -255,6 +266,19 @@ namespace FlickCurling.Core
                 case ShotEventKind.Cushion: l?.OnCushion(a, (int)e.Value); break;
                 case ShotEventKind.DeadRail: l?.OnDeadRail(a); break;
                 case ShotEventKind.Flew: a.Live = false; a.Flew = true; a.Vx = 0; a.Vy = 0; break;
+                case ShotEventKind.Bomb: a.Bomb = false; l?.OnBomb(a); break;
+                case ShotEventKind.Box:
+                {
+                    // the boxes and hands follow along (the recorded state has them as they end anyway)
+                    var box = m.Boxes.Find(x => x.Id == e.B);
+                    if (box == null) break;
+                    var (what, kind, slot) = ShotEvent.UnpackBox(e.Value);
+                    if (what == BoxEvent.Moved) { box.X = e.Wall.X1; box.Y = e.Wall.Y1; }
+                    else m.Boxes.Remove(box);
+                    if (what == BoxEvent.Taken && slot >= 0 && slot < Sheet.ItemSlots) m.Held[(int)a.Team][slot] = kind;
+                    l?.OnBox(a, box, what, e.Wall.X2, e.Wall.Y2, kind, slot);
+                    break;
+                }
             }
         }
     }

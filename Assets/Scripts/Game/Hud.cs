@@ -331,7 +331,9 @@ namespace FlickCurling.Game
         /// <summary>Where the stack sits: the css y (from the top) just above the min line, set by the game every frame.</summary>
         public void SetToastAnchor(float cssY) => toastY = cssY;
 
-        public void Toast(string title, string body = null, float ms = 2400, int titleSize = 17) => Push(MakeToast(title, body, false, titleSize), ms);
+        /// <param name="icon">a picture over the title (an item taken)</param>
+        public void Toast(string title, string body = null, float ms = 2400, int titleSize = 17, Sprite icon = null) =>
+            Push(MakeToast(title, body, false, titleSize, icon), ms);
 
         /// <summary>True until every toast has finished fading out.</summary>
         public bool ToastsUp => toasts.Count > 0;
@@ -351,7 +353,9 @@ namespace FlickCurling.Game
 
         const float ToastBgAlpha = 0.72f;
 
-        ToastItem MakeToast(string title, string body, bool turn, int titleSize)
+        const float ToastIcon = 46;
+
+        ToastItem MakeToast(string title, string body, bool turn, int titleSize, Sprite icon = null)
         {
             // see-through backing so the sheet shows behind; the text and icons stay solid (the fades scale both together)
             var img = Ui.Panel(toastLayer, turn ? "TurnToast" : "Toast", Palette.WithA(Palette.Panel, ToastBgAlpha), Palette.Line, turn ? 10 : 8);
@@ -361,6 +365,13 @@ namespace FlickCurling.Game
             if (turn) Ui.VStack(rt.gameObject, 22, 22, 10, 10, 0, TextAnchor.MiddleCenter);
             else Ui.VStack(rt.gameObject, 14, 14, 9, 9, 2, TextAnchor.UpperCenter);
             Ui.Fit(rt.gameObject, false, true);
+            if (icon)
+            {
+                var pic = Ui.Rect(rt, "Icon").gameObject.AddComponent<Image>();
+                pic.sprite = icon; pic.preserveAspect = true; pic.raycastTarget = false;
+                var le = pic.gameObject.AddComponent<LayoutElement>();
+                le.preferredWidth = le.preferredHeight = ToastIcon;
+            }
             var tt = Ui.Label(rt, title, titleSize, turn ? Palette.Text : Palette.Brass, true, TextAnchor.MiddleCenter);
             tt.raycastTarget = false;
             float want = tt.GetPreferredValues(title).x;

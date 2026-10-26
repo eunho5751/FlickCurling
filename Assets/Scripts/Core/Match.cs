@@ -14,6 +14,11 @@ namespace FlickCurling.Core
         void OnTicket(Stone s, bool used);
         void OnCushion(Stone s, int n);
         void OnDeadRail(Stone s);
+        /// <summary>Item mode: a stone touched a box (taken into hand <paramref name="slot"/> as <paramref name="kind"/>,
+        /// moved from (fromX, fromY) to where the box is now, or broken there).</summary>
+        void OnBox(Stone s, ItemBox box, BoxEvent what, double fromX, double fromY, ItemKind kind, int slot);
+        /// <summary>Item mode: a bomb stone went off.</summary>
+        void OnBomb(Stone s);
     }
 
     public sealed class ShotOutcome
@@ -119,6 +124,8 @@ namespace FlickCurling.Core
             Scores[0].Clear(); Scores[1].Clear();
             End = 1; Shot = 0; Stones.Clear();
             Tickets[0] = Tickets[1] = TicketCount;
+            Boxes.Clear(); Armed = ItemKind.None;
+            foreach (var h in Held) Array.Clear(h, 0, h.Length);
             InLsd = true;
             // the draw is to a target put at random (from the seed), on the match's own map
             Lsd = NewLsd();
@@ -223,6 +230,8 @@ namespace FlickCurling.Core
             Shot = 0;
             Tickets[0] = Tickets[1] = TicketCount;
             Lane[0] = Lane[1] = 50;   // every end starts on the centre lane; each side keeps its last lane within the end
+            // item mode: a fresh set of boxes, somewhere new
+            if (Items) { Boxes.Clear(); TopUpBoxes(); }
         }
 
         public void BeginShot()
@@ -230,6 +239,7 @@ namespace FlickCurling.Core
             Cur = Shooter;
             LaunchX = Lane[(int)Cur];
             Snapshot = Stones.Where(s => s.Live).Select(s => s.Clone()).ToList();
+            SnapshotItems();
         }
 
         public void SetLane(Team t, double lx) => Lane[(int)t] = lx;
@@ -238,6 +248,7 @@ namespace FlickCurling.Core
         {
             double v = pw * P.VMax;
             var s = new Stone { Id = nextId++, Team = Cur, X = LaunchX, Y = Sheet.LaunchY, Vx = Math.Sin(ang) * v, Vy = Math.Cos(ang) * v };
+            ArmStone(s);
             Stones.Add(s);
             ShotId = s.Id; Cushions = 0;
             WallTouched = false; ShotHitStone = false; Foul = false;
@@ -247,7 +258,12 @@ namespace FlickCurling.Core
         /// <summary>The field stones move on: during the last stone draw, the map plus the draw's bumpers.</summary>
         public Field ActiveField => InLsd && Lsd != null ? Lsd.Field : Field;
 
-        public void Step() => Sim.Step(Stones, ActiveField, P, this);
+        public void Step()
+        {
+            if (Items && !InLsd) PullToMagnets();
+            Sim.Step(Stones, ActiveField, P, this);
+            if (Items && !InLsd) CheckBoxes();
+        }
 
         /// <summary>Simulates the shot to rest (headless use: tests, replays).</summary>
         public void RunToRest()
@@ -259,6 +275,7 @@ namespace FlickCurling.Core
         public ShotOutcome ResolveShot()
         {
             var o = new ShotOutcome();
+            foreach (var s in Stones) { s.Bomb = false; s.Magnet = false; }   // item mode: a bomb that hit no stone, and a magnet, are spent with the shot
             if (Foul) { o.Foul = true; return o; }
             o.Removed = Rules.Judge(Stones, ShotId);
             foreach (var r in o.Removed)
@@ -275,9 +292,15 @@ namespace FlickCurling.Core
         public void ApplyRestore()
         {
             Stones = Snapshot.Select(s => { var c = s.Clone(); c.Vx = 0; c.Vy = 0; c.Live = true; c.Flew = false; return c; }).ToList();
+            RestoreItems();
         }
 
-        public void AdvanceShot() => Shot++;
+        public void AdvanceShot()
+        {
+            Shot++;
+            // item mode: each round (both sides have thrown once) the boxes taken or broken come back, somewhere new
+            if (Items && !InLsd && Shot % 2 == 0 && !ShotsDone) TopUpBoxes();
+        }
 
         /// <summary>
         /// The shot clock ran out: nothing is thrown. In the last stone draw that is no record; in an end the stone is
@@ -286,11 +309,13 @@ namespace FlickCurling.Core
         public void Forfeit()
         {
             ShotId = -1;
+            Armed = ItemKind.None;   // (an item put on the stone is lost with it)
             if (InLsd) Lsd.Dist[(int)Cur] = double.PositiveInfinity;
         }
 
         public EndOutcome FinishEnd()
         {
+            Boxes.Clear();   // item mode: the end's boxes go with it (the next end puts out new ones)
             var sc = Rules.Scoring(Stones);
             Scores[0].Add(sc.Team == Team.B ? sc.Points : 0);
             Scores[1].Add(sc.Team == Team.W ? sc.Points : 0);
@@ -323,6 +348,8 @@ namespace FlickCurling.Core
         {
             Listener?.OnStoneHit(a, b, j);
             if (a.Id == ShotId || b.Id == ShotId) ShotHitStone = true;   // later wall touches are not cushions
+            if (a.Bomb) Explode(a);
+            if (b.Bomb) Explode(b);
         }
 
         void IPhysicsEvents.Post(Stone s, double vn) => Listener?.OnPostHit(s, vn);

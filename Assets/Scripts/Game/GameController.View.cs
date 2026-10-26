@@ -284,6 +284,7 @@ namespace FlickCurling.Game
         {
             if (Hud.IsOverUi(screen)) return;
             hud.ClosePopovers();
+            if (PressSlot(p)) return;   // (item mode: a hand, never an aim)
             if (HumanAim && !MiniHit(p).HasValue)
             {
                 // above the min line a touch aims straight at the touched spot, and dragging moves the aim with it (no
@@ -411,7 +412,7 @@ namespace FlickCurling.Game
         (Vector2 p, HitKind kind) AimRay(double ang, bool throughObjects = false)
         {
             double dx = Math.Sin(ang), dy = Math.Cos(ang);
-            double x = m.LaunchX, y = Sheet.LaunchY;
+            double x = m.LaunchX, y = Sheet.LaunchY, rad = m.ArmedRad;   // (item mode: the stone may be a giant or mini one)
             var live = m.Stones.Where(t => t.Live).ToList();
             for (int i = 0; i < 1200; i++)
             {
@@ -420,14 +421,14 @@ namespace FlickCurling.Game
                 if (y > Sheet.L + 4 || y < 0) return (here, HitKind.None);
                 if (!throughObjects)
                 {
-                    foreach (var st in live) if (Sheet.Dist(st.X, st.Y, x, y) < 2 * Sheet.SR) return (here, HitKind.Stone);
-                    foreach (var p in m.ActiveField.Posts) if (Sheet.Dist(p.X, p.Y, x, y) < p.R + Sheet.SR) return (here, HitKind.Post);
+                    foreach (var st in live) if (Sheet.Dist(st.X, st.Y, x, y) < st.Rad + rad) return (here, HitKind.Stone);
+                    foreach (var p in m.ActiveField.Posts) if (Sheet.Dist(p.X, p.Y, x, y) < p.R + rad) return (here, HitKind.Post);
                 }
                 foreach (var w in m.ActiveField.Walls)
                 {
                     double ddx = w.X2 - w.X1, ddy = w.Y2 - w.Y1;
                     double t = Sheet.Clamp(((x - w.X1) * ddx + (y - w.Y1) * ddy) / (ddx * ddx + ddy * ddy), 0, 1);
-                    if (Sheet.Dist(x, y, w.X1 + t * ddx, w.Y1 + t * ddy) < Sheet.SR) return (here, HitKind.Wall);
+                    if (Sheet.Dist(x, y, w.X1 + t * ddx, w.Y1 + t * ddy) < rad) return (here, HitKind.Wall);
                 }
             }
             return (new Vector2((float)x, (float)y), HitKind.None);
@@ -506,6 +507,8 @@ namespace FlickCurling.Game
             BeginStones(); hud.BeginLabels();
             DrawBoardLabels();
             DrawTurnInfo();
+            DrawBoxes();
+            DrawSlots(time);
 
             bool playing = state == St.Aim || state == St.Ai || state == St.AiPull || state == St.Remote || state == St.Moving || state == St.Settle;
             // live scoring glow
@@ -515,10 +518,10 @@ namespace FlickCurling.Game
                 foreach (var id in sc.Ids)
                 {
                     var st = m.Stones.First(t => t.Id == id);
-                    under.Ring(new Vector2((float)st.X, (float)st.Y), SR + 1.4f, U(3), GlowCol);
+                    under.Ring(new Vector2((float)st.X, (float)st.Y), (float)st.Rad + 1.4f, U(3), GlowCol);
                 }
             }
-            foreach (var f in fades) DrawStone(f.X, f.Y, f.Team, f.A);
+            foreach (var f in fades) DrawStone(f.X, f.Y, f.Team, f.A, f.Size);
             // stones
             if (state == St.Restoring)
             {
@@ -528,15 +531,21 @@ namespace FlickCurling.Game
                     var to = new Vector2((float)snap.X, (float)snap.Y);
                     var from = restore.From.TryGetValue(snap.Id, out var fp) ? fp : to;
                     var p = Vector2.LerpUnclamped(from, to, e);
-                    DrawStone(p.x, p.y, snap.Team);
+                    DrawStone(p.x, p.y, snap.Team, 1, (float)snap.Size);
                 }
                 var shot = m.ShotStone;
-                if (shot != null) DrawStone((float)shot.X, (float)shot.Y, shot.Team, 1 - e);
+                if (shot != null) DrawStone((float)shot.X, (float)shot.Y, shot.Team, 1 - e, (float)shot.Size);
             }
             else
             {
                 DrawLsdMarks();
-                foreach (var st in m.Stones) if (st.Live) DrawStone((float)st.X, (float)st.Y, st.Team);
+                foreach (var st in m.Stones)
+                {
+                    if (!st.Live) continue;
+                    DrawStone((float)st.X, (float)st.Y, st.Team, 1, (float)st.Size);
+                    if (st.Bomb) DrawBombMark((float)st.X, (float)st.Y, (float)st.Rad, time);
+                    if (st.Magnet) DrawMagnetMark((float)st.X, (float)st.Y, (float)st.Rad, st.IsMoving, time);
+                }
             }
             // pending stone at launch
             if (state == St.Aim || state == St.Ai || state == St.AiPull || state == St.Remote)
@@ -561,7 +570,11 @@ namespace FlickCurling.Game
                 {
                     DrawAim(aiPull.Ang, (float)aiPull.Pw * Mathf.Min(1, aiPull.T));
                 }
-                DrawStone(lp.x, lp.y, m.Cur, 1, turnPulse);
+                // (item mode: the item put on it shows: a giant or mini stone, a bomb)
+                float armed = (float)(m.ArmedRad / Sheet.SR);
+                DrawStone(lp.x, lp.y, m.Cur, 1, turnPulse * armed);
+                if (m.Armed == ItemKind.Bomb) DrawBombMark(lp.x, lp.y, SR * turnPulse, time);
+                if (m.Armed == ItemKind.Magnet) DrawMagnetMark(lp.x, lp.y, SR * turnPulse, false, time);
                 // online, the opponent's turn is noted over the stone (the AI's turns show nothing)
                 if (state == St.Remote) hud.Label(LT("online.opponentAiming"), lx, ly - SR * s - 16, 13, Palette.Text, 0, false, true);
             }
@@ -592,8 +605,9 @@ namespace FlickCurling.Game
                     if (p >= 1 && scorer)
                     {
                         rank++;
-                        over.Ring(op, SR + 1.5f, U(3), Gold95);
-                        var badge = op + new Vector2(SR, SR);
+                        float orad = (float)o.Stone.Rad;
+                        over.Ring(op, orad + 1.5f, U(3), Gold95);
+                        var badge = op + new Vector2(orad, orad);
                         over.Disc(badge, U(8), Palette.Brass);
                         hud.Label(Num(rank), X(badge.x), Y(badge.y) + 0.5f, 11, Palette.BrassInk, 0, true);
                     }
@@ -606,11 +620,12 @@ namespace FlickCurling.Game
                 float fxp = Mathf.Clamp(X(f.X), X(10), X(90)), fyp = Y(f.Y + 8 + f.T * 10);
                 hud.Label(f.Text, fxp, fyp, 16, Palette.WithA(Palette.Gold, 1 - f.T), 0, true, true);
             }
+            DrawItemFx();
             DrawFuse(time);
             hud.SetToastAnchor(Y(HOG) - 1.2f * s - 6);   // toasts stack up from just above the fuse
             DrawMinimap();
             under.Commit(); aim.Commit(); over.Commit(); mini.Commit();
-            EndStones(); hud.EndLabels();
+            EndStones(); EndItemSprites(); hud.EndLabels();
         }
 
         // a ring gauge: a dark backing and a light track, filled clockwise from the top in one continuous ramp
@@ -636,17 +651,20 @@ namespace FlickCurling.Game
             // aim line to first contact (or, with the hit marker off, on to a wall or the far end)
             var hit = AimRay(ang, !showHitMarker);
             // the dashes run between the two rings, stopping at their outer edges
-            float from = launchRingRadius + U(launchRingWidth * 8 / 9f), to = Vector2.Distance(lp, hit.p) - (hit.kind != HitKind.None ? hitRingRadius + U(hitRingWidth * 8 / 9f) : 0);
+            // (the ring where the line ends grows and shrinks with the stone: a giant or mini one in item mode)
+            float hitR = hitRingRadius * (float)(m.ArmedRad / Sheet.SR);
+            float from = launchRingRadius + U(launchRingWidth * 8 / 9f), to = Vector2.Distance(lp, hit.p) - (hit.kind != HitKind.None ? hitR + U(hitRingWidth * 8 / 9f) : 0);
             if (to > from) aim.Dashed(lp + dir * from, lp + dir * to, U(1.5f), U(5), U(5), Palette.Rgba(40, 24, 12, .6f));
             // where the line ends is a second power gauge, so the power reads where the player is looking
-            if (hit.kind != HitKind.None) DrawRingGauge(hit.p, hitRingRadius, hitRingWidth, pw);
+            if (hit.kind != HitKind.None) DrawRingGauge(hit.p, hitR, hitRingWidth, pw);
             bool noTicket = !m.InLsd && !Sheet.UnlimitedTickets && state == St.Aim && m.Tickets[(int)m.Cur] <= 0;
             if (hit.kind == HitKind.Wall && noTicket)
             {
-                aim.Ring(hit.p, hitRingRadius + U(hitRingWidth + 2), U(2), Palette.Hex("#c0503a"));
+                aim.Ring(hit.p, hitR + U(hitRingWidth + 2), U(2), Palette.Hex("#c0503a"));
                 bool leftSide = hit.p.x < W / 2;
-                hud.Label(LT("float.noTicket"), X(hit.p.x) + (leftSide ? 1 : -1) * (hitRingRadius * s + 10), Y(hit.p.y), 12, Palette.Hex("#ff9c84"), leftSide ? -1 : 1, false, true);
+                hud.Label(LT("float.noTicket"), X(hit.p.x) + (leftSide ? 1 : -1) * (hitR * s + 10), Y(hit.p.y), 12, Palette.Hex("#ff9c84"), leftSide ? -1 : 1, false, true);
             }
+            if (state == St.Aim) DrawProtractor(ang);   // (item mode: this player's own aim only)
             float tl = r0 + 26;
             if (pw > 0 && showPowerPercent) hud.Label(Percent[Mathf.Clamp(Mathf.RoundToInt(pw * 100), 0, 100)], lx + dir.x * tl, ly - dir.y * tl, 15, Palette.Hex("#ffe2a6"), 0, true, true);
         }
@@ -678,8 +696,8 @@ namespace FlickCurling.Game
             fuse.Burn(new Vector3(tip.x, tip.y, -1), burning, 1 - left);
         }
 
-        // printed on the sheet between the launch line and the min line, sized in sheet units like the other markings;
-        // it fades while a shot is being aimed so the aim arrow reads over it
+        // printed on the sheet, sized in sheet units like the other markings; it fades while a shot is being aimed so the
+        // aim arrow reads over it
         void DrawTurnInfo()
         {
             var info = CachedTurnInfo();
@@ -687,42 +705,38 @@ namespace FlickCurling.Game
             float a = Charging || state == St.AiPull ? 0.3f : 0.82f;
             var ink = Palette.Rgba(52, 32, 16, a);
             var (names, records, roles, pips) = info.Value;
-            // each side in its half: a row with first/last and the stones left, centred in the half, then the stone and the
-            // name (a long name wraps under its first letter), then (online) "disconnected" while the opponent is away and
-            // the record; sizes and gaps in sheet units (times s)
+            // each side in its half: its stones left just above the min line at its own edge; below the min line (in item
+            // mode under its hands) the stone and the name (a long name wraps under its first letter), centred in the
+            // half, first or last under the stone, then (online) the record; sizes and gaps in sheet units (times s)
             int nameSize = Mathf.RoundToInt(5.4f * 1.3f * 0.8f * s), small = Mathf.RoundToInt(3.4f * s), pipSize = Mathf.RoundToInt(5.1f * s);
             // a name wraps past the width of a stone and six letters (measured once per size)
             if (nameCapSize != nameSize)
             {
                 nameCapSize = nameSize;
                 nameCap = hud.Measure(Ui.Icon(Team.B, 115) + "\u00A0" + NameCapSample, nameSize, true);
+                iconW = hud.Measure(Ui.Icon(Team.B, 115), nameSize, true);
             }
             float nameW = Mathf.Min(nameCap, (W / 2 - 4) * s);
-            float rowY = Y(RowY), top = Y(NameY) - nameSize * 0.7f;
+            float top = Y(m.Items ? NameYItems : NameY) - nameSize * 0.7f;
             for (int i = 0; i < 2; i++)
             {
                 float cx = X(i == 0 ? W / 4 : W * 3 / 4);
-                float h = hud.LabelWrapped(names[i], cx, top, nameSize, ink, nameW, out _, true);
-                if (roles != null) hud.Label(RowText(i, roles[i], pips[i], small), cx, rowY, pipSize, ink, 0, true);
-                float y = top + h + RecordGap * s + small * 0.7f;
-                if (records != null) hud.Label(records[i], cx, y, small, ink);
+                float h = hud.LabelWrapped(names[i], cx, top, nameSize, ink, nameW, out float w, true);
+                float below = top + h;
+                if (roles != null)
+                {
+                    float roleY = top + nameSize * 1.6f + small * 0.55f;   // (under the stone icon, clear of it)
+                    hud.Label(roles[i], cx - w / 2 + iconW / 2, roleY, small, ink, 0, true);
+                    below = Mathf.Max(below, roleY + small * 0.5f);
+                    hud.Label(pips[i], i == 0 ? X(PipInset) : X(W - PipInset), Y(PipY), pipSize, ink, i == 0 ? -1 : 1, true);
+                }
+                if (records != null) hud.Label(records[i], cx, below + RecordGap * s + small * 0.7f, small, ink);
             }
         }
-        const float RowY = 56, NameY = 48;     // sheet y of the first/last row and of the name's first line
-        const float RecordGap = 2.2f;          // between the name's last line and the line under it
-
-        // "first" or "last", then the stones left, as one line (made again only when one of them changes)
-        readonly string[] rowText = new string[2], rowRole = new string[2], rowPips = new string[2];
-        readonly int[] rowSize = new int[2];
-        string RowText(int i, string role, string pip, int size)
-        {
-            if (!ReferenceEquals(rowRole[i], role) || !ReferenceEquals(rowPips[i], pip) || rowSize[i] != size)
-            {
-                rowRole[i] = role; rowPips[i] = pip; rowSize[i] = size;
-                rowText[i] = $"<size={size}>{role}</size>  {pip}";
-            }
-            return rowText[i];
-        }
+        const float NameY = 52, NameYItems = 43;   // sheet y of the name's first line (in item mode, under the hands)
+        const float PipY = HOG + 5, PipInset = 2.5f;   // the stones left: just above the min line (clear of the fuse), at the edge
+        const float RecordGap = 2.2f;              // between the name (or first / last) and the line under it
+        float iconW;
         const string NameCapSample = "테스트ㅇㅇㅇ";   // the widest a name line gets
         int nameCapSize = -1;
         float nameCap;

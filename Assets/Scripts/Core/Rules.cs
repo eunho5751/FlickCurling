@@ -35,8 +35,8 @@ namespace FlickCurling.Core
         public static OutWhy OutReason(Stone s, int deliveredId)
         {
             if (s.Flew && s.Y < Sheet.Hog) return OutWhy.Near;   // went off the launch end
-            if (s.Flew || s.Y - Sheet.SR > Sheet.Back) return OutWhy.Back;
-            if (s.Id == deliveredId && s.Y - Sheet.SR < Sheet.Hog) return OutWhy.Hog;
+            if (s.Flew || s.Y - s.Rad > Sheet.Back) return OutWhy.Back;
+            if (s.Id == deliveredId && s.Y - s.Rad < Sheet.Hog) return OutWhy.Hog;
             return OutWhy.None;
         }
 
@@ -56,7 +56,7 @@ namespace FlickCurling.Core
         public static ScoreResult Scoring(List<Stone> stones)
         {
             var list = stones.Where(s => s.Live).Select(s => new Ranked(s, Sheet.DistTee(s)))
-                .Where(o => o.D <= Sheet.R + Sheet.SR).OrderBy(o => o.D).ToList();
+                .Where(o => o.D <= Sheet.R + o.Stone.Rad).OrderBy(o => o.D).ToList();
             var res = new ScoreResult { List = list, Ids = new List<int>() };
             if (list.Count == 0) return res;
             var team = list[0].Stone.Team;

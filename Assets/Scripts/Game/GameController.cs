@@ -47,7 +47,7 @@ namespace FlickCurling.Game
         System.Random fx = new System.Random();
 
         sealed class AiPull { public double Ang, Pw, Lx; public float T; public string Intent; }
-        sealed class Fade { public float X, Y, A; public Team Team; }
+        sealed class Fade { public float X, Y, A, Size = 1; public Team Team; }
         sealed class Float { public float X, Y, T; public string Text; }
         sealed class Measure { public float T, Dur; public ScoreResult Sc; public Team PrevHammer; }
         sealed class Restore { public float T; public Dictionary<int, Vector2> From; }
@@ -142,6 +142,7 @@ namespace FlickCurling.Game
             stoneW = Sprite.Create(sw, new Rect(0, 0, sw.width, sw.height), new Vector2(.5f, .5f), sw.width / (2 * SR));
             disc = Sprite.Create(dt, new Rect(0, 0, dt.width, dt.height), new Vector2(.5f, .5f), dt.width / 2f);
             Ui.Init(disc, stoneB, stoneW, bodyFont, displayFont);
+            LoadItemArt();
 
             // the table under the sheet, seen beside it on wide screens, and the sheet's drop shadow on it
             var tt = BoardPainter.PaintTable();
@@ -319,7 +320,7 @@ namespace FlickCurling.Game
             brain = new Ai(seed ^ 0x5bd1e995);
             m.StartMatch();
             DuelReset();
-            fades.Clear(); floats.Clear();
+            fades.Clear(); floats.Clear(); itemFx.Clear(); boxBorn.Clear();
             ShowField(m.Field);
             userMoved = false;
             state = St.Coin;
@@ -451,6 +452,7 @@ namespace FlickCurling.Game
         async UniTaskVoid RunAIAsync()
         {
             var team = m.Cur;
+            AiItem(team);   // (item mode: on its stone before it aims)
             var input = AiInput.From(m, team, ai[(int)team].Value);
             var b = brain;
             int tok = token;
@@ -501,7 +503,7 @@ namespace FlickCurling.Game
                 sfx.Void();
                 return;
             }
-            foreach (var r in res.Removed) fades.Add(new Fade { X = (float)r.Stone.X, Y = (float)r.Stone.Y, Team = r.Stone.Team, A = 1 });
+            foreach (var r in res.Removed) fades.Add(new Fade { X = (float)r.Stone.X, Y = (float)r.Stone.Y, Team = r.Stone.Team, A = 1, Size = (float)r.Stone.Size });
             // the shot stone's own fate as the title, then one line per colour knocked out
             string head = res.ShotWhy == OutWhy.Hog ? Loc.T("out.hog") : res.ShotWhy == OutWhy.Back ? Loc.T("out.back")
                 : res.ShotWhy == OutWhy.Near ? Loc.T("out.near") : null;
@@ -732,7 +734,7 @@ namespace FlickCurling.Game
             var names = new[] { Name(Left), Name(Right) };
             var records = SideRecords();
             if (m.InLsd) return (names, records, null, null);
-            string Pips(Team team)
+            string Pips(Team team, bool mirrored)
             {
                 int left = Mathf.Clamp(Sheet.Per - m.ThrownBy(team), 0, Sheet.Per);
                 // the row empties from the right: the stone being thrown now is the rightmost one still to go, in the
@@ -740,12 +742,14 @@ namespace FlickCurling.Game
                 bool throwing = team == m.Cur && left > 0 && (state == St.Aim || state == St.Ai || state == St.AiPull || state == St.Remote);
                 string now = throwing ? $"<color=#a3341f{(Charging || state == St.AiPull ? "4d" : "")}>●</color>" : "";
                 int rest = throwing ? left - 1 : left;
-                // a little smaller than the side icon, so the pips do not read as more side markers
-                return "<size=80%>" + new string('●', rest) + now + new string('○', Sheet.Per - left) + "</size>";
+                // a little smaller than the side icon, so the pips do not read as more side markers; the right side's row
+                // (at the right edge) is the other way round, emptying from its left end
+                return "<size=80%>" + (mirrored ? new string('○', Sheet.Per - left) + now + new string('●', rest)
+                    : new string('●', rest) + now + new string('○', Sheet.Per - left)) + "</size>";
             }
             // each side's stones left in its own half, under "선공" / "후공"
             string Role(Team team) => Loc.T(m.Hammer == team ? "hud.hammer" : "hud.first");
-            return (names, records, new[] { Role(Left), Role(Right) }, new[] { Pips(Left), Pips(Right) });
+            return (names, records, new[] { Role(Left), Role(Right) }, new[] { Pips(Left, false), Pips(Right, true) });
         }
 
         // how far the name starts after the stone, in em (measured once)
@@ -811,6 +815,9 @@ namespace FlickCurling.Game
             }
             public void OnCushion(Stone s, int n) => g.sfx.Chime(n);
             public void OnDeadRail(Stone s) { }
+            public void OnBox(Stone s, ItemBox box, BoxEvent what, double fromX, double fromY, ItemKind kind, int slot) =>
+                g.OnItemBox(s, box, what, fromX, fromY, kind, slot);
+            public void OnBomb(Stone s) => g.OnItemBomb(s);
         }
 
         // =====================================================================
@@ -873,6 +880,7 @@ namespace FlickCurling.Game
             foreach (var f in fades) f.A -= dt / 0.5f;
             fades.RemoveAll(f => f.A <= 0);
             foreach (var f in floats) f.T += dt / 1.2f;
+            TickItemFx(dt);
             floats.RemoveAll(f => f.T >= 1);
 
             Resize(false);
