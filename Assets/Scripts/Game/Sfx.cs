@@ -56,6 +56,7 @@ namespace FlickCurling.Game
         }
 
         AudioClip turnClip, popClip, endClip, voidClip, warnClip;
+        readonly AudioClip[] takeoutClips = new AudioClip[3];
 
         void Play(ref AudioClip clip, Func<AudioClip> make)
         {
@@ -81,6 +82,26 @@ namespace FlickCurling.Game
         /// <summary>The shot does not count (short of the min line, past the back line, a lost cushion, out of time): a
         /// falling "wah-wah".</summary>
         public void Void() => Play(ref voidClip, () => Make("void", 0.6f, t => 0.2f * (Reed(t, 392, 370, 0.18f) + Reed(t - 0.2f, 294, 247, 0.38f))));
+
+        /// <summary>A takeout (1), a double (2) or a triple or more (3): a quick rising fanfare, a note more each, reedy
+        /// with a bright bell on top.</summary>
+        public void Takeout(int n)
+        {
+            int k = Mathf.Clamp(n, 1, 3) - 1;
+            Play(ref takeoutClips[k], () => Make("takeout" + (k + 1), 0.55f + 0.1f * k, t =>
+            {
+                float s = 0;
+                int notes = k + 2;
+                for (int i = 0; i < notes; i++)
+                {
+                    float t0 = i * 0.08f, f = TakeoutNotes[i];
+                    bool last = i == notes - 1;
+                    s += 0.6f * Reed(t - t0, f, f * 1.02f, last ? 0.34f : 0.1f) + 0.5f * Bell(t - t0, f * 2, last ? 0.5f : 0.15f);
+                }
+                return 0.16f * s;
+            }));
+        }
+        static readonly float[] TakeoutNotes = { 392, 523, 659, 784 };   // G C E G
 
         /// <summary>The clock is running low: two quick high beeps.</summary>
         public void Warn() => Play(ref warnClip, () => Make("warn", 0.25f, t =>

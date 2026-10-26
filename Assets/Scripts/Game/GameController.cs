@@ -453,6 +453,8 @@ namespace FlickCurling.Game
             if (mine) OnlineRecordShot();
         }
 
+        const int TakeoutTitleSize = 22;   // (css px; a toast's title is 17)
+
         void AfterShot()
         {
             OnlineShotDone();
@@ -474,8 +476,17 @@ namespace FlickCurling.Game
             var knocked = new List<string>();
             foreach (var t in new[] { Team.B, Team.W })
                 if (res.Knocked[(int)t] > 0) knocked.Add(Loc.T("out.knocked", ("team", Ui.Icon(t)), ("n", res.Knocked[(int)t])));
-            if (head != null) { hud.Toast(head, string.Join("\n", knocked)); sfx.Void(); }
-            else if (knocked.Count > 0) hud.Toast(string.Join("\n", knocked));
+            // the shooter took the other side's stones out: a takeout (double, triple) is called, with its fanfare (over a
+            // shot stone that went out itself too)
+            int taken = res.Knocked[(int)Sheet.Other(m.Cur)];
+            string takeout = taken <= 0 ? null : Loc.T(taken == 1 ? "shot.takeout" : taken == 2 ? "shot.takeout2" : "shot.takeout3");
+            if (head != null) { hud.Toast(head, string.Join("\n", knocked)); if (takeout == null) sfx.Void(); }
+            if (takeout != null)
+            {
+                hud.Toast(takeout, head == null ? string.Join("\n", knocked) : null, 2600, TakeoutTitleSize);
+                sfx.Takeout(taken);
+            }
+            else if (head == null && knocked.Count > 0) hud.Toast(string.Join("\n", knocked));
             state = St.Settle; settleT = 0.9f;
         }
 

@@ -903,6 +903,18 @@ MonoBehaviour:
     m_Key: matchsetup.opponent
     m_Metadata:
       m_Items: []
+  - m_Id: 4181914246107136
+    m_Key: shot.takeout
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4181914363547648
+    m_Key: shot.takeout2
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4181914363547649
+    m_Key: shot.takeout3
+    m_Metadata:
+      m_Items: []
   m_Metadata:
     m_Items: []
   m_KeyGenerator:
