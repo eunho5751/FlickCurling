@@ -46,10 +46,10 @@ namespace FlickCurling.EditorTools
             new[] { "shop.failed", "결제에 실패했어요.\n다시 시도해 주세요.", "The purchase didn't go through.\nPlease try again.", "購入できませんでした。\nもう一度お試しください。" },
 
             // ---- main menu: match setup popup ----
-            new[] { "matchsetup.mode", "모드", "Mode", "モード" },
+            new[] { "matchsetup.opponent", "상대", "Opponent", "対戦相手" },
             new[] { "matchsetup.vsAi", "AI", "AI", "AI" },
             new[] { "matchsetup.vsLocal", "로컬 2인", "Local 2P", "ローカル2人" },
-            new[] { "matchsetup.map", "맵", "Map", "マップ" },
+            new[] { "matchsetup.mode", "모드", "Mode", "モード" },
             new[] { "matchsetup.level", "난이도", "Difficulty", "難易度" },
             new[] { "matchsetup.ok", "확인", "OK", "OK" },
 

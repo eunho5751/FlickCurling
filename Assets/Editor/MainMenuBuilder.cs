@@ -230,7 +230,7 @@ namespace FlickCurling.EditorTools
             v.childForceExpandWidth = true; v.childForceExpandHeight = false;
 
             var modeRow = Row(content, "ModeRow");
-            Legend(modeRow, legendFont, "matchsetup.mode");
+            Legend(modeRow, legendFont, "matchsetup.opponent");
             var mode = Toggle(modeRow, new[] { "matchsetup.vsAi", "matchsetup.vsLocal" }, 0,
                 new[] { AssetDatabase.LoadAssetAtPath<Sprite>(IconAi), AssetDatabase.LoadAssetAtPath<Sprite>(IconLocal) });
             // the level right under the mode it belongs to, then the map
@@ -238,7 +238,7 @@ namespace FlickCurling.EditorTools
             Legend(levelRow, legendFont, "matchsetup.level");
             var level = Toggle(levelRow, new[] { "level.easy", "level.normal", "level.hard" }, 1);
             var mapRow = Row(content, "MapRow");
-            Legend(mapRow, legendFont, "matchsetup.map");
+            Legend(mapRow, legendFont, "matchsetup.mode");
             var map = Toggle(mapRow, new[] { "map.base" }, 0);
 
             // OK, centred under the toggles; the space above it soaks up the rest of the window
@@ -288,10 +288,10 @@ namespace FlickCurling.EditorTools
             v.childForceExpandWidth = true; v.childForceExpandHeight = false;
 
             var modeRow = Row(content, "ModeRow");
-            Legend(modeRow, legendFont, "matchsetup.mode");
+            Legend(modeRow, legendFont, "matchsetup.opponent");
             var mode = Toggle(modeRow, new[] { "online.random" }, 0);
             var mapRow = Row(content, "MapRow");
-            Legend(mapRow, legendFont, "matchsetup.map");
+            Legend(mapRow, legendFont, "matchsetup.mode");
             var map = Toggle(mapRow, new[] { "map.base" }, 0);
 
             var spacer = Child<RectTransform>(content, "Spacer");

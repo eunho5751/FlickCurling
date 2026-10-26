@@ -319,10 +319,6 @@ MonoBehaviour:
     m_Localized: Local 2P
     m_Metadata:
       m_Items: []
-  - m_Id: 852077917949952
-    m_Localized: Map
-    m_Metadata:
-      m_Items: []
   - m_Id: 964901604347904
     m_Localized: Shop
     m_Metadata:
@@ -969,6 +965,10 @@ MonoBehaviour:
     m_Localized: 'Couldn''t restore your purchases.
 
       Please try again later.'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4168660052529152
+    m_Localized: Opponent
     m_Metadata:
       m_Items: []
   references:
