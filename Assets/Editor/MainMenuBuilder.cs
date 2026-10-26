@@ -317,7 +317,7 @@ namespace FlickCurling.EditorTools
         // dropdown, one row each, from the shared prefabs (Popup, Slider, Dropdown) ----
 
         const float SettingsToMenuW = 460;
-        const float SettingsW = 860, SettingsH = 1000, SettingsRowH = 92, SettingsLabelW = 230, SettingsValueW = 80;
+        const float SettingsW = 860, SettingsH = 1110, SettingsRowH = 92, SettingsLabelW = 230, SettingsValueW = 80;
 
         // ---- the shop popup: the products as cards hanging from nails, three in a row. The cards are made when it opens,
         // one per product of the shop catalog (Resources/ShopCatalog), from a card template here ----
@@ -748,6 +748,10 @@ namespace FlickCurling.EditorTools
             var (music, musicValue) = SliderRow(content, legendFont, "settings.music", 0, 1, false);
             var (sfx, sfxValue) = SliderRow(content, legendFont, "settings.sfx", 0, 1, false);
             var (sens, sensValue) = SliderRow(content, legendFont, "settings.aimSens", 1, GameSettings.SensLevels, true);
+            var vibRow = SettingsRow(content, "Row_vibration", legendFont, "settings.vibration");
+            var vibGo = UiPrefabBuilder.Place(UiPrefabBuilder.TogglePath, vibRow, "Vibration");
+            var vle = vibGo.AddComponent<LayoutElement>(); vle.flexibleWidth = 1; vle.preferredHeight = 82;
+            var vibration = UiPrefabBuilder.SetOptions(vibGo, new[] { "settings.on", "settings.off" }, 0);
             var langRow = SettingsRow(content, "Row_language", legendFont, "settings.language");
             var dd = UiPrefabBuilder.Place(UiPrefabBuilder.DropdownPath, langRow, "Language");
             var dle = dd.AddComponent<LayoutElement>(); dle.flexibleWidth = 1; dle.preferredHeight = 82;
@@ -774,6 +778,7 @@ namespace FlickCurling.EditorTools
             so.FindProperty("sfx").objectReferenceValue = sfx; so.FindProperty("sfxValue").objectReferenceValue = sfxValue;
             so.FindProperty("sens").objectReferenceValue = sens; so.FindProperty("sensValue").objectReferenceValue = sensValue;
             so.FindProperty("language").objectReferenceValue = lang;
+            so.FindProperty("vibration").objectReferenceValue = vibration;
             so.FindProperty("toMenuRow").objectReferenceValue = toMenuRow.gameObject;
             so.FindProperty("rulesRow").objectReferenceValue = rulesRow.gameObject;
             so.FindProperty("rules").objectReferenceValue = rules;

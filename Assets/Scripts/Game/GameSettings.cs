@@ -4,8 +4,8 @@ using UnityEngine;
 namespace FlickCurling.Game
 {
     /// <summary>
-    /// The player's settings, kept in PlayerPrefs and shared by every scene: music and sound effect volumes (0..1) and the
-    /// aim sensitivity level (0..4, x0.5 to x2). The language is Unity Localization's own selected locale (saved by its
+    /// The player's settings, kept in PlayerPrefs and shared by every scene: music and sound effect volumes (0..1), the
+    /// aim sensitivity level (0..4, x0.5 to x2) and vibration (on / off). The language is Unity Localization's own selected locale (saved by its
     /// PlayerPrefLocaleSelector).
     /// </summary>
     public static class GameSettings
@@ -34,6 +34,14 @@ namespace FlickCurling.Game
             get => Mathf.Clamp(PlayerPrefs.GetInt(SensPref, DefaultSens), 0, SensLevels - 1);
             set => Set(() => PlayerPrefs.SetInt(SensPref, Mathf.Clamp(value, 0, SensLevels - 1)));
         }
+
+        /// <summary>Vibration on hits and throws (on unless turned off).</summary>
+        public static bool Vibration
+        {
+            get => PlayerPrefs.GetInt(VibrationPref, 1) == 1;
+            set => Set(() => PlayerPrefs.SetInt(VibrationPref, value ? 1 : 0));
+        }
+        const string VibrationPref = "flickcurling-vibration";
 
         static void Set(Action write)
         {

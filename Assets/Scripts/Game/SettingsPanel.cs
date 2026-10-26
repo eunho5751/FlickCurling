@@ -9,7 +9,7 @@ namespace FlickCurling.Game
     /// <summary>
     /// The settings popup shared by the main menu and the game (the prefab Resources/SettingsPopup, built by
     /// MainMenuBuilder on the shared Popup): music and sound effect volume sliders, the aim sensitivity slider (levels 1 to
-    /// 5) and the language dropdown, plus, in the game, "game rules" (the rules popup over this one) and "back to the main
+    /// 5), vibration on / off and the language dropdown, plus, in the game, "game rules" (the rules popup over this one) and "back to the main
     /// menu" buttons at the bottom. Every change is
     /// saved and applied at once (GameSettings, Unity Localization).
     /// </summary>
@@ -21,11 +21,12 @@ namespace FlickCurling.Game
         [SerializeField] Slider music, sfx, sens;
         [SerializeField] TextMeshProUGUI musicValue, sfxValue, sensValue;
         [SerializeField] TMP_Dropdown language;
+        [SerializeField] SegmentedToggle vibration;   // on, off
         [SerializeField] GameObject toMenuRow;
         [SerializeField] Button toMenu;
         [SerializeField] GameObject rulesRow;
         [SerializeField] Button rules;
-        [SerializeField] Vector2 sizeMenu = new Vector2(860, 1000), sizeGame = new Vector2(860, 1320);
+        [SerializeField] Vector2 sizeMenu = new Vector2(860, 1110), sizeGame = new Vector2(860, 1430);
         [Tooltip("The settings gear, for buttons that open this popup")]
         public Sprite Icon;
 
@@ -47,6 +48,7 @@ namespace FlickCurling.Game
             sfx.onValueChanged.AddListener(v => { GameSettings.SfxVolume = v; Show(); });
             sens.onValueChanged.AddListener(v => { GameSettings.SensLevel = Mathf.RoundToInt(v) - 1; Show(); });
             language.onValueChanged.AddListener(i => Loc.Select(Loc.Codes[i]));
+            vibration.Changed += i => { GameSettings.Vibration = i == 0; if (i == 0) Haptics.Pulse(0.5f); };   // (a taste of it)
             toMenu.onClick.AddListener(() => { popup.Hide(); ToMenu?.Invoke(); });
             rules.onClick.AddListener(OpenRules);
         }
@@ -69,6 +71,7 @@ namespace FlickCurling.Game
             sfx.SetValueWithoutNotify(GameSettings.SfxVolume);
             sens.SetValueWithoutNotify(GameSettings.SensLevel + 1);
             language.SetValueWithoutNotify(Mathf.Max(0, Array.IndexOf(Loc.Codes, Loc.Code)));
+            vibration.Select(GameSettings.Vibration ? 0 : 1, false, false);
             toMenuRow.SetActive(inGame);
             rulesRow.SetActive(inGame);
             // signing in (linking an account, maybe switching players) only from the main menu, never mid-game

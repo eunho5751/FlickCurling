@@ -915,6 +915,18 @@ MonoBehaviour:
     m_Key: shot.takeout3
     m_Metadata:
       m_Items: []
+  - m_Id: 4183663379927040
+    m_Key: settings.vibration
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4183663468007424
+    m_Key: settings.on
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4183663468007425
+    m_Key: settings.off
+    m_Metadata:
+      m_Items: []
   m_Metadata:
     m_Items: []
   m_KeyGenerator:

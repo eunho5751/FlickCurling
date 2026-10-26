@@ -983,6 +983,18 @@ MonoBehaviour:
     m_Localized: Triple Takeout!
     m_Metadata:
       m_Items: []
+  - m_Id: 4183663379927040
+    m_Localized: Vibration
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4183663468007424
+    m_Localized: On
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4183663468007425
+    m_Localized: Off
+    m_Metadata:
+      m_Items: []
   references:
     version: 2
     RefIds:

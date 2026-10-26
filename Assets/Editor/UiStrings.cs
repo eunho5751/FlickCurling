@@ -80,6 +80,9 @@ namespace FlickCurling.EditorTools
             new[] { "settings.music", "배경음", "Music", "BGM" },
             new[] { "settings.sfx", "효과음", "Sound Effects", "効果音" },
             new[] { "settings.language", "언어", "Language", "言語" },
+            new[] { "settings.vibration", "진동", "Vibration", "振動" },
+            new[] { "settings.on", "켜기", "On", "オン" },
+            new[] { "settings.off", "끄기", "Off", "オフ" },
 
             // ---- settings: account (UGS) ----
             new[] { "account.pid", "PID", "PID", "PID" },

@@ -445,6 +445,7 @@ namespace FlickCurling.Game
             // online, this device's own shot: the input goes to the opponent first (from then on the shot stands), then
             // this device runs it and sends the record both play
             bool mine = mode == Mode.Online && state == St.Aim;
+            if (state == St.Aim) Haptics.Pulse(0.25f);   // this player's own throw: a light buzz as it goes
             if (laneTo.HasValue) { m.LaunchX = laneTo.Value; laneTo = null; }
             if (mine) OnlineCommit(ang, pw);
             m.Release(ang, pw);
@@ -766,9 +767,10 @@ namespace FlickCurling.Game
         {
             readonly GameController g;
             public LiveEvents(GameController g) { this.g = g; }
-            public void OnStoneHit(Stone a, Stone b, double j) => g.sfx.Blip((float)j / 70, 2600, 4, 0.05f);
-            public void OnPostHit(Stone s, double vn) => g.sfx.Blip((float)vn / 70, 1500, 5, 0.07f);
-            public void OnWallHit(Stone s, double vn, Seg seg) => g.sfx.Blip((float)vn / 90, 420, 2, 0.09f);
+            // each hit clicks and buzzes, as hard as it hit
+            public void OnStoneHit(Stone a, Stone b, double j) { g.sfx.Blip((float)j / 70, 2600, 4, 0.05f); Haptics.Pulse((float)j / 70); }
+            public void OnPostHit(Stone s, double vn) { g.sfx.Blip((float)vn / 70, 1500, 5, 0.07f); Haptics.Pulse((float)vn / 70); }
+            public void OnWallHit(Stone s, double vn, Seg seg) { g.sfx.Blip((float)vn / 90, 420, 2, 0.09f); Haptics.Pulse((float)vn / 140); }
             // the one wall text: a ticket spent, on the shot's first cushion (Core spends at most one per shot);
             // without a ticket the foul toast says it instead
             public void OnTicket(Stone s, bool used)

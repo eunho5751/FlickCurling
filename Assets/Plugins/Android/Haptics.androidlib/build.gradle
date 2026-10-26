@@ -1,0 +1,12 @@
+// Short vibrations for the game (Haptics): a one-shot of a given length and strength
+apply plugin: 'com.android.library'
+
+android {
+    namespace 'com.flickcurling.haptics'
+    compileSdk 35
+    defaultConfig { minSdk 23 }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
