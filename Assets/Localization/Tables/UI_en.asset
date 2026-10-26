@@ -665,9 +665,7 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 3994885692510208
-    m_Localized: 'Your turn now! A match starts with the turn order shot: both sides
-      throw one stone at the same time at a target somewhere on the sheet, and whoever
-      gets closer throws last.'
+    m_Localized: Your turn now!
     m_Metadata:
       m_Items: []
   - m_Id: 3994885776396288
@@ -1001,6 +999,11 @@ MonoBehaviour:
       m_Items: []
   - m_Id: 4260592384659456
     m_Localized: "Waiting for the opponent\u2026"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4275301687152640
+    m_Localized: 'A match starts with the turn order shot: both sides throw one stone
+      at this target at the same time, and whoever gets closer throws last.'
     m_Metadata:
       m_Items: []
   references:

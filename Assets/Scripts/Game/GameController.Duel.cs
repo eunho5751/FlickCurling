@@ -40,6 +40,14 @@ namespace FlickCurling.Game
             aimAng = 0; ResetShotInput();
             userMoved = false;
             CamTo(AimView(1), 3.5f);
+            if (TutorialHoldsDuel(DuelGo)) return;
+            DuelGo();
+        }
+
+        // this player's turn to throw (the AI aiming with them)
+        void DuelGo()
+        {
+            state = St.Aim;
             RenderHud();
             hud.TurnToast(Loc.T("lsd.throwNow"));
             sfx.TurnStart();

@@ -16,6 +16,7 @@ namespace FlickCurling.Game
         Action tutorialSettled;      // the director waits for the shot it had thrown to come to rest
         Action tutorialMeasured;     // ... or for an end's measuring to finish
         Action<Action> tutorialBeforeEnd;   // ... or to say something as the end starts (given how to go on)
+        Action<Action> tutorialBeforeDuel;  // ... or as the turn order shot is to be thrown
 
         bool inTutorial;   // from the start of StartTutorial, before its director is up (the HUD is drawn first)
         bool InTutorial => inTutorial;
@@ -117,6 +118,7 @@ namespace FlickCurling.Game
                 0 => Rect.MinMaxRect(Inset, top, stoneX, bottom),
                 1 => Rect.MinMaxRect(stoneX, top, cw - Inset, bottom),
                 3 => TutorialGuardArea(),
+                4 => TutorialTargetArea(),
                 _ => Rect.MinMaxRect(Inset, topPx, cw - Inset, hog - Inset),
             };
         }
@@ -136,9 +138,10 @@ namespace FlickCurling.Game
 
         /// <summary>The player's own end against the easy AI: the player has the last stone (the AI starts, with the
         /// bonus guard).</summary>
-        internal void TutorialPlay(Action<Action> beforeEnd)
+        internal void TutorialPlay(Action<Action> beforeDuel, Action<Action> beforeEnd)
         {
             tutorialInput = true;
+            tutorialBeforeDuel = beforeDuel;
             tutorialBeforeEnd = beforeEnd;
             int seed = fx.Next();
             m = new Match(Maps.Build(mapKey), PhysicsParams.Default, seed) { Listener = new LiveEvents(this) };
@@ -164,6 +167,24 @@ namespace FlickCurling.Game
             CamTo(HouseView(zoom), 4);
             a(PrepareShot);
             return true;
+        }
+
+        // the turn order shot is up, the target on the sheet: the director points it out before the player throws
+        bool TutorialHoldsDuel(Action go)
+        {
+            if (tutorialBeforeDuel == null) return false;
+            var a = tutorialBeforeDuel; tutorialBeforeDuel = null;
+            state = St.Coin;
+            RenderHud();
+            a(go);
+            return true;
+        }
+
+        /// <summary>Round the turn order shot's target (css px), for the director to frame.</summary>
+        internal Rect TutorialTargetArea()
+        {
+            float x = X((float)m.Lsd.TargetX), y = Y((float)m.Lsd.TargetY), r = (float)Sheet.LsdTargetR * s + 12;
+            return Rect.MinMaxRect(x - r, y - r, x + r, y + r);
         }
 
         /// <summary>Round the bonus guard (css px), for the director to frame.</summary>
