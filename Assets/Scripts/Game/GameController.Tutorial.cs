@@ -143,7 +143,8 @@ namespace FlickCurling.Game
             int seed = fx.Next();
             m = new Match(Maps.Build(mapKey), PhysicsParams.Default, seed) { Listener = new LiveEvents(this) };
             brain = new Ai(seed ^ 0x5bd1e995);
-            m.StartMatch();   // the turn order shot first, as in any match (its card, then each side's draw)
+            m.StartMatch();   // the turn order shot first, as in any match (its card, then the draw thrown together)
+            DuelReset();
             fades.Clear(); floats.Clear(); measure = null;
             ShowField(m.Field);
             userMoved = false;

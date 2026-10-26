@@ -116,7 +116,7 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 2262749211
-    m_Localized: "{map} map \xB7 {mode}"
+    m_Localized: "{map} \xB7 {mode}"
     m_Metadata:
       m_Items:
       - rid: 4297768082125881571
@@ -125,7 +125,7 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 2262749213
-    m_Localized: The one closer to the centre of the house throws last in end 1!
+    m_Localized: The one closer to the target throws last in end 1!
     m_Metadata:
       m_Items: []
   - m_Id: 2262749216
@@ -665,9 +665,9 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 3994885692510208
-    m_Localized: 'Your turn now! A match starts with the turn order shot: each side
-      throws one stone at the centre of the house, and whoever gets closer throws
-      last.'
+    m_Localized: 'Your turn now! A match starts with the turn order shot: both sides
+      throw one stone at the same time at a target somewhere on the sheet, and whoever
+      gets closer throws last.'
     m_Metadata:
       m_Items: []
   - m_Id: 3994885776396288
@@ -895,8 +895,8 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 4139052028579892
-    m_Localized: Each side throws one stone at the centre of the house, and the closer
-      one goes second. Level, it's decided at random.
+    m_Localized: Both sides throw one stone at once at a target placed somewhere
+      on the sheet; the closer one goes second. Level, it's decided at random.
     m_Metadata:
       m_Items: []
   - m_Id: 4139052028579893
@@ -993,6 +993,14 @@ MonoBehaviour:
       m_Items: []
   - m_Id: 4183663468007425
     m_Localized: Off
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4260592254636032
+    m_Localized: Throw at the target!
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4260592384659456
+    m_Localized: "Waiting for the opponent\u2026"
     m_Metadata:
       m_Items: []
   references:

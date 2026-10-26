@@ -27,10 +27,9 @@ namespace FlickCurling.Core
         public int LsdIdx;
         public double?[] LsdDist = new double?[2];
         public double[] LsdRestX = new double[2], LsdRestY = new double[2];
-        public Post[] LsdBumpers = new Post[0];
         public ulong RngState;
 
-        const int Version = 2;
+        const int Version = 3;
 
         public byte[] ToBytes()
         {
@@ -60,8 +59,6 @@ namespace FlickCurling.Core
             w.Write(ShotHitStone); w.Write(WallTouched); w.Write(Foul);
             w.Write(InLsd); w.Write(LsdIdx);
             for (int i = 0; i < 2; i++) { w.Write(LsdDist[i].HasValue); w.Write(LsdDist[i] ?? 0); w.Write(LsdRestX[i]); w.Write(LsdRestY[i]); }
-            w.Write(LsdBumpers.Length);
-            foreach (var p in LsdBumpers) { w.Write(p.X); w.Write(p.Y); w.Write(p.R); }
             w.Write(RngState);
         }
 
@@ -83,9 +80,6 @@ namespace FlickCurling.Core
                 bool has = r.ReadBoolean(); double d = r.ReadDouble(); s.LsdDist[i] = has ? d : (double?)null;
                 s.LsdRestX[i] = r.ReadDouble(); s.LsdRestY[i] = r.ReadDouble();
             }
-            int n = r.ReadInt32();
-            s.LsdBumpers = new Post[n];
-            for (int i = 0; i < n; i++) s.LsdBumpers[i] = new Post(r.ReadDouble(), r.ReadDouble(), r.ReadDouble());
             s.RngState = r.ReadUInt64();
             return s;
         }
@@ -141,7 +135,6 @@ namespace FlickCurling.Core
             LsdDist = Lsd != null ? (double?[])Lsd.Dist.Clone() : new double?[2],
             LsdRestX = Lsd != null ? (double[])Lsd.RestX.Clone() : new double[2],
             LsdRestY = Lsd != null ? (double[])Lsd.RestY.Clone() : new double[2],
-            LsdBumpers = Lsd != null ? (Post[])Lsd.Bumpers.Clone() : new Post[0],
             RngState = rng.State,
         };
 
@@ -160,7 +153,8 @@ namespace FlickCurling.Core
             InLsd = s.InLsd;
             if (s.InLsd)
             {
-                Lsd = new LsdState { Idx = s.LsdIdx, Bumpers = (Post[])s.LsdBumpers.Clone(), Field = Field.WithPosts(s.LsdBumpers) };
+                Lsd = NewLsd();
+                Lsd.Idx = s.LsdIdx;
                 Array.Copy(s.LsdDist, Lsd.Dist, 2);
                 Array.Copy(s.LsdRestX, Lsd.RestX, 2); Array.Copy(s.LsdRestY, Lsd.RestY, 2);
             }

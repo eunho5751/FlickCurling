@@ -36,11 +36,22 @@ namespace FlickCurling.Core
     {
         public readonly Team[] Order = { Team.B, Team.W };
         public int Idx;
-        public double TargetX = Sheet.TeeX, TargetY = Sheet.TeeY;   // the centre of the house
+        public double TargetX = Sheet.TeeX, TargetY = Sheet.TeeY;   // the target: placed at random for each match
         public double?[] Dist = new double?[2];   // null = not thrown yet, +inf = no record
         public double[] RestX = new double[2], RestY = new double[2];   // where each side's draw stopped (with a record)
-        public Post[] Bumpers = new Post[0];        // only on the sheet for the draw
-        public Field Field;                          // the map plus the bumpers
+        public Field Field;                          // the map it is thrown on
+    }
+
+    /// <summary>One side's turn order draw, worked out on its own: its input, its record, where it stopped and how far
+    /// from the target (+inf: no record).</summary>
+    public sealed class LsdThrow
+    {
+        public Team Team;
+        public double Ang, Pw, Lane;
+        public ShotRecord Record;
+        public double Dist = double.PositiveInfinity, X, Y;
+        public bool ShortOfHog;
+        public bool HasRecord => !double.IsInfinity(Dist);
     }
 
     /// <summary>
@@ -53,6 +64,7 @@ namespace FlickCurling.Core
         public readonly Field Field;
         public readonly PhysicsParams P;
         public readonly int TicketCount;
+        public readonly int Seed;
         Rng rng;
 
         public List<Stone> Stones = new List<Stone>();
@@ -80,6 +92,7 @@ namespace FlickCurling.Core
             Field = field;
             P = p ?? PhysicsParams.Default;
             TicketCount = ticketCount < 0 ? Sheet.Tickets : ticketCount;
+            Seed = seed;
             rng = new Rng((ulong)(uint)seed);
             Tickets[0] = Tickets[1] = TicketCount;
         }
@@ -107,10 +120,56 @@ namespace FlickCurling.Core
             End = 1; Shot = 0; Stones.Clear();
             Tickets[0] = Tickets[1] = TicketCount;
             InLsd = true;
-            // the draw is to the centre of the house, around a fresh set of bumpers for every match
-            var bumpers = LsdBumpers(rng, Field.Posts);
-            Lsd = new LsdState { Bumpers = bumpers, Field = Field.WithPosts(bumpers) };
+            // the draw is to a target put at random (from the seed), on the match's own map
+            Lsd = NewLsd();
             Cur = Team.B;
+        }
+
+        LsdState NewLsd()
+        {
+            var r = new Rng((ulong)(uint)Seed * 0x9E3779B97F4A7C15UL ^ 0x7A26E7UL);
+            return new LsdState
+            {
+                Field = Field,
+                TargetX = Sheet.LsdTargetXMin + (Sheet.LsdTargetXMax - Sheet.LsdTargetXMin) * r.NextDouble(),
+                TargetY = Sheet.LsdTargetYMin + (Sheet.LsdTargetYMax - Sheet.LsdTargetYMin) * r.NextDouble(),
+            };
+        }
+
+        /// <summary>One side's draw, thrown on its own (the two draws never meet): run to rest and recorded, the match left
+        /// as it was. Distance +inf = no record.</summary>
+        public LsdThrow SimulateLsd(Team team, double ang, double pw, double lane)
+        {
+            var before = Capture();
+            var listener = Listener;
+            Stones.Clear();
+            Cur = team; LaunchX = lane;
+            Release(ang, pw);
+            var rec = ShotRecord.Record(this);
+            Restore(before);
+            Listener = listener;
+            return LsdFromRecord(team, ang, pw, lane, rec);
+        }
+
+        /// <summary>A draw's result read from its record (where its stone ended up): the same on every device.</summary>
+        public LsdThrow LsdFromRecord(Team team, double ang, double pw, double lane, ShotRecord rec)
+        {
+            var s = rec?.After?.Stones.Find(x => x.Team == team);
+            bool ok = s != null && s.Live && !s.Flew && s.Y - Sheet.SR >= Sheet.Hog && s.Y - Sheet.SR <= Sheet.Back;
+            return new LsdThrow
+            {
+                Team = team, Ang = ang, Pw = pw, Lane = lane, Record = rec,
+                Dist = ok ? Sheet.Dist(s.X, s.Y, Lsd.TargetX, Lsd.TargetY) : double.PositiveInfinity,
+                X = s?.X ?? lane, Y = s?.Y ?? Sheet.LaunchY,
+                ShortOfHog = s != null && !s.Flew && s.Y - Sheet.SR < Sheet.Hog,
+            };
+        }
+
+        /// <summary>A side's draw as worked out (by SimulateLsd, here or on the other device): its distance noted.</summary>
+        public void SetLsd(Team team, double dist, double x, double y)
+        {
+            Lsd.Dist[(int)team] = dist;
+            if (!double.IsInfinity(dist)) { Lsd.RestX[(int)team] = x; Lsd.RestY[(int)team] = y; }
         }
 
         public void BeginLsdShot()
@@ -151,46 +210,6 @@ namespace FlickCurling.Core
         }
 
         public void FinishLsd() { InLsd = false; Lsd = null; }
-
-        public const double LsdBumperGap = 20;
-
-        /// <summary>
-        /// The last stone draw's bumpers (all Sheet.LsdBumperR): one on the centre line just in front of the house, so the
-        /// tee cannot be reached in a straight line, and Sheet.LsdBumpersPerHalf in each half (left and right) between the
-        /// house's centre line and the min line, placed at random but spread out (one in each band from low to high, apart
-        /// from every other post), and never inside the house.
-        /// </summary>
-        public static Post[] LsdBumpers(Rng rng, Post[] avoid)
-        {
-            double rr = Sheet.LsdBumperR;
-            var list = new List<Post> { new Post(Sheet.TeeX, Sheet.TeeY - Sheet.R - rr - 6, rr) };
-            double y0 = Sheet.Hog + 10, y1 = Sheet.TeeY;
-            int bands = Sheet.LsdBumpersPerHalf;
-            bool Clear(double x, double y, double gap)
-            {
-                if (Sheet.Dist(x, y, Sheet.TeeX, Sheet.TeeY) < Sheet.R + rr + 1.5) return false;   // wholly outside the house
-                foreach (var p in list) if (Sheet.Dist(x, y, p.X, p.Y) < gap) return false;
-                foreach (var p in avoid) if (Sheet.Dist(x, y, p.X, p.Y) < gap) return false;
-                return true;
-            }
-            foreach (bool left in new[] { true, false })
-                for (int band = 0; band < bands; band++)
-                {
-                    double xa = left ? 8 : Sheet.W / 2 + 8, xb = left ? Sheet.W / 2 - 8 : Sheet.W - 8;
-                    double ya = y0 + (y1 - y0) * band / bands, yb = y0 + (y1 - y0) * (band + 1) / bands;
-                    double x = 0, y = 0;
-                    bool placed = false;
-                    // the gap relaxes a little if a crowded spot leaves no room
-                    for (double gap = LsdBumperGap; !placed && gap >= 8; gap -= 4)
-                        for (int t = 0; t < 200 && !placed; t++)
-                        {
-                            x = xa + rng.NextDouble() * (xb - xa); y = ya + rng.NextDouble() * (yb - ya);
-                            placed = Clear(x, y, gap);
-                        }
-                    if (placed) list.Add(new Post(x, y, rr));
-                }
-            return list.ToArray();
-        }
 
         // ---------------- ends and shots ----------------
 

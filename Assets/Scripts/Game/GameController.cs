@@ -25,7 +25,7 @@ namespace FlickCurling.Game
         [SerializeField] TMP_FontAsset bodyFont;
         [SerializeField] TMP_FontAsset displayFont;
 
-        enum St { Menu, Coin, Aim, Ai, AiPull, Remote, Moving, Restoring, Settle, Measure, EndCard, Over, LsdShow }   // Remote: online, the opponent's turn
+        enum St { Menu, Coin, Aim, Ai, AiPull, Remote, Moving, Restoring, Settle, Measure, EndCard, Over, LsdShow, LsdDuel }   // Remote: online, the opponent's turn; LsdDuel: the turn order shot thrown together, after this player's throw
         enum Mode { Pvp, Easy, Normal, Hard, Online }
 
         const float W = (float)Sheet.W, L = (float)Sheet.L, HOG = (float)Sheet.Hog, BACK = (float)Sheet.Back, R = (float)Sheet.R;
@@ -258,18 +258,45 @@ namespace FlickCurling.Game
         void OnEnable() => EnhancedTouchSupport.Enable();
         void OnDisable() => EnhancedTouchSupport.Disable();
 
+        // the sheet: for the turn order shot without its house, and its target on it instead
         void ShowField(Field f)
         {
-            if (shownField == f) return;
-            shownField = f;
-            if (!boardSprites.TryGetValue(f.Key, out var sp))
+            bool house = !(m != null && m.InLsd);
+            ShowTarget();
+            if (shownField == f && shownHouse == house) return;
+            shownField = f; shownHouse = house;
+            string key = f.Key + (house ? "" : "#nohouse");
+            if (!boardSprites.TryGetValue(key, out var sp))
             {
-                var tex = BoardPainter.PaintBoard(f);
+                var tex = BoardPainter.PaintBoard(f, house);
                 sp = Sprite.Create(tex, new Rect(0, 0, tex.width, tex.height), Vector2.zero, BoardPainter.PPU);
-                boardSprites[f.Key] = sp;
+                boardSprites[key] = sp;
             }
             board.sprite = sp;
             board.transform.localPosition = new Vector3(BoardPainter.X0, 0, 1);
+        }
+        bool shownHouse = true;
+
+        // the turn order shot's target (Codex art, Resources/Board/target), on the board under the stones
+        SpriteRenderer target;
+        void ShowTarget()
+        {
+            bool on = m != null && m.InLsd && m.Lsd != null;
+            if (!target)
+            {
+                if (!on) return;
+                var go = new GameObject("LsdTarget");
+                go.transform.SetParent(board.transform.parent, false);
+                target = go.AddComponent<SpriteRenderer>();
+                target.sprite = Resources.Load<Sprite>("Board/target");
+                target.sortingOrder = board.sortingOrder + 1;
+                target.gameObject.layer = board.gameObject.layer;
+            }
+            target.gameObject.SetActive(on);
+            if (!on || !target.sprite) return;
+            float size = (float)Sheet.LsdTargetR * 2, w = target.sprite.bounds.size.x;
+            target.transform.localScale = Vector3.one * (size / w);
+            target.transform.localPosition = new Vector3((float)m.Lsd.TargetX, (float)m.Lsd.TargetY, 0.5f);
         }
 
         // =====================================================================
@@ -291,6 +318,7 @@ namespace FlickCurling.Game
             m = new Match(Maps.Build(key), PhysicsParams.Default, seed) { Listener = new LiveEvents(this) };
             brain = new Ai(seed ^ 0x5bd1e995);
             m.StartMatch();
+            DuelReset();
             fades.Clear(); floats.Clear();
             ShowField(m.Field);
             userMoved = false;
@@ -324,6 +352,7 @@ namespace FlickCurling.Game
 
         void LsdShot()
         {
+            if (LsdDuel) { DuelStart(); return; }   // (thrown together; two players on one device take turns)
             m.BeginLsdShot();
             fades.Clear();
             laneTo = null;
@@ -392,6 +421,7 @@ namespace FlickCurling.Game
         {
             m.StartEnd();
             fades.Clear(); measure = null;
+            ShowField(m.Field);   // (the house back: the turn order shot was thrown without it)
             if (TutorialHoldsEnd()) return;   // (the tutorial's end: the bonus guard pointed out first)
             PrepareShot();
         }
@@ -444,6 +474,7 @@ namespace FlickCurling.Game
         {
             // online, this device's own shot: the input goes to the opponent first (from then on the shot stands), then
             // this device runs it and sends the record both play
+            if (LsdDuel && m.InLsd && state == St.Aim) { DuelThrow(ang, pw, false); return; }
             bool mine = mode == Mode.Online && state == St.Aim;
             if (state == St.Aim) Haptics.Pulse(0.25f);   // this player's own throw: a light buzz as it goes
             if (laneTo.HasValue) { m.LaunchX = laneTo.Value; laneTo = null; }
@@ -519,6 +550,7 @@ namespace FlickCurling.Game
         // time is up: a pull under way is dropped and the stone is lost (in the draw: no record)
         void TimeOut()
         {
+            if (LsdDuel && m.InLsd) { if (duelMyThrow == null) DuelThrow(0, 0, true); return; }   // (no record: sent as such)
             if (mode == Mode.Online) OnlineSend(Online.OnlineMsg.Void);
             ApplyTimeOut();
         }
@@ -836,6 +868,7 @@ namespace FlickCurling.Game
                     else ShowEndCard();
                 }
             }
+            TickDuel(dt);
             if (state == St.LsdShow) { lsdShow.T += dt; if (lsdShow.T >= 1.8f && !hud.ToastsUp && OnlineNextTurnReady()) LsdNext(); }
             foreach (var f in fades) f.A -= dt / 0.5f;
             fades.RemoveAll(f => f.A <= 0);

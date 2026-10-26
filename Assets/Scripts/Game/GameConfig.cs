@@ -51,12 +51,19 @@ namespace FlickCurling.Game
         [Range(1f, 12f)] public float hitRingWidth = 3;
 
         [Header("Turn order shot")]
-        [Tooltip("Radius of every bumper, the one in front of the house included")]
-        [Range(2f, 8f)] public float lsdBumperRadius = 4;
-        [Tooltip("Bumpers in each half (left and right), besides the one in front of the house")]
-        [Range(0, 4)] public int lsdBumpersPerHalf = 2;
+        [Tooltip("Where the target's centre may be put, across the sheet: from (x) .. to (y), 0 the left rail, 1 the right")]
+        public Vector2 lsdTargetX = new Vector2(0.15f, 0.85f);
+        [Tooltip("Where the target's centre may be put, up the sheet: from (x) .. to (y), 0 the min line, 1 the out line")]
+        public Vector2 lsdTargetY = new Vector2(0.15f, 0.93f);
 
-        public void Apply() => Sheet.Configure(ends, shotsPerTeam, stoneRadius, lsdBumperRadius, lsdBumpersPerHalf, cushionTickets, unlimitedTickets);
+        public void Apply()
+        {
+            Sheet.Configure(ends, shotsPerTeam, stoneRadius, cushionTickets, unlimitedTickets);
+            // (0..1 across the sheet, and from the min line to the out line, in sheet units)
+            double X(float v) => v * Sheet.W;
+            double Y(float v) => Sheet.Hog + v * (Sheet.Back - Sheet.Hog);
+            Sheet.ConfigureLsdTarget(X(lsdTargetX.x), X(lsdTargetX.y), Y(lsdTargetY.x), Y(lsdTargetY.y));
+        }
 
         /// <summary>The project's config (Resources/GameConfig), or the defaults if it is missing.</summary>
         public static GameConfig Load()

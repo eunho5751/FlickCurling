@@ -15,6 +15,7 @@ namespace FlickCurling.Game.Online
         PlaybackDone,  // Seq: turn; I have finished playing the shot
         Deadline,      // Seq: turn; A: its deadline in network time (the thrower's device sets it)
         Forfeit,       // Text: the winner's player id (the sender gave up)
+        LsdThrow,      // the turn order shot (thrown together): A, B, C its angle, power and lane; Data its ShotRecord (empty: no record, out of time)
     }
 
     public struct OnlineMessage

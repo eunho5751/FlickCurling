@@ -29,7 +29,7 @@ namespace FlickCurling.Game
         const float NextTurnWait = 3;                      // the next turn waits this long at most for the other's playback
 
         /// <summary>Where a match is, as each device's card keeps it (<see cref="OnlinePlayerState.State"/>).</summary>
-        enum Phase { LsdStartCard = 1, Turn, LsdResultCard, EndCard, Over }
+        enum Phase { LsdStartCard = 1, Turn, LsdResultCard, EndCard, Over, LsdDuel }
 
         ShotPlayback playback;
         readonly HashSet<int> myReady = new HashSet<int>(), oppReady = new HashSet<int>(), oppDone = new HashSet<int>();
@@ -445,6 +445,7 @@ namespace FlickCurling.Game
                 bool done = Handle(msg);
                 if (done) { held.RemoveAt(i); i--; }
             }
+            TickDuelCard();
             TickPresence();
             TickArrival();
             CheckCard();
@@ -473,6 +474,7 @@ namespace FlickCurling.Game
                     if (msg.Seq == CardVs) { oppVsAt = msg.A; oppVsConnected = msg.B; }
                     return true;
                 case OnlineMsg.PlaybackDone: oppDone.Add(msg.Seq); return true;
+                case OnlineMsg.LsdThrow: DuelReceive(msg.A, msg.B, msg.C, msg.Data); return true;
             }
             if (awaitingState) return false;
             // turn messages: past turns are dropped, later ones kept, and so is this turn's until it has started here
@@ -498,6 +500,7 @@ namespace FlickCurling.Game
                     deadline = msg.A;
                     return true;
                 case OnlineMsg.Void:
+                    if (m.InLsd && LsdDuel) return true;   // (the draw thrown together: each side sends its own, LsdThrow)
                     // their time ran out (or, from the waiting side, it called this turn lost)
                     if (state == St.Remote || state == St.Aim) { ApplyTimeOut(); return true; }
                     return turnOver;
@@ -599,6 +602,7 @@ namespace FlickCurling.Game
 
         Phase? SteadyPhase()
         {
+            if (LsdDuel && m.InLsd && (state == St.Aim || state == St.LsdDuel)) return Phase.LsdDuel;
             if ((state == St.Aim || state == St.Remote) && !commit.HasValue) return Phase.Turn;
             if (state == St.Coin && hud.CardVisible) return m.InLsd && m.Lsd != null && m.Lsd.Dist[0] == null ? Phase.LsdStartCard : Phase.LsdResultCard;
             if (state == St.EndCard && hud.CardVisible && m.NextStep() != AfterEnd.GameOver) return Phase.EndCard;
@@ -611,6 +615,13 @@ namespace FlickCurling.Game
             MatchState st;
             try { st = MatchState.FromBytes(snap.Data); }
             catch (Exception e) { Debug.LogWarning("FlickCurling: bad match state: " + e.Message); return; }
+            // the draw thrown together: each device keeps its own (the other's throw comes from its card); one that was
+            // still at the card goes on to the draw
+            if ((Phase)snap.Phase == Phase.LsdDuel)
+            {
+                if (!(m.InLsd && (state == St.Aim || state == St.LsdDuel))) { hud.HideCard(); DuelStart(); }
+                return;
+            }
             hud.ClearToasts(); hud.HideCard();
             playback = null; playStart = null; commit = null; waitingCard = null;
             m.Restore(st);

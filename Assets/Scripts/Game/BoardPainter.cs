@@ -142,7 +142,8 @@ namespace FlickCurling.Game
 
         static Func<double> Rng(long seed) => () => { seed = seed * 16807 % 2147483647; return (seed - 1) / 2147483646.0; };
 
-        public static Texture2D PaintBoard(Field f)
+        /// <summary>The sheet as a texture; without its house for the turn order shot (its target is drawn instead).</summary>
+        public static Texture2D PaintBoard(Field f, bool house = true)
         {
             float W = (float)Sheet.W, L = (float)Sheet.L, HOG = (float)Sheet.Hog, BACK = (float)Sheet.Back, R = (float)Sheet.R, SR = (float)Sheet.SR;
             float tx = (float)Sheet.TeeX, ty = (float)Sheet.TeeY;
@@ -199,14 +200,17 @@ namespace FlickCurling.Game
             }
 
             // house
-            cv.Ring(tx, ty, (R + 18.5f) / 2, R - 18.5f, Palette.Rgba(38, 55, 100, .88f));
-            cv.Ring(tx, ty, 6, 6, Palette.Rgba(178, 64, 44, .9f));
-            foreach (var rr in new[] { R, 18.5f, 9, 3 }) cv.Ring(tx, ty, rr, 1 / FIT, Palette.Rgba(40, 24, 12, .5f));
+            if (house)
+            {
+                cv.Ring(tx, ty, (R + 18.5f) / 2, R - 18.5f, Palette.Rgba(38, 55, 100, .88f));
+                cv.Ring(tx, ty, 6, 6, Palette.Rgba(178, 64, 44, .9f));
+                foreach (var rr in new[] { R, 18.5f, 9, 3 }) cv.Ring(tx, ty, rr, 1 / FIT, Palette.Rgba(40, 24, 12, .5f));
+            }
 
             // lines
             float dash = 4 / FIT;
             for (float y = HOG; y < BACK; y += 2 * dash) cv.Line(50, y, 50, Mathf.Min(BACK, y + dash), 1 / FIT, Palette.Rgba(52, 32, 16, .45f));
-            cv.Rect(0, ty - 0.5f / FIT, W, ty + 0.5f / FIT, Palette.Rgba(52, 32, 16, .55f));
+            if (house) cv.Rect(0, ty - 0.5f / FIT, W, ty + 0.5f / FIT, Palette.Rgba(52, 32, 16, .55f));   // (the tee line)
             cv.Rect(0, HOG - 1.5f / FIT, W, HOG + 1.5f / FIT, Palette.Rgba(59, 36, 20, .5f));   // light: the shot-clock fuse lies on it
             cv.Rect(0, BACK - 1f / FIT, W, BACK + 1f / FIT, Palette.Hex("#3b2414"));
 
@@ -267,7 +271,7 @@ namespace FlickCurling.Game
                     cv.Line((float)w.X1, (float)w.Y1, (float)w.X2, (float)w.Y2, 1.2f, lively ? Palette.Brass : Palette.Hex("#2a1910"));
                 }
             }
-            return cv.ToTexture("Board_" + f.Key);
+            return cv.ToTexture("Board_" + f.Key + (house ? "" : "_nohouse"));
         }
 
         static void PaintWood(Canvas cv)

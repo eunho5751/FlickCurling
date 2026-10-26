@@ -16,21 +16,29 @@ namespace FlickCurling.Core
         public static int Per { get; private set; } = 5;         // shots per team in an end
         public static int Shots => Per * 2;
         public static int Ends { get; private set; } = 4;
-        // the turn order shot's bumpers: their radius, and how many in each half (plus the one in front of the house)
-        public static double LsdBumperR { get; private set; } = 4;
-        public static int LsdBumpersPerHalf { get; private set; } = 2;
         public static int Tickets { get; private set; } = 2;      // cushion tickets per team in an end
         public static bool UnlimitedTickets { get; private set; }  // cushions are always free: no ticket spent, never a foul
 
-        public static void Configure(int ends = 4, int shotsPerTeam = 5, double stoneRadius = 4, double lsdBumperRadius = 4, int lsdBumpersPerHalf = 2, int tickets = 2, bool unlimitedTickets = false)
+        // the turn order shot's target: where it may be put (its centre), from .. to across and up the sheet
+        public static double LsdTargetXMin { get; private set; } = 15;
+        public static double LsdTargetXMax { get; private set; } = 85;
+        public static double LsdTargetYMin { get; private set; } = Hog + 20;
+        public static double LsdTargetYMax { get; private set; } = Back - 10;
+        public const double LsdTargetR = 6.75;   // its radius (three quarters of the house's button)
+
+        public static void ConfigureLsdTarget(double xMin, double xMax, double yMin, double yMax)
+        {
+            LsdTargetXMin = Math.Min(xMin, xMax); LsdTargetXMax = Math.Max(xMin, xMax);
+            LsdTargetYMin = Math.Min(yMin, yMax); LsdTargetYMax = Math.Max(yMin, yMax);
+        }
+
+        public static void Configure(int ends = 4, int shotsPerTeam = 5, double stoneRadius = 4, int tickets = 2, bool unlimitedTickets = false)
         {
             Tickets = Math.Max(0, tickets);
             UnlimitedTickets = unlimitedTickets;
             Ends = Math.Max(1, ends);
             Per = Math.Max(1, shotsPerTeam);
             SR = Clamp(stoneRadius, 1, 10);
-            LsdBumperR = Clamp(lsdBumperRadius, 1, 10);
-            LsdBumpersPerHalf = Math.Max(0, lsdBumpersPerHalf);
         }
 
         // bonus guard: in the guard zone, just short of the house (y = 130 at the default size)

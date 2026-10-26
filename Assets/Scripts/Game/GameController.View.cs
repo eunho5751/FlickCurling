@@ -443,7 +443,7 @@ namespace FlickCurling.Game
         // in the middle, for the one throwing next to beat
         void DrawLsdMarks()
         {
-            if (!m.InLsd || m.Lsd == null) return;
+            if (!m.InLsd || m.Lsd == null || LsdDuel) return;   // (thrown together: DrawDuel shows both)
             foreach (var t in m.Lsd.Order)
             {
                 double? d = m.Lsd.Dist[(int)t];
@@ -518,18 +518,6 @@ namespace FlickCurling.Game
                     under.Ring(new Vector2((float)st.X, (float)st.Y), SR + 1.4f, U(3), GlowCol);
                 }
             }
-            // the draw's bumpers (the target is the tee itself), brass studs like the map's posts, under the stones
-            if (m.InLsd && m.Lsd != null)
-            {
-                foreach (var b in m.Lsd.Bumpers)
-                {
-                    var c = new Vector2((float)b.X, (float)b.Y); float br = (float)b.R;
-                    under.Disc(c + new Vector2(0.5f, -0.8f), br, Palette.Rgba(45, 22, 6, .4f));
-                    under.Disc(c, br, Palette.Hex("#7a5016"));
-                    under.Disc(c + new Vector2(-br * 0.08f, br * 0.1f), br * 0.82f, Palette.Hex("#c38f3a"));
-                    under.Disc(c + new Vector2(-br * 0.3f, br * 0.35f), br * 0.38f, Palette.Hex("#f6d58a"));
-                }
-            }
             foreach (var f in fades) DrawStone(f.X, f.Y, f.Team, f.A);
             // stones
             if (state == St.Restoring)
@@ -577,6 +565,7 @@ namespace FlickCurling.Game
                 // online, the opponent's turn is noted over the stone (the AI's turns show nothing)
                 if (state == St.Remote) hud.Label(LT("online.opponentAiming"), lx, ly - SR * s - 16, 13, Palette.Text, 0, false, true);
             }
+            DrawDuel();
             // last stone draw: distance from the target
             if (state == St.LsdShow && lsdShow != null && lsdShow.D.HasValue)
             {
