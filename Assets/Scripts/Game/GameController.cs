@@ -663,6 +663,7 @@ namespace FlickCurling.Game
             token++;
             OnlineLeave();
             ResetShotInput(); aiPull = null; clock = -1;
+            state = St.Over;   // (nothing goes on while the screen fades out: an AI's pull, a shot, a turn)
             hud.ClearToasts(); hud.HideCard();
             ScreenFader.LoadScene(MainMenuScene);
         }
