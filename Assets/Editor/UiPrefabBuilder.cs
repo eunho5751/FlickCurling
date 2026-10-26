@@ -295,7 +295,8 @@ namespace FlickCurling.EditorTools
         }
 
         // a shop product: the parchment card hanging from a brass nail, the name across its top strip, the picture in the
-        // middle, the price (a coin and the amount) on the wooden band at the bottom; the card swings about the nail
+        // middle, the price (a coin and the amount, or the store's price) on the wooden band at the bottom; the card swings
+        // about the nail
         public const float ShopCardW = 224, ShopCardH = 322;   // the art (330 x 452) at 224 wide, plus the nail's upper half
         const float NailSize = 30;
         // the card art's edges (frame, name plate, price plate) are drawn this many art pixels per reference pixel: a little
@@ -329,7 +330,9 @@ namespace FlickCurling.EditorTools
             nrt.offsetMin = new Vector2(ArtX(36), -ArtY(79)); nrt.offsetMax = new Vector2(-ArtX(36), -ArtY(30));
             name.enableAutoSizing = true; name.fontSizeMin = 16; name.fontSizeMax = 28;
             name.alignment = TextAlignmentOptions.Midline;   // centred on the letters themselves, not the font's line box
-            name.text = "Item";
+            // localized; each card is given its product's name (ShopCard.SetName), this one only fills the prefab
+            name.text = UiStrings.Entries.First(e => e[0] == "shop.item.removeAds")[1];
+            var nameText = LocalizeEvents.BindText(name, Loc.Table, "shop.item.removeAds");
 
             var pic = MainMenuBuilder.Child<Image>(tilt, "Picture");
             var prt = pic.rectTransform;
@@ -362,26 +365,11 @@ namespace FlickCurling.EditorTools
             var so = new SerializedObject(card);
             so.FindProperty("tilt").objectReferenceValue = tilt;
             so.FindProperty("price").objectReferenceValue = price;
+            so.FindProperty("coin").objectReferenceValue = coin.gameObject;
+            so.FindProperty("nameText").objectReferenceValue = nameText;
             so.FindProperty("picture").objectReferenceValue = pic;
             so.ApplyModifiedPropertiesWithoutUndo();
             return root;
-        }
-
-        /// <summary>Fills a shop card instance in: its localized name, picture and price.</summary>
-        public static ShopCard SetShopCard(GameObject card, string nameKey, Sprite picture, int price)
-        {
-            var name = card.transform.Find("Card/Name").GetComponent<TextMeshProUGUI>();
-            name.text = UiStrings.Entries.First(e => e[0] == nameKey)[1];
-            LocalizeEvents.BindText(name, Loc.Table, nameKey);
-            var c = card.GetComponent<ShopCard>();
-            var so = new SerializedObject(c);
-            // through the instances' own serialized properties, so the overrides stick in the scene
-            var img = (Image)so.FindProperty("picture").objectReferenceValue;
-            var iso = new SerializedObject(img); iso.FindProperty("m_Sprite").objectReferenceValue = picture; iso.ApplyModifiedPropertiesWithoutUndo();
-            var amount = (TextMeshProUGUI)so.FindProperty("price").objectReferenceValue;
-            amount.text = price.ToString("N0");
-            PrefabUtility.RecordPrefabInstancePropertyModifications(amount);
-            return c;
         }
 
         // a vertical scroll view: a clipped viewport whose content grows with what is put in it (Viewport/Content), and a

@@ -33,10 +33,17 @@ namespace FlickCurling.EditorTools
             new[] { "mainmenu.shop", "상점", "Shop", "ショップ" },
             new[] { "mainmenu.settings", "설정", "Settings", "設定" },
 
-            // ---- main menu: shop (test products for now) ----
-            new[] { "shop.item.coins", "코인 한 줌", "Handful of Coins", "コインひとつかみ" },
-            new[] { "shop.item.goldStone", "황금 알", "Golden Stone", "金の石" },
-            new[] { "shop.item.chest", "보물 상자", "Treasure Chest", "宝箱" },
+            // ---- main menu: shop (the products' names, and what the shop says) ----
+            new[] { "shop.item.removeAds", "광고 제거", "Remove Ads", "広告削除" },
+            new[] { "shop.removeAds.done", "광고가 제거되었어요!", "Ads have been removed!", "広告が削除されました！" },
+            new[] { "shop.owned", "구매 완료", "Owned", "購入済み" },
+            new[] { "shop.pending", "승인 대기", "Pending", "承認待ち" },
+            new[] { "shop.unavailable", "스토어에 연결할 수 없어요.\n잠시 후 다시 시도해 주세요.", "Can't reach the store.\nPlease try again later.", "ストアに接続できません。\nしばらくしてからもう一度お試しください。" },
+            new[] { "shop.deferred", "결제 승인을 기다리고 있어요.\n승인되면 자동으로 적용돼요.", "Your purchase is waiting for approval.\nIt will be applied once approved.", "購入の承認を待っています。\n承認されると自動で反映されます。" },
+            new[] { "shop.restore", "구매 복원", "Restore Purchases", "購入を復元" },
+            new[] { "shop.restored", "구매 내역을 복원했어요.", "Your purchases have been restored.", "購入履歴を復元しました。" },
+            new[] { "shop.restoreFailed", "구매 내역을 복원하지 못했어요.\n잠시 후 다시 시도해 주세요.", "Couldn't restore your purchases.\nPlease try again later.", "購入履歴を復元できませんでした。\nしばらくしてからもう一度お試しください。" },
+            new[] { "shop.failed", "결제에 실패했어요.\n다시 시도해 주세요.", "The purchase didn't go through.\nPlease try again.", "購入できませんでした。\nもう一度お試しください。" },
 
             // ---- main menu: match setup popup ----
             new[] { "matchsetup.mode", "모드", "Mode", "モード" },

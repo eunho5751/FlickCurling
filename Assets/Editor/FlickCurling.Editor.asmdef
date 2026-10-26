@@ -10,6 +10,7 @@
         "Unity.Localization",
         "Unity.ResourceManager",
         "Unity.Localization.Editor",
+        "Unity.Purchasing",
         "Unity.Netcode.Runtime"
     ],
     "includePlatforms": [

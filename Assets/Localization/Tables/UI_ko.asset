@@ -327,18 +327,6 @@ MonoBehaviour:
     m_Localized: "\uC0C1\uC810"
     m_Metadata:
       m_Items: []
-  - m_Id: 964901654679552
-    m_Localized: "\uCF54\uC778 \uD55C \uC90C"
-    m_Metadata:
-      m_Items: []
-  - m_Id: 964901654679553
-    m_Localized: "\uD669\uAE08 \uC54C"
-    m_Metadata:
-      m_Items: []
-  - m_Id: 964901654679554
-    m_Localized: "\uBCF4\uBB3C \uC0C1\uC790"
-    m_Metadata:
-      m_Items: []
   - m_Id: 1066247632375808
     m_Localized: PID
     m_Metadata:
@@ -977,6 +965,50 @@ MonoBehaviour:
     m_Metadata:
       m_Items:
       - rid: 4297768082125881572
+  - m_Id: 4162172798029824
+    m_Localized: "\uAD11\uACE0 \uC81C\uAC70"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4162172890304512
+    m_Localized: "\uAD11\uACE0\uAC00 \uC81C\uAC70\uB418\uC5C8\uC5B4\uC694!"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4162172890304513
+    m_Localized: "\uAD6C\uB9E4 \uC644\uB8CC"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4162172890304514
+    m_Localized: "\uC2B9\uC778 \uB300\uAE30"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4162172890304515
+    m_Localized: "\uC2A4\uD1A0\uC5B4\uC5D0 \uC5F0\uACB0\uD560 \uC218 \uC5C6\uC5B4\uC694.\n\uC7A0\uC2DC
+      \uD6C4 \uB2E4\uC2DC \uC2DC\uB3C4\uD574 \uC8FC\uC138\uC694."
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4162172890304516
+    m_Localized: "\uACB0\uC81C \uC2B9\uC778\uC744 \uAE30\uB2E4\uB9AC\uACE0 \uC788\uC5B4\uC694.\n\uC2B9\uC778\uB418\uBA74
+      \uC790\uB3D9\uC73C\uB85C \uC801\uC6A9\uB3FC\uC694."
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4162172890304517
+    m_Localized: "\uACB0\uC81C\uC5D0 \uC2E4\uD328\uD588\uC5B4\uC694.\n\uB2E4\uC2DC
+      \uC2DC\uB3C4\uD574 \uC8FC\uC138\uC694."
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4163776012013568
+    m_Localized: "\uAD6C\uB9E4 \uBCF5\uC6D0"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4163776070733824
+    m_Localized: "\uAD6C\uB9E4 \uB0B4\uC5ED\uC744 \uBCF5\uC6D0\uD588\uC5B4\uC694."
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4163776070733825
+    m_Localized: "\uAD6C\uB9E4 \uB0B4\uC5ED\uC744 \uBCF5\uC6D0\uD558\uC9C0 \uBABB\uD588\uC5B4\uC694.\n\uC7A0\uC2DC
+      \uD6C4 \uB2E4\uC2DC \uC2DC\uB3C4\uD574 \uC8FC\uC138\uC694."
+    m_Metadata:
+      m_Items: []
   references:
     version: 2
     RefIds:

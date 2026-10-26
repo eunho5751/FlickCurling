@@ -327,18 +327,6 @@ MonoBehaviour:
     m_Localized: Shop
     m_Metadata:
       m_Items: []
-  - m_Id: 964901654679552
-    m_Localized: Handful of Coins
-    m_Metadata:
-      m_Items: []
-  - m_Id: 964901654679553
-    m_Localized: Golden Stone
-    m_Metadata:
-      m_Items: []
-  - m_Id: 964901654679554
-    m_Localized: Treasure Chest
-    m_Metadata:
-      m_Items: []
   - m_Id: 1066247632375808
     m_Localized: PID
     m_Metadata:
@@ -934,6 +922,55 @@ MonoBehaviour:
     m_Metadata:
       m_Items:
       - rid: 4297768082125881571
+  - m_Id: 4162172798029824
+    m_Localized: Remove Ads
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4162172890304512
+    m_Localized: Ads have been removed!
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4162172890304513
+    m_Localized: Owned
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4162172890304514
+    m_Localized: Pending
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4162172890304515
+    m_Localized: 'Can''t reach the store.
+
+      Please try again later.'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4162172890304516
+    m_Localized: 'Your purchase is waiting for approval.
+
+      It will be applied
+      once approved.'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4162172890304517
+    m_Localized: 'The purchase didn''t go through.
+
+      Please try again.'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4163776012013568
+    m_Localized: Restore Purchases
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4163776070733824
+    m_Localized: Your purchases have been restored.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4163776070733825
+    m_Localized: 'Couldn''t restore your purchases.
+
+      Please try again later.'
+    m_Metadata:
+      m_Items: []
   references:
     version: 2
     RefIds:

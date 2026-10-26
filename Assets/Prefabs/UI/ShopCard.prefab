@@ -433,6 +433,7 @@ GameObject:
   - component: {fileID: 4171289822502406520}
   - component: {fileID: 6658968049905835281}
   - component: {fileID: 269723742514968534}
+  - component: {fileID: 3868075670156836249}
   m_Layer: 0
   m_Name: Name
   m_TagString: Untagged
@@ -487,7 +488,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: Item
+  m_text: "\uAD11\uACE0 \uC81C\uAC70"
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 1d7ecd7f5d6448747b300c907dec8bef, type: 2}
   m_sharedMaterial: {fileID: -9168982116695714132, guid: 1d7ecd7f5d6448747b300c907dec8bef, type: 2}
@@ -559,6 +560,46 @@ MonoBehaviour:
   m_hasFontAssetChanged: 0
   m_baseMaterial: {fileID: 0}
   m_maskOffset: {x: 0, y: 0, z: 0, w: 0}
+--- !u!114 &3868075670156836249
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5054440815453295135}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 56eb0353ae6e5124bb35b17aff880f16, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.Localization::UnityEngine.Localization.Components.LocalizeStringEvent
+  m_StringReference:
+    m_TableReference:
+      m_TableCollectionName: UI
+    m_TableEntryReference:
+      m_KeyId: 0
+      m_Key: shop.item.removeAds
+    m_FallbackState: 0
+    m_WaitForCompletion: 0
+    m_LocalVariables: []
+  m_FormatArguments: []
+  m_UpdateString:
+    m_PersistentCalls:
+      m_Calls:
+      - m_Target: {fileID: 269723742514968534}
+        m_TargetAssemblyTypeName: TMPro.TMP_Text, Unity.TextMeshPro
+        m_MethodName: set_text
+        m_Mode: 0
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: 
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 1
+  references:
+    version: 2
+    RefIds: []
 --- !u!1 &5614762195566269020
 GameObject:
   m_ObjectHideFlags: 0
@@ -835,5 +876,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: FlickCurling.Game::FlickCurling.Game.ShopCard
   tilt: {fileID: 4421529808823502452}
   price: {fileID: 5757609279192219966}
+  coin: {fileID: 3511302330669677542}
+  nameText: {fileID: 3868075670156836249}
   picture: {fileID: 2767975297675014395}
   maxTilt: 2.8

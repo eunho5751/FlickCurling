@@ -303,18 +303,6 @@ MonoBehaviour:
     m_Key: mainmenu.shop
     m_Metadata:
       m_Items: []
-  - m_Id: 964901654679552
-    m_Key: shop.item.coins
-    m_Metadata:
-      m_Items: []
-  - m_Id: 964901654679553
-    m_Key: shop.item.goldStone
-    m_Metadata:
-      m_Items: []
-  - m_Id: 964901654679554
-    m_Key: shop.item.chest
-    m_Metadata:
-      m_Items: []
   - m_Id: 1066247632375808
     m_Key: account.pid
     m_Metadata:
@@ -873,6 +861,46 @@ MonoBehaviour:
       m_Items: []
   - m_Id: 4139052028579896
     m_Key: rules.order.4.t
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4162172798029824
+    m_Key: shop.item.removeAds
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4162172890304512
+    m_Key: shop.removeAds.done
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4162172890304513
+    m_Key: shop.owned
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4162172890304514
+    m_Key: shop.pending
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4162172890304515
+    m_Key: shop.unavailable
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4162172890304516
+    m_Key: shop.deferred
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4162172890304517
+    m_Key: shop.failed
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4163776012013568
+    m_Key: shop.restore
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4163776070733824
+    m_Key: shop.restored
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4163776070733825
+    m_Key: shop.restoreFailed
     m_Metadata:
       m_Items: []
   m_Metadata:

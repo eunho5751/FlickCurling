@@ -159,7 +159,7 @@ namespace FlickCurling.EditorTools
             popup.SetActive(false);
             var matchSetup = BuildMatchSetup(popupPrefab, canvasGo.transform, buttonFont);
             var onlineSetup = BuildOnlineSetup(popupPrefab, canvasGo.transform);
-            var shop = BuildShop(popupPrefab, canvasGo.transform);
+            var shop = BuildShop(popupPrefab, canvasGo.transform, popup.GetComponent<Popup>());
             var leaderboard = BuildLeaderboard(popupPrefab, canvasGo.transform);
             var rulesGo = (GameObject)PrefabUtility.InstantiatePrefab(BuildRulesPrefab(popupPrefab), canvasGo.transform);
             rulesGo.SetActive(false);
@@ -319,7 +319,8 @@ namespace FlickCurling.EditorTools
         const float SettingsToMenuW = 460;
         const float SettingsW = 860, SettingsH = 1000, SettingsRowH = 92, SettingsLabelW = 230, SettingsValueW = 80;
 
-        // ---- the shop popup: the products as cards hanging from nails, three in a row (three test products for now) ----
+        // ---- the shop popup: the products as cards hanging from nails, three in a row. The cards are made when it opens,
+        // one per product of the shop catalog (Resources/ShopCatalog), from a card template here ----
 
         // the gap leaves room for the cards' tilt: two neighbours leaning toward each other never touch. The window shows two
         // full rows (six products) and the top of the third, a hint that the list goes on
@@ -328,8 +329,9 @@ namespace FlickCurling.EditorTools
 
         const float ShopTiltRoom = 16;   // a card tilted 2.8° reaches about 9 px past its cell
 
-        static Popup BuildShop(GameObject popupPrefab, Transform parent)
+        static ShopPanel BuildShop(GameObject popupPrefab, Transform parent, Popup message)
         {
+            EnsureShopCatalog();
             var go = (GameObject)PrefabUtility.InstantiatePrefab(popupPrefab, parent);
             go.name = "ShopPopup";
             var title = go.transform.Find("Window/TitleRow/Title").GetComponent<TextMeshProUGUI>();
@@ -359,13 +361,52 @@ namespace FlickCurling.EditorTools
             grid.constraint = GridLayoutGroup.Constraint.FixedColumnCount; grid.constraintCount = 3;
             grid.padding = new RectOffset(0, 0, 8, 12);
 
-            foreach (var (key, art, price) in new[] { ("shop.item.coins", "shop_item_coins", 100), ("shop.item.goldStone", "shop_item_goldstone", 500), ("shop.item.chest", "shop_item_chest", 1200) })
-            {
-                var card = UiPrefabBuilder.Place(UiPrefabBuilder.ShopCardPath, content, "Card_" + art.Substring("shop_item_".Length));
-                UiPrefabBuilder.SetShopCard(card, key, ImportSprite("Assets/Art/Menu/" + art + ".png", Vector4.zero, 512), price);
-            }
+            var template = UiPrefabBuilder.Place(UiPrefabBuilder.ShopCardPath, content, "CardTemplate");
+            template.SetActive(false);
+
+            // iOS only (ShopPanel shows it, making the window that much taller): restore purchases, under the cards
+            var restoreRow = Child<RectTransform>(area, "RestoreRow");
+            restoreRow.anchorMin = new Vector2(0, 0); restoreRow.anchorMax = new Vector2(1, 0); restoreRow.pivot = new Vector2(0.5f, 0);
+            restoreRow.anchoredPosition = Vector2.zero; restoreRow.sizeDelta = new Vector2(0, SetupOkH);
+            var restoreGo = UiPrefabBuilder.Place(UiPrefabBuilder.SecondaryPath, restoreRow, "Restore");
+            Place((RectTransform)restoreGo.transform, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(SettingsToMenuW, SetupOkH));
+            var restore = UiPrefabBuilder.SetLabel(restoreGo, "shop.restore");
+            restoreRow.gameObject.SetActive(false);
+
+            var panel = go.AddComponent<ShopPanel>();
+            var so = new SerializedObject(panel);
+            so.FindProperty("popup").objectReferenceValue = go.GetComponent<Popup>();
+            so.FindProperty("cardTemplate").objectReferenceValue = template.GetComponent<ShopCard>();
+            so.FindProperty("message").objectReferenceValue = message;
+            so.FindProperty("restoreRow").objectReferenceValue = restoreRow.gameObject;
+            so.FindProperty("restore").objectReferenceValue = restore;
+            so.FindProperty("products").objectReferenceValue = scroll.transform;
+            so.FindProperty("size").vector2Value = new Vector2(ShopW, ShopH);
+            so.FindProperty("restoreRoom").floatValue = SetupOkH + 28;
+            so.ApplyModifiedPropertiesWithoutUndo();
             go.SetActive(false);
-            return go.GetComponent<Popup>();
+            return panel;
+        }
+
+        // the shop's products (ScriptableObjects in Assets/Data/Shop) and their catalog, made once; kept as edited after
+        const string ShopDataDir = "Assets/Data/Shop";
+
+        static void EnsureShopCatalog()
+        {
+            string catalogPath = "Assets/Resources/" + ShopCatalog.ResourcePath + ".asset";
+            if (AssetDatabase.LoadAssetAtPath<ShopCatalog>(catalogPath)) return;
+            Directory.CreateDirectory(ShopDataDir);
+            var removeAds = ScriptableObject.CreateInstance<ShopProduct>();
+            removeAds.id = Purchases.RemoveAdsId;
+            removeAds.type = UnityEngine.Purchasing.ProductType.NonConsumable;
+            removeAds.displayName = new UnityEngine.Localization.LocalizedString(Loc.Table, "shop.item.removeAds");
+            removeAds.purchasedMessage = new UnityEngine.Localization.LocalizedString(Loc.Table, "shop.removeAds.done");
+            removeAds.icon = ImportSprite("Assets/Art/Menu/shop_item_noads.png", Vector4.zero, 512);
+            AssetDatabase.CreateAsset(removeAds, ShopDataDir + "/RemoveAds.asset");
+            var catalog = ScriptableObject.CreateInstance<ShopCatalog>();
+            catalog.products.Add(removeAds);
+            AssetDatabase.CreateAsset(catalog, catalogPath);
+            AssetDatabase.SaveAssets();
         }
 
         // ---- the leaderboard popup: this player's rank, points and win rate in a box at the top (or why there are none, or

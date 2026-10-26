@@ -18,7 +18,12 @@
         "Unity.Services.CloudSave",
         "Unity.Services.Leaderboards",
         "Unity.Networking.Transport",
-        "Unity.Collections"
+        "Unity.Collections",
+        "Unity.Purchasing",
+        "Unity.Purchasing.Security",
+        "Unity.Purchasing.SecurityStub",
+        "Unity.Purchasing.SecurityCore",
+        "FlickCurling.PurchasingTangle"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

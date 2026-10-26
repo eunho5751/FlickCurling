@@ -27,7 +27,7 @@ namespace FlickCurling.Game
         [SerializeField] MatchSetup matchSetup;
         [SerializeField] Online.OnlineSetup onlineSetup;
         [SerializeField] SettingsPanel settings;
-        [SerializeField] Popup shop;
+        [SerializeField] ShopPanel shop;
         [SerializeField] Online.LeaderboardPopup leaderboard;
         [SerializeField] RulesPopup rules;
 
@@ -43,7 +43,7 @@ namespace FlickCurling.Game
                 else if (e.Key == "mainmenu.online" && onlineSetup) e.Button.onClick.AddListener(onlineSetup.Open);
                 else if (e.Key == "mainmenu.leaderboard" && leaderboard) e.Button.onClick.AddListener(leaderboard.Open);
                 else if (e.Key == "mainmenu.rules" && rules) e.Button.onClick.AddListener(rules.Open);
-                else if (e.Key == "mainmenu.shop") e.Button.onClick.AddListener(() => shop.Show());
+                else if (e.Key == "mainmenu.shop") e.Button.onClick.AddListener(shop.Open);
                 else if (e.Key == "mainmenu.settings") e.Button.onClick.AddListener(() => settings.Open());
             }
         }
