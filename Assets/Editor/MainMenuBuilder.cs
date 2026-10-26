@@ -161,6 +161,8 @@ namespace FlickCurling.EditorTools
             var onlineSetup = BuildOnlineSetup(popupPrefab, canvasGo.transform);
             var shop = BuildShop(popupPrefab, canvasGo.transform);
             var leaderboard = BuildLeaderboard(popupPrefab, canvasGo.transform);
+            var rulesGo = (GameObject)PrefabUtility.InstantiatePrefab(BuildRulesPrefab(popupPrefab), canvasGo.transform);
+            rulesGo.SetActive(false);
             var settingsPrefab = BuildSettingsPrefab(popupPrefab);
             var settingsGo = (GameObject)PrefabUtility.InstantiatePrefab(settingsPrefab, canvasGo.transform);
             settingsGo.SetActive(false);
@@ -179,6 +181,7 @@ namespace FlickCurling.EditorTools
             so.FindProperty("settings").objectReferenceValue = settingsPanel;
             so.FindProperty("shop").objectReferenceValue = shop;
             so.FindProperty("leaderboard").objectReferenceValue = leaderboard;
+            so.FindProperty("rules").objectReferenceValue = rulesGo.GetComponent<RulesPopup>();
             var arr = so.FindProperty("entries");
             arr.arraySize = entries.Length;
             for (int i = 0; i < entries.Length; i++)
@@ -545,6 +548,138 @@ namespace FlickCurling.EditorTools
             return row;
         }
 
+        // ---- the game rules popup: the list of its pages (shared secondary buttons), and a page: "n / count", then its
+        // items (a label over a short line) in a clipped viewport that swipes sideways; the list button (Codex art, the
+        // close button's sibling) at the title bar's left end, and the swipe hint (the tutorial's hand and arrow) ----
+
+        public const string RulesPrefabPath = "Assets/Resources/" + RulesPopup.ResourcePath + ".prefab";
+        const float RulesW = 900, RulesListH = 1040, RulesPageH = 1660, RulesButtonW = 620, RulesButtonH = 108, RulesCounterH = 48;
+        const float RulesHandW = 120, RulesHandH = 172, RulesArrowW = 250, RulesArrowH = 69;
+        static readonly Color32 RulesAccent = new Color32(0xb0, 0x4a, 0x1c, 0xff);
+
+        static GameObject BuildRulesPrefab(GameObject popupPrefab)
+        {
+            var go = (GameObject)PrefabUtility.InstantiatePrefab(popupPrefab);
+            go.name = "RulesPopup";
+            var legendFont = AssetDatabase.LoadAssetAtPath<TMP_FontAsset>(FontBuilder.DisplayPath);
+            var bodyFont = AssetDatabase.LoadAssetAtPath<TMP_FontAsset>(FontBuilder.BodyPath);
+            // titled like the menu button, with its icon; a page puts its own title there
+            var title = go.transform.Find("Window/TitleRow/Title").GetComponent<TextMeshProUGUI>();
+            title.text = UiStrings.Entries.First(e => e[0] == "mainmenu.rules")[1];
+            var titleLoc = LocalizeEvents.BindText(title, Loc.Table, "mainmenu.rules");
+            var icon = go.transform.Find("Window/TitleRow/Icon").GetComponent<Image>();
+            icon.sprite = AssetDatabase.LoadAssetAtPath<Sprite>(IconPath("mainmenu.rules"));
+            icon.gameObject.SetActive(true);
+            var win = (RectTransform)go.transform.Find("Window");
+            win.sizeDelta = new Vector2(RulesW, RulesListH);
+
+            // the list button: where the close button is, mirrored to the bar's left end
+            var close = (RectTransform)win.Find("Close");
+            var listImg = Child<Image>(win, "ListButton");
+            var lrt = listImg.rectTransform;
+            lrt.anchorMin = lrt.anchorMax = new Vector2(0, 1); lrt.pivot = close.pivot;
+            lrt.anchoredPosition = new Vector2(-close.anchoredPosition.x, close.anchoredPosition.y);
+            lrt.sizeDelta = close.sizeDelta;
+            listImg.sprite = ImportSprite("Assets/Art/Menu/popup_list.png", Vector4.zero, 256);
+            listImg.preserveAspect = true;
+            var listButton = listImg.gameObject.AddComponent<Button>();
+            listButton.colors = close.GetComponent<Button>().colors;
+            listImg.gameObject.SetActive(false);
+
+            var content = (RectTransform)win.Find("Content");
+
+            // the list: one button per page, down the middle
+            var listView = Child<RectTransform>(content, "PageList");
+            Stretch(listView);
+            var lv = listView.gameObject.AddComponent<VerticalLayoutGroup>();
+            lv.spacing = 24; lv.childAlignment = TextAnchor.MiddleCenter;
+            lv.childControlWidth = lv.childControlHeight = true; lv.childForceExpandWidth = lv.childForceExpandHeight = false;
+            var pageButtons = new Button[RulesPopup.PageCount];
+            for (int i = 0; i < pageButtons.Length; i++)
+            {
+                var b = UiPrefabBuilder.Place(UiPrefabBuilder.SecondaryPath, listView, "Page_" + (i + 1));
+                var le = b.AddComponent<LayoutElement>(); le.preferredWidth = RulesButtonW; le.preferredHeight = RulesButtonH;
+                pageButtons[i] = UiPrefabBuilder.SetLabel(b, RulesPopup.TitleKey(i));
+            }
+
+            // a page: the count, then the page swiping in its viewport
+            var pageView = Child<RectTransform>(content, "Page");
+            Stretch(pageView);
+            var counter = Label(pageView, "Counter", legendFont, 32, AccountValueInk);
+            var crt = counter.rectTransform;
+            crt.anchorMin = new Vector2(0, 1); crt.anchorMax = new Vector2(1, 1); crt.pivot = new Vector2(0.5f, 1);
+            crt.anchoredPosition = new Vector2(0, 4); crt.sizeDelta = new Vector2(0, RulesCounterH);
+            counter.text = "1 / " + RulesPopup.PageCount;
+            var viewport = Child<Image>(pageView, "Viewport");
+            Stretch(viewport.rectTransform);
+            viewport.rectTransform.offsetMax = new Vector2(0, -(RulesCounterH + 18));
+            viewport.color = Color.clear;   // (a raycast target, for the swipe)
+            viewport.gameObject.AddComponent<RectMask2D>();
+            var swipe = viewport.gameObject.AddComponent<SwipeArea>();
+
+            var template = Child<RectTransform>(viewport.transform, "PageTemplate");
+            Stretch(template);
+            var tv = template.gameObject.AddComponent<VerticalLayoutGroup>();
+            tv.spacing = 34; tv.childAlignment = TextAnchor.UpperCenter; tv.padding = new RectOffset(0, 0, 6, 0);
+            tv.childControlWidth = tv.childControlHeight = true; tv.childForceExpandWidth = true; tv.childForceExpandHeight = false;
+            // the page's picture (RulesFigures draws it), its height set per page
+            var figure = Child<RectTransform>(template, "Figure");
+            figure.gameObject.AddComponent<LayoutElement>().preferredHeight = 330;
+            var item = Child<RectTransform>(template, "Item");
+            var iv = item.gameObject.AddComponent<VerticalLayoutGroup>();
+            iv.spacing = 6;
+            iv.childControlWidth = iv.childControlHeight = true; iv.childForceExpandWidth = true; iv.childForceExpandHeight = false;
+            var key = Label(item, "Label", legendFont, 40, RulesAccent);
+            key.alignment = TextAlignmentOptions.TopLeft;
+            var line = Label(item, "Text", bodyFont, 37, Ink);
+            line.alignment = TextAlignmentOptions.TopLeft;
+            line.textWrappingMode = TextWrappingModes.Normal;
+            line.lineSpacing = 8;
+            item.gameObject.SetActive(false);
+
+            // the swipe hint, over the first page's figure (placed there when shown): the double arrow, and the hand
+            // sliding under it
+            var hint = Child<RectTransform>(pageView, "SwipeHint");
+            Place(hint, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(RulesArrowW + 2 * 130, 300));
+            var hg = hint.gameObject.AddComponent<CanvasGroup>();
+            hg.blocksRaycasts = false; hg.interactable = false; hg.alpha = 0;
+            var arrow = Child<Image>(hint, "Arrow");
+            arrow.sprite = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Resources/Tutorial/arrow_h.png");
+            arrow.preserveAspect = true; arrow.raycastTarget = false;
+            Place(arrow.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(0, 100), new Vector2(RulesArrowW, RulesArrowH));
+            var hand = Child<Image>(hint, "Hand");
+            hand.sprite = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Resources/Tutorial/hand.png");
+            hand.preserveAspect = true; hand.raycastTarget = false;
+            Place(hand.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(0, 60), new Vector2(RulesHandW, RulesHandH));
+            hand.rectTransform.pivot = new Vector2(0.38f, 1);   // the fingertip is the point
+            hint.gameObject.SetActive(false);
+
+            var rules = go.AddComponent<RulesPopup>();
+            var so = new SerializedObject(rules);
+            so.FindProperty("popup").objectReferenceValue = go.GetComponent<Popup>();
+            so.FindProperty("listView").objectReferenceValue = listView.gameObject;
+            so.FindProperty("pageView").objectReferenceValue = pageView.gameObject;
+            var arr = so.FindProperty("pageButtons");
+            arr.arraySize = pageButtons.Length;
+            for (int i = 0; i < pageButtons.Length; i++) arr.GetArrayElementAtIndex(i).objectReferenceValue = pageButtons[i];
+            so.FindProperty("listButton").objectReferenceValue = listButton;
+            so.FindProperty("counter").objectReferenceValue = counter;
+            so.FindProperty("viewport").objectReferenceValue = viewport.rectTransform;
+            so.FindProperty("pageTemplate").objectReferenceValue = template;
+            so.FindProperty("swipe").objectReferenceValue = swipe;
+            so.FindProperty("hint").objectReferenceValue = hint;
+            so.FindProperty("hintHand").objectReferenceValue = hand.rectTransform;
+            so.FindProperty("titleLoc").objectReferenceValue = titleLoc;
+            so.FindProperty("icon").objectReferenceValue = icon.sprite;
+            so.FindProperty("sizeList").vector2Value = new Vector2(RulesW, RulesListH);
+            so.FindProperty("sizePage").vector2Value = new Vector2(RulesW, RulesPageH);
+            so.ApplyModifiedPropertiesWithoutUndo();
+            go.SetActive(false);
+            var prefab = PrefabUtility.SaveAsPrefabAsset(go, RulesPrefabPath);
+            Object.DestroyImmediate(go);
+            return prefab;
+        }
+
         public const string SettingsPrefabPath = "Assets/Resources/" + SettingsPanel.ResourcePath + ".prefab";   // the game loads it too
 
         static GameObject BuildSettingsPrefab(GameObject popupPrefab)
@@ -577,9 +712,14 @@ namespace FlickCurling.EditorTools
             var dle = dd.AddComponent<LayoutElement>(); dle.flexibleWidth = 1; dle.preferredHeight = 82;
             var lang = dd.GetComponent<TMP_Dropdown>();
 
-            // in the game only: back to the main menu, at the bottom
+            // in the game only: the game rules, and back to the main menu, at the bottom
             var spacer = Child<RectTransform>(content, "Spacer");
             spacer.gameObject.AddComponent<LayoutElement>().flexibleHeight = 1;
+            var rulesRow = Child<RectTransform>(content, "RulesRow");
+            rulesRow.gameObject.AddComponent<LayoutElement>().preferredHeight = SetupOkH;
+            var rulesGo = UiPrefabBuilder.Place(UiPrefabBuilder.SecondaryPath, rulesRow, "Rules");
+            Place((RectTransform)rulesGo.transform, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(SettingsToMenuW, SetupOkH));
+            var rules = UiPrefabBuilder.SetLabel(rulesGo, "mainmenu.rules");
             var toMenuRow = Child<RectTransform>(content, "ToMenuRow");
             toMenuRow.gameObject.AddComponent<LayoutElement>().preferredHeight = SetupOkH;
             var toMenuGo = UiPrefabBuilder.Place(UiPrefabBuilder.SecondaryPath, toMenuRow, "ToMenu");
@@ -594,6 +734,8 @@ namespace FlickCurling.EditorTools
             so.FindProperty("sens").objectReferenceValue = sens; so.FindProperty("sensValue").objectReferenceValue = sensValue;
             so.FindProperty("language").objectReferenceValue = lang;
             so.FindProperty("toMenuRow").objectReferenceValue = toMenuRow.gameObject;
+            so.FindProperty("rulesRow").objectReferenceValue = rulesRow.gameObject;
+            so.FindProperty("rules").objectReferenceValue = rules;
             so.FindProperty("toMenu").objectReferenceValue = toMenu;
             so.FindProperty("Icon").objectReferenceValue = icon.sprite;
             so.ApplyModifiedPropertiesWithoutUndo();

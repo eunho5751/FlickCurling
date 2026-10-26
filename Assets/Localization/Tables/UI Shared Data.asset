@@ -643,6 +643,238 @@ MonoBehaviour:
     m_Key: tutorial.guard
     m_Metadata:
       m_Items: []
+  - m_Id: 4139051982442496
+    m_Key: rules.game.title
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4139052028579840
+    m_Key: rules.game.1.k
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4139052028579841
+    m_Key: rules.game.1.t
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4139052028579842
+    m_Key: rules.game.2.k
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4139052028579843
+    m_Key: rules.game.2.t
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4139052028579844
+    m_Key: rules.game.3.k
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4139052028579845
+    m_Key: rules.game.3.t
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4139052028579846
+    m_Key: rules.game.4.k
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4139052028579847
+    m_Key: rules.game.4.t
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4139052028579848
+    m_Key: rules.sheet.title
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4139052028579849
+    m_Key: rules.sheet.1.k
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4139052028579850
+    m_Key: rules.sheet.1.t
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4139052028579851
+    m_Key: rules.sheet.2.k
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4139052028579852
+    m_Key: rules.sheet.2.t
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4139052028579853
+    m_Key: rules.sheet.3.k
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4139052028579854
+    m_Key: rules.sheet.3.t
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4139052028579855
+    m_Key: rules.sheet.4.k
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4139052028579856
+    m_Key: rules.sheet.4.t
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4139052028579857
+    m_Key: rules.sheet.5.k
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4139052028579858
+    m_Key: rules.sheet.5.t
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4139052028579859
+    m_Key: rules.controls.title
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4139052028579860
+    m_Key: rules.controls.1.k
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4139052028579861
+    m_Key: rules.controls.1.t
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4139052028579862
+    m_Key: rules.controls.2.k
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4139052028579863
+    m_Key: rules.controls.2.t
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4139052028579864
+    m_Key: rules.controls.3.k
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4139052028579865
+    m_Key: rules.controls.3.t
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4139052028579866
+    m_Key: rules.controls.4.k
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4139052028579867
+    m_Key: rules.controls.4.t
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4139052028579868
+    m_Key: rules.controls.5.k
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4139052028579869
+    m_Key: rules.controls.5.t
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4139052028579870
+    m_Key: rules.out.title
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4139052028579871
+    m_Key: rules.out.1.k
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4139052028579872
+    m_Key: rules.out.1.t
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4139052028579873
+    m_Key: rules.out.2.k
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4139052028579874
+    m_Key: rules.out.2.t
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4139052028579875
+    m_Key: rules.out.3.k
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4139052028579876
+    m_Key: rules.out.3.t
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4139052028579877
+    m_Key: rules.score.title
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4139052028579878
+    m_Key: rules.score.1.k
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4139052028579879
+    m_Key: rules.score.1.t
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4139052028579880
+    m_Key: rules.score.2.k
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4139052028579881
+    m_Key: rules.score.2.t
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4139052028579882
+    m_Key: rules.score.3.k
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4139052028579883
+    m_Key: rules.score.3.t
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4139052028579884
+    m_Key: rules.score.4.k
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4139052028579885
+    m_Key: rules.score.4.t
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4139052028579886
+    m_Key: rules.score.5.k
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4139052028579887
+    m_Key: rules.score.5.t
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4139052028579888
+    m_Key: rules.order.title
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4139052028579889
+    m_Key: rules.order.1.k
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4139052028579890
+    m_Key: rules.order.1.t
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4139052028579891
+    m_Key: rules.order.2.k
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4139052028579892
+    m_Key: rules.order.2.t
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4139052028579893
+    m_Key: rules.order.3.k
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4139052028579894
+    m_Key: rules.order.3.t
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4139052028579895
+    m_Key: rules.order.4.k
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4139052028579896
+    m_Key: rules.order.4.t
+    m_Metadata:
+      m_Items: []
   m_Metadata:
     m_Items: []
   m_KeyGenerator:

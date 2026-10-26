@@ -9,7 +9,8 @@ namespace FlickCurling.Game
     /// <summary>
     /// The settings popup shared by the main menu and the game (the prefab Resources/SettingsPopup, built by
     /// MainMenuBuilder on the shared Popup): music and sound effect volume sliders, the aim sensitivity slider (levels 1 to
-    /// 5) and the language dropdown, plus, in the game, a "back to the main menu" button at the bottom. Every change is
+    /// 5) and the language dropdown, plus, in the game, "game rules" (the rules popup over this one) and "back to the main
+    /// menu" buttons at the bottom. Every change is
     /// saved and applied at once (GameSettings, Unity Localization).
     /// </summary>
     public sealed class SettingsPanel : MonoBehaviour
@@ -22,7 +23,9 @@ namespace FlickCurling.Game
         [SerializeField] TMP_Dropdown language;
         [SerializeField] GameObject toMenuRow;
         [SerializeField] Button toMenu;
-        [SerializeField] Vector2 sizeMenu = new Vector2(860, 1000), sizeGame = new Vector2(860, 1190);
+        [SerializeField] GameObject rulesRow;
+        [SerializeField] Button rules;
+        [SerializeField] Vector2 sizeMenu = new Vector2(860, 1000), sizeGame = new Vector2(860, 1320);
         [Tooltip("The settings gear, for buttons that open this popup")]
         public Sprite Icon;
 
@@ -45,6 +48,16 @@ namespace FlickCurling.Game
             sens.onValueChanged.AddListener(v => { GameSettings.SensLevel = Mathf.RoundToInt(v) - 1; Show(); });
             language.onValueChanged.AddListener(i => Loc.Select(Loc.Codes[i]));
             toMenu.onClick.AddListener(() => { popup.Hide(); ToMenu?.Invoke(); });
+            rules.onClick.AddListener(OpenRules);
+        }
+
+        RulesPopup rulesPopup;
+
+        // the shared rules popup (Resources/RulesPopup), made on first use beside this one and opened over it
+        void OpenRules()
+        {
+            if (!rulesPopup) rulesPopup = Instantiate(Resources.Load<RulesPopup>(RulesPopup.ResourcePath), transform.parent);
+            rulesPopup.Open();
         }
 
         /// <summary>Opens the popup; <paramref name="inGame"/> adds the "back to the main menu" button.</summary>
@@ -57,6 +70,7 @@ namespace FlickCurling.Game
             sens.SetValueWithoutNotify(GameSettings.SensLevel + 1);
             language.SetValueWithoutNotify(Mathf.Max(0, Array.IndexOf(Loc.Codes, Loc.Code)));
             toMenuRow.SetActive(inGame);
+            rulesRow.SetActive(inGame);
             // signing in (linking an account, maybe switching players) only from the main menu, never mid-game
             var account = GetComponentInChildren<Account.AccountPanel>(true);
             if (account) account.LinkAllowed = !inGame;
