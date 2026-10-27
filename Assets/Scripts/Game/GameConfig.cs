@@ -86,6 +86,12 @@ namespace FlickCurling.Game
         [Tooltip("A magnet's grip on a stone right beside it: how quickly that stone takes the magnet's way, per second (less further off)")]
         [Range(1f, 40f)] public float magnetPull = 8;
 
+        [Header("Links")]
+        [Tooltip("The web page the settings popup's \"Terms of Service\" opens")]
+        public string termsUrl = "";
+        [Tooltip("The web page the settings popup's \"Privacy Policy\" opens")]
+        public string privacyUrl = "";
+
         public void Apply()
         {
             Sheet.Configure(ends, shotsPerTeam, stoneRadius, cushionTickets, unlimitedTickets);

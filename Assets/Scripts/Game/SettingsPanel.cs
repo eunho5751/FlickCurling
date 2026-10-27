@@ -26,7 +26,8 @@ namespace FlickCurling.Game
         [SerializeField] Button toMenu;
         [SerializeField] GameObject rulesRow;
         [SerializeField] Button rules;
-        [SerializeField] Vector2 sizeMenu = new Vector2(860, 1110), sizeGame = new Vector2(860, 1430);
+        [SerializeField] Button terms, privacy;
+        [SerializeField] Vector2 sizeMenu = new Vector2(860, 1180), sizeGame = new Vector2(860, 1500);
         [Tooltip("The settings gear, for buttons that open this popup")]
         public Sprite Icon;
 
@@ -51,6 +52,15 @@ namespace FlickCurling.Game
             vibration.Changed += i => { GameSettings.Vibration = i == 0; if (i == 0) Haptics.Pulse(0.5f); };   // (a taste of it)
             toMenu.onClick.AddListener(() => { popup.Hide(); ToMenu?.Invoke(); });
             rules.onClick.AddListener(OpenRules);
+            terms.onClick.AddListener(() => OpenPage(GameConfig.Load().termsUrl));
+            privacy.onClick.AddListener(() => OpenPage(GameConfig.Load().privacyUrl));
+        }
+
+        // the terms of service or the privacy policy, in the browser (the address is GameConfig's)
+        static void OpenPage(string url)
+        {
+            if (string.IsNullOrWhiteSpace(url)) { Debug.LogWarning("Settings: no address set for that page in GameConfig"); return; }
+            Application.OpenURL(url.Trim());
         }
 
         RulesPopup rulesPopup;

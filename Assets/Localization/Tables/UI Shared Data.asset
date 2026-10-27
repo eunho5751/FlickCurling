@@ -971,6 +971,14 @@ MonoBehaviour:
     m_Key: rules.order.3.t
     m_Metadata:
       m_Items: []
+  - m_Id: 4643155045437440
+    m_Key: settings.terms
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4643155045437441
+    m_Key: settings.privacy
+    m_Metadata:
+      m_Items: []
   m_Metadata:
     m_Items: []
   m_KeyGenerator:

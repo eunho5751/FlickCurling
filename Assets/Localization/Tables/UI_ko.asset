@@ -1114,6 +1114,14 @@ MonoBehaviour:
       \uAE30\uB85D\uC774 \uAC19\uC73C\uBA74 \uBB34\uC791\uC704\uB85C \uC815\uD574\uC694."
     m_Metadata:
       m_Items: []
+  - m_Id: 4643155045437440
+    m_Localized: "\uC774\uC6A9\uC57D\uAD00"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4643155045437441
+    m_Localized: "\uAC1C\uC778\uC815\uBCF4 \uCC98\uB9AC\uBC29\uCE68"
+    m_Metadata:
+      m_Items: []
   references:
     version: 2
     RefIds:

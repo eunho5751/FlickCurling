@@ -317,7 +317,8 @@ namespace FlickCurling.EditorTools
         // dropdown, one row each, from the shared prefabs (Popup, Slider, Dropdown) ----
 
         const float SettingsToMenuW = 460;
-        const float SettingsW = 860, SettingsH = 1110, SettingsRowH = 92, SettingsLabelW = 230, SettingsValueW = 80;
+        const float SettingsLegalH = 52;   // the terms / privacy row (the window grows by it and the layout's spacing)
+        const float SettingsW = 860, SettingsH = 1180, SettingsRowH = 92, SettingsLabelW = 230, SettingsValueW = 80;
 
         // ---- the shop popup: the products as cards hanging from nails, three in a row. The cards are made when it opens,
         // one per product of the shop catalog (Resources/ShopCatalog), from a card template here ----
@@ -778,6 +779,31 @@ namespace FlickCurling.EditorTools
             Place((RectTransform)toMenuGo.transform, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(SettingsToMenuW, SetupOkH));
             var toMenu = UiPrefabBuilder.SetLabel(toMenuGo, "settings.toMenu");
 
+            // always, at the very bottom: the terms of service and the privacy policy, small words evenly spread across
+            var legalRow = Child<RectTransform>(content, "LegalRow");
+            legalRow.gameObject.AddComponent<LayoutElement>().preferredHeight = SettingsLegalH;
+            var lh = legalRow.gameObject.AddComponent<HorizontalLayoutGroup>();
+            lh.childAlignment = TextAnchor.MiddleCenter;
+            lh.childControlWidth = lh.childControlHeight = true; lh.childForceExpandWidth = lh.childForceExpandHeight = false;
+            void Gap() => Child<RectTransform>(legalRow, "Gap").gameObject.AddComponent<LayoutElement>().flexibleWidth = 1;
+            Button TextButton(string name, string key)
+            {
+                var t = Label(legalRow, name, legendFont, 28, AccountValueInk);
+                t.alignment = TextAlignmentOptions.Center;
+                t.text = UiStrings.Entries.First(e => e[0] == key)[1];
+                LocalizeEvents.BindText(t, Loc.Table, key);
+                t.gameObject.AddComponent<LayoutElement>().preferredHeight = SettingsLegalH;
+                t.raycastTarget = true;   // (the words are the button)
+                var b = t.gameObject.AddComponent<Button>();
+                b.targetGraphic = t;
+                return b;
+            }
+            Gap();
+            var terms = TextButton("Terms", "settings.terms");
+            Gap();
+            var privacy = TextButton("Privacy", "settings.privacy");
+            Gap();
+
             var panel = go.AddComponent<SettingsPanel>();
             var so = new SerializedObject(panel);
             so.FindProperty("popup").objectReferenceValue = go.GetComponent<Popup>();
@@ -790,6 +816,8 @@ namespace FlickCurling.EditorTools
             so.FindProperty("rulesRow").objectReferenceValue = rulesRow.gameObject;
             so.FindProperty("rules").objectReferenceValue = rules;
             so.FindProperty("toMenu").objectReferenceValue = toMenu;
+            so.FindProperty("terms").objectReferenceValue = terms;
+            so.FindProperty("privacy").objectReferenceValue = privacy;
             so.FindProperty("Icon").objectReferenceValue = icon.sprite;
             so.ApplyModifiedPropertiesWithoutUndo();
             go.SetActive(false);

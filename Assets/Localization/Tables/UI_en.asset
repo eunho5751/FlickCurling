@@ -1065,6 +1065,14 @@ MonoBehaviour:
       are level, it's decided at random.
     m_Metadata:
       m_Items: []
+  - m_Id: 4643155045437440
+    m_Localized: Terms of Service
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4643155045437441
+    m_Localized: Privacy Policy
+    m_Metadata:
+      m_Items: []
   references:
     version: 2
     RefIds:

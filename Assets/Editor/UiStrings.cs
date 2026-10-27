@@ -84,6 +84,8 @@ namespace FlickCurling.EditorTools
             // ---- settings ----
             new[] { "settings.button", "설정", "Settings", "設定" },
             new[] { "settings.toMenu", "메인 메뉴로 이동", "Back to Main Menu", "メインメニューへ" },
+            new[] { "settings.terms", "이용약관", "Terms of Service", "利用規約" },
+            new[] { "settings.privacy", "개인정보 처리방침", "Privacy Policy", "プライバシーポリシー" },
             new[] { "settings.aimSens", "방향 감도", "Aim Sensitivity", "照準感度" },
             new[] { "settings.music", "배경음", "Music", "BGM" },
             new[] { "settings.sfx", "효과음", "Sound Effects", "効果音" },
