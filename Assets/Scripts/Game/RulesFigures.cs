@@ -13,7 +13,8 @@ namespace FlickCurling.Game
     public static class RulesFigures
     {
         static Texture2D board, stoneB, stoneW, disc;
-        static Sprite arrowH, arrowV, hand, orbB, orbW, bomb;
+        static Texture2D boardBare;   // the sheet without its house (the turn order shot's)
+        static Sprite arrowH, arrowV, hand, orbB, orbW, bomb, target;
 
         // the accent of the items' labels (on the cream), and the marks and ink on the wood
         static readonly Color Accent = new Color32(0xb0, 0x4a, 0x1c, 0xff);
@@ -23,7 +24,7 @@ namespace FlickCurling.Game
         /// <summary>How tall the figure of this page is (reference px).</summary>
         public static float Height(string page) => page switch
         {
-            "sheet" or "out" => 470,
+            "basics" => 470,
             "controls" => 360,
             _ => 330,
         };
@@ -41,19 +42,38 @@ namespace FlickCurling.Game
             var f = new Fig(top, font, Height(page));
             switch (page)
             {
-                case "game":
-                    f.Crop(128, 216, 0);
-                    f.Stone(Team.W, 40, 186); f.Stone(Team.B, 63, 160); f.Stone(Team.B, 53, 175);
-                    break;
-                case "sheet":
+                case "basics":
                     f.Crop(0, 222, -150);
-                    f.Note(50, (float)Sheet.LaunchY, "rules.sheet.1.k");
-                    f.Note(76, (float)Sheet.Hog, "rules.sheet.2.k");
-                    f.Note(78, (float)Sheet.TeeY, "rules.sheet.3.k");
-                    f.Note(76, (float)Sheet.Back, "rules.sheet.4.k");
-                    f.Note(100, 110, "rules.sheet.5.k");
+                    f.Note(50, (float)Sheet.LaunchY, "rules.basics.3.k");
+                    f.Note(76, (float)Sheet.Hog, "rules.basics.4.k");
+                    f.Note(78, (float)Sheet.TeeY, "rules.basics.5.k");
+                    f.Note(100, 110, "rules.basics.6.k");
+                    f.Note(76, (float)Sheet.Back, "rules.basics.7.k");
                     f.Stone(Team.B, 50, (float)Sheet.LaunchY);
                     break;
+                case "order":
+                {
+                    // the turn order shot: the sheet without its house, the target, and both stones (the other's
+                    // see-through), a line from the target to each; the closer one's in gold
+                    f.Crop(126, 190, -90, house: false);
+                    float tx = 48, ty = 157;
+                    f.Sized(target, tx, ty, (float)Sheet.LsdTargetR * 2);
+                    f.Line(tx, ty, 56, 150, 5, Mark); f.Line(tx, ty, 34, 171, 3, Dim);
+                    f.Stone(Team.B, 56, 150); f.Stone(Team.W, 34, 171, true);
+                    f.Note(tx + 6, ty + 4, "rules.order.target");
+                    f.Note(34, 171, "hud.first");    // (further off: goes first)
+                    f.Note(56, 150, "hud.hammer");   // (closer: goes second)
+                    break;
+                }
+                case "end":
+                {
+                    f.Crop(134, 210, 0);
+                    float tx = (float)Sheet.TeeX, ty = (float)Sheet.TeeY;
+                    var stones = new (Team t, float x, float y, int n)[] { (Team.B, 54, 167, 1), (Team.B, 39, 180, 2), (Team.W, 63, 186, 0), (Team.B, 71, 158, 0) };
+                    foreach (var st in stones) f.Line(tx, ty, st.x, st.y, st.n > 0 ? 5 : 3, st.n > 0 ? Mark : Dim);
+                    foreach (var st in stones) { f.Stone(st.t, st.x, st.y); if (st.n > 0) f.Number(st.x, st.y, st.n); }
+                    break;
+                }
                 case "controls":
                 {
                     f.Crop(0, 100, 0);
@@ -64,23 +84,6 @@ namespace FlickCurling.Game
                     f.Picture(arrowV, 76, 30, 39, 140); f.Tag(76, 51, "rules.controls.2.k");
                     f.Line(sx, sy, 30, 80, 4, Mark);   // the aim straight at the touch
                     f.Picture(hand, 30, 80, 60, 86, new Vector2(0.38f, 1)); f.Tag(64, 83, "rules.controls.4.k");
-                    break;
-                }
-                case "out":
-                    f.Crop(0, 222, 0);
-                    f.Stone(Team.B, 44, (float)Sheet.Hog - 6, true); f.Cross(44, (float)Sheet.Hog - 6);
-                    f.Note(70, (float)Sheet.Hog - 6, "rules.out.1.k");
-                    f.Stone(Team.W, 58, 212, true); f.Cross(58, 212);
-                    f.Note(70, 212, "rules.out.2.k");
-                    f.Note(0, (float)Sheet.Hog, "rules.out.3.k", -1);   // the fuse lies on the min line
-                    break;
-                case "score":
-                {
-                    f.Crop(134, 210, 0);
-                    float tx = (float)Sheet.TeeX, ty = (float)Sheet.TeeY;
-                    var stones = new (Team t, float x, float y, int n)[] { (Team.B, 54, 167, 1), (Team.B, 39, 180, 2), (Team.W, 63, 186, 0), (Team.B, 71, 158, 0) };
-                    foreach (var s in stones) f.Line(tx, ty, s.x, s.y, s.n > 0 ? 5 : 3, s.n > 0 ? Mark : Dim);
-                    foreach (var s in stones) { f.Stone(s.t, s.x, s.y); if (s.n > 0) f.Number(s.x, s.y, s.n); }
                     break;
                 }
                 case "itemkinds":
@@ -103,16 +106,6 @@ namespace FlickCurling.Game
                     f.Sized(orbB, 38, 112, d); f.Sized(orbW, 66, 124, d);
                     break;
                 }
-                case "order":
-                {
-                    f.Crop(112, 206, -110);
-                    float gx = (float)Sheet.PlaceGuardX, gy = (float)Sheet.PlaceGuardY;
-                    f.Stone(Team.W, gx, gy);
-                    f.Ring(gx, gy);
-                    f.Note(gx + 12, gy, "rules.order.4.k");
-                    f.Stone(Team.B, 46, 178);
-                    break;
-                }
             }
         }
 
@@ -130,6 +123,8 @@ namespace FlickCurling.Game
             orbB = Resources.Load<Sprite>("Items/box_b");
             orbW = Resources.Load<Sprite>("Items/box_w");
             bomb = Resources.Load<Sprite>("Items/bomb");
+            target = Resources.Load<Sprite>("Board/target");
+            boardBare = BoardPainter.PaintBoard(Maps.Build("base"), false);
         }
 
         // one figure: the sheet from y0 to y1 at the figure's height, its centre shifted sideways by dx (room for notes)
@@ -142,11 +137,11 @@ namespace FlickCurling.Game
 
             public Fig(RectTransform area, TMP_FontAsset font, float height) { this.area = area; this.font = font; h = height; }
 
-            public void Crop(float from, float to, float dx)
+            public void Crop(float from, float to, float dx, bool house = true)
             {
                 y0 = from; scale = h / (to - from); cx = dx;
                 var img = New<RawImage>("Sheet");
-                img.texture = board;
+                img.texture = house ? board : boardBare;
                 float L = board.height / (float)BoardPainter.PPU;
                 img.uvRect = new Rect(0, from / L, 1, (to - from) / L);
                 Place(img.rectTransform, new Vector2(cx, 0), new Vector2((BoardPainter.X1 - BoardPainter.X0) * scale, h));
@@ -212,6 +207,14 @@ namespace FlickCurling.Game
                 Place(rt, new Vector2(tx + side * 8, p.y), new Vector2(300, 40));
                 rt.pivot = new Vector2(side > 0 ? 0 : 1, 0.5f);
                 rt.anchoredPosition = new Vector2(tx + side * 8, p.y);
+            }
+
+            // a round dot, this many px across
+            public void Dot(float x, float y, float px, Color c)
+            {
+                var d = New<RawImage>("Dot");
+                d.texture = disc; d.color = c;
+                Place(d.rectTransform, P(x, y), new Vector2(px, px));
             }
 
             public void Cross(float x, float y)

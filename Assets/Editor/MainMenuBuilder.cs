@@ -594,7 +594,7 @@ namespace FlickCurling.EditorTools
         // close button's sibling) at the title bar's left end, and the swipe hint (the tutorial's hand and arrow) ----
 
         public const string RulesPrefabPath = "Assets/Resources/" + RulesPopup.ResourcePath + ".prefab";
-        const float RulesW = 900, RulesListH = 1200, RulesPageH = 1660, RulesButtonW = 620, RulesButtonH = 108, RulesCounterH = 48;
+        const float RulesW = 900, RulesListH = 1040, RulesPageH = 1660, RulesButtonW = 620, RulesButtonH = 108, RulesCounterH = 48;
         const float RulesHandW = 120, RulesHandH = 172, RulesArrowW = 250, RulesArrowH = 69;
         static readonly Color32 RulesAccent = new Color32(0xb0, 0x4a, 0x1c, 0xff);
 
@@ -658,15 +658,22 @@ namespace FlickCurling.EditorTools
             viewport.gameObject.AddComponent<RectMask2D>();
             var swipe = viewport.gameObject.AddComponent<SwipeArea>();
 
-            var template = Child<RectTransform>(viewport.transform, "PageTemplate");
+            // a page: the shared scroll view (a page taller than the window scrolls up and down), its content the
+            // picture, the item template and the items; a sideways drag on it still turns the page (SidewaysToParent)
+            var templateGo = UiPrefabBuilder.Place(UiPrefabBuilder.ScrollViewPath, viewport.transform, "PageTemplate");
+            var template = (RectTransform)templateGo.transform;
             Stretch(template);
-            var tv = template.gameObject.AddComponent<VerticalLayoutGroup>();
-            tv.spacing = 34; tv.childAlignment = TextAnchor.UpperCenter; tv.padding = new RectOffset(0, 0, 6, 0);
+            templateGo.AddComponent<SidewaysToParent>();
+            var pageContent = templateGo.GetComponent<ScrollRect>().content;
+            var tv = pageContent.gameObject.AddComponent<VerticalLayoutGroup>();
+            // (room on the right for the scrollbar, so it never runs over the text)
+            tv.spacing = 34; tv.childAlignment = TextAnchor.UpperCenter;
+            tv.padding = new RectOffset(0, Mathf.CeilToInt(UiPrefabBuilder.ScrollbarW + UiPrefabBuilder.ScrollbarGap), 6, 30);
             tv.childControlWidth = tv.childControlHeight = true; tv.childForceExpandWidth = true; tv.childForceExpandHeight = false;
             // the page's picture (RulesFigures draws it), its height set per page
-            var figure = Child<RectTransform>(template, "Figure");
+            var figure = Child<RectTransform>(pageContent, "Figure");
             figure.gameObject.AddComponent<LayoutElement>().preferredHeight = 330;
-            var item = Child<RectTransform>(template, "Item");
+            var item = Child<RectTransform>(pageContent, "Item");
             var iv = item.gameObject.AddComponent<VerticalLayoutGroup>();
             iv.spacing = 6;
             iv.childControlWidth = iv.childControlHeight = true; iv.childForceExpandWidth = true; iv.childForceExpandHeight = false;

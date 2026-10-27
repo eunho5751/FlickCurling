@@ -674,88 +674,6 @@ MonoBehaviour:
       AI!
     m_Metadata:
       m_Items: []
-  - m_Id: 4139051982442496
-    m_Localized: The Game
-    m_Metadata:
-      m_Items: []
-  - m_Id: 4139052028579840
-    m_Localized: Goal
-    m_Metadata:
-      m_Items: []
-  - m_Id: 4139052028579841
-    m_Localized: Flick your stones closer to the centre of the house than your opponent's.
-    m_Metadata:
-      m_Items: []
-  - m_Id: 4139052028579842
-    m_Localized: Ends
-    m_Metadata:
-      m_Items: []
-  - m_Id: 4139052028579843
-    m_Localized: A match has {ends:plural:{} end|{} ends}. In each end, Black and
-      White take turns, {shots:plural:{} stone|{} stones} each.
-    m_Metadata:
-      m_Items:
-      - rid: 4297768082125881571
-  - m_Id: 4139052028579844
-    m_Localized: Winning
-    m_Metadata:
-      m_Items: []
-  - m_Id: 4139052028579845
-    m_Localized: The higher total score after the last end wins.
-    m_Metadata:
-      m_Items: []
-  - m_Id: 4139052028579846
-    m_Localized: Tie
-    m_Metadata:
-      m_Items: []
-  - m_Id: 4139052028579847
-    m_Localized: One extra end is played. Still level, it's a draw.
-    m_Metadata:
-      m_Items: []
-  - m_Id: 4139052028579848
-    m_Localized: The Sheet
-    m_Metadata:
-      m_Items: []
-  - m_Id: 4139052028579849
-    m_Localized: Launch spot
-    m_Metadata:
-      m_Items: []
-  - m_Id: 4139052028579850
-    m_Localized: Every stone is thrown from the middle at the bottom.
-    m_Metadata:
-      m_Items: []
-  - m_Id: 4139052028579851
-    m_Localized: Min line
-    m_Metadata:
-      m_Items: []
-  - m_Id: 4139052028579852
-    m_Localized: A thrown stone has to get past this line.
-    m_Metadata:
-      m_Items: []
-  - m_Id: 4139052028579853
-    m_Localized: House
-    m_Metadata:
-      m_Items: []
-  - m_Id: 4139052028579854
-    m_Localized: The rings at the top. The closer to the centre, the better.
-    m_Metadata:
-      m_Items: []
-  - m_Id: 4139052028579855
-    m_Localized: Out line
-    m_Metadata:
-      m_Items: []
-  - m_Id: 4139052028579856
-    m_Localized: The line behind the house. A stone all the way past it is out.
-    m_Metadata:
-      m_Items: []
-  - m_Id: 4139052028579857
-    m_Localized: Side walls
-    m_Metadata:
-      m_Items: []
-  - m_Id: 4139052028579858
-    m_Localized: Stones may bounce off the side walls, but not beside the out line.
-    m_Metadata:
-      m_Items: []
   - m_Id: 4139052028579859
     m_Localized: Controls
     m_Metadata:
@@ -801,121 +719,17 @@ MonoBehaviour:
     m_Localized: Move the pulling finger to the left of the stone and it won't throw.
     m_Metadata:
       m_Items: []
-  - m_Id: 4139052028579870
-    m_Localized: Void Shots
-    m_Metadata:
-      m_Items: []
-  - m_Id: 4139052028579871
-    m_Localized: Short
-    m_Metadata:
-      m_Items: []
-  - m_Id: 4139052028579872
-    m_Localized: A thrown stone that doesn't fully cross the min line doesn't count.
-    m_Metadata:
-      m_Items: []
-  - m_Id: 4139052028579873
-    m_Localized: Out
-    m_Metadata:
-      m_Items: []
-  - m_Id: 4139052028579874
-    m_Localized: Any stone all the way past the out line is removed, even one knocked
-      there.
-    m_Metadata:
-      m_Items: []
-  - m_Id: 4139052028579875
-    m_Localized: Time
-    m_Metadata:
-      m_Items: []
-  - m_Id: 4139052028579876
-    m_Localized: You have {seconds} seconds a turn. When the fuse over the min line
-      burns out, you lose that stone.
-    m_Metadata:
-      m_Items:
-      - rid: 4297768082125881571
-  - m_Id: 4139052028579877
-    m_Localized: Scoring
-    m_Metadata:
-      m_Items: []
-  - m_Id: 4139052028579878
-    m_Localized: When
-    m_Metadata:
-      m_Items: []
-  - m_Id: 4139052028579879
-    m_Localized: Points are counted once every stone of the end has been thrown.
-    m_Metadata:
-      m_Items: []
-  - m_Id: 4139052028579880
-    m_Localized: Which stones
-    m_Metadata:
-      m_Items: []
-  - m_Id: 4139052028579881
-    m_Localized: Only stones touching the house count.
-    m_Metadata:
-      m_Items: []
-  - m_Id: 4139052028579882
-    m_Localized: Who scores
-    m_Metadata:
-      m_Items: []
-  - m_Id: 4139052028579883
-    m_Localized: Only the side with the stone closest to the centre scores.
-    m_Metadata:
-      m_Items: []
-  - m_Id: 4139052028579884
-    m_Localized: Points
-    m_Metadata:
-      m_Items: []
-  - m_Id: 4139052028579885
-    m_Localized: One for each of your stones closer than the opponent's closest.
-    m_Metadata:
-      m_Items: []
-  - m_Id: 4139052028579886
-    m_Localized: Blank end
-    m_Metadata:
-      m_Items: []
-  - m_Id: 4139052028579887
-    m_Localized: If the house is empty or the closest stones are level, nobody scores.
-    m_Metadata:
-      m_Items: []
   - m_Id: 4139052028579888
     m_Localized: Turn Order
     m_Metadata:
       m_Items: []
-  - m_Id: 4139052028579889
-    m_Localized: Going second
-    m_Metadata:
-      m_Items: []
   - m_Id: 4139052028579890
-    m_Localized: The side going second throws the end's last stone, which is an advantage.
+    m_Localized: Before the match, the order for the first end is decided. A target
+      is placed somewhere on the sheet and both players throw one stone at it at
+      the same time. The other's stone shows see-through, and the two never meet.
+      Two players on one device take turns.
     m_Metadata:
       m_Items: []
-  - m_Id: 4139052028579891
-    m_Localized: First end
-    m_Metadata:
-      m_Items: []
-  - m_Id: 4139052028579892
-    m_Localized: Both sides throw one stone at once at a target placed somewhere
-      on the sheet; the closer one goes second. Level, it's decided at random.
-    m_Metadata:
-      m_Items: []
-  - m_Id: 4139052028579893
-    m_Localized: Next ends
-    m_Metadata:
-      m_Items: []
-  - m_Id: 4139052028579894
-    m_Localized: The side that scored goes first. After a blank end, going second
-      passes to the other side.
-    m_Metadata:
-      m_Items: []
-  - m_Id: 4139052028579895
-    m_Localized: Bonus guard
-    m_Metadata:
-      m_Items: []
-  - m_Id: 4139052028579896
-    m_Localized: The side going first starts with a stone in front of the house,
-      on top of the {shots} it throws.
-    m_Metadata:
-      m_Items:
-      - rid: 4297768082125881571
   - m_Id: 4162172798029824
     m_Localized: Remove Ads
     m_Metadata:
@@ -1037,8 +851,7 @@ MonoBehaviour:
       m_Items: []
   - m_Id: 4396563583389697
     m_Localized: When one of your stones touches an orb of your colour, you get an
-      item; you find out which as you get it. An opponent's stone breaks it; taken
-      or broken, a new one turns up elsewhere once both sides have thrown.
+      item; you find out which as you get it. An opponent's stone breaks it.
     m_Metadata:
       m_Items: []
   - m_Id: 4396563583389698
@@ -1113,6 +926,145 @@ MonoBehaviour:
     m_Localized: Last shot
     m_Metadata:
       m_Items: []
+  - m_Id: 4566859292528642
+    m_Localized: Item respawn
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4566859292528643
+    m_Localized: Orbs taken or broken turn up somewhere else once both sides have
+      thrown; each new end puts them all out afresh.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4566859292528644
+    m_Localized: Playing an End
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4566859292528645
+    m_Localized: Turns
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4566859292528646
+    m_Localized: "\u2022<indent=1em>Each end starts with a bonus guard stone in front
+      of the house for the side going first.</indent>\n\u2022<indent=1em>Starting
+      with that side, Black and White throw one stone at a time, {shots:plural:{}
+      stone|{} stones} each; the side going second throws the last one.</indent>\n\u2022<indent=1em>You
+      have {seconds} seconds a turn. When the fuse over the min line burns out, you
+      lose that stone.</indent>"
+    m_Metadata:
+      m_Items:
+      - rid: 4297768082125881571
+  - m_Id: 4566859296722944
+    m_Localized: Scoring
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4566859296722945
+    m_Localized: "\u2022<indent=1em>Of the stones touching the house, only the side
+      with the one closest to the centre scores.</indent>\n\u2022<indent=1em>It scores
+      a point for each of its stones closer than the opponent's closest.</indent>\n\u2022<indent=1em>If
+      the house is empty or the closest stones are level, nobody scores (a blank
+      end).</indent>"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4566859296722946
+    m_Localized: Next end, and the result
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4566859296722947
+    m_Localized: "\u2022<indent=1em>The side that scored goes first in the next end.
+      After a blank end, going second passes to the other side.</indent>\n\u2022<indent=1em>The
+      higher total after the last end wins.</indent>\n\u2022<indent=1em>Level, one
+      extra end is played; if it is still level, it's a draw.</indent>"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4604271452409856
+    m_Localized: Basics
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4604271452409857
+    m_Localized: Goal
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4604271452409858
+    m_Localized: Flick your stones closer to the centre of the house than your opponent's.
+      After deciding who goes first, you play {ends:plural:{} end|{} ends}, and the
+      higher total score wins.
+    m_Metadata:
+      m_Items:
+      - rid: 4297768082125881571
+  - m_Id: 4604271460798464
+    m_Localized: The sheet
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4604271460798466
+    m_Localized: Launch spot
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4604271460798467
+    m_Localized: Every stone is thrown from the middle at the bottom of the sheet.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4604271460798468
+    m_Localized: Min line
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4604271460798469
+    m_Localized: A thrown stone has to get all the way past this line; one that doesn't
+      is void and removed.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4604271460798470
+    m_Localized: House
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4604271460798471
+    m_Localized: The rings at the top. Points are counted from the stones touching
+      the house.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4604271460798472
+    m_Localized: Side walls
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4604271460798473
+    m_Localized: Stones may bounce off the side walls; the walls beside the out line
+      soak them up instead.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4604271460798474
+    m_Localized: Target
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4609059170734080
+    m_Localized: Out line
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4609059170734081
+    m_Localized: The line behind the house. Any stone all the way past it is out
+      and removed, even one knocked there.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4609059170734082
+    m_Localized: Throw at the target
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4609059170734083
+    m_Localized: Closer goes second
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4609059170734084
+    m_Localized: Whoever stops closer to the target's centre goes second, with the
+      advantage of throwing the end's last stone.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4609059170734085
+    m_Localized: No record, or level
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4609059170734086
+    m_Localized: A stone short of the min line or out has no record. If the two records
+      are level, it's decided at random.
+    m_Metadata:
+      m_Items: []
   references:
     version: 2
     RefIds:
@@ -1144,9 +1096,8 @@ MonoBehaviour:
         - id: 2752037559128064
         - id: 2752037559128065
         - id: 2752037559128066
-        - id: 4139052028579843
-        - id: 4139052028579876
-        - id: 4139052028579896
         - id: 4351939523301379
         - id: 4406000457011201
         - id: 4406000457011203
+        - id: 4566859292528646
+        - id: 4604271452409858

@@ -20,9 +20,15 @@ namespace FlickCurling.Game
         public const string ResourcePath = "RulesPopup";
         const string SwipeLearned = "rules.swipeLearned";   // PlayerPrefs: the swipe hint is not shown again
 
-        // each page: its key in the string table ("rules.<id>.title", "rules.<id>.<n>.k" / ".t") and how many items it has
-        static readonly (string id, int items)[] Pages =
-            { ("game", 4), ("sheet", 5), ("out", 3), ("score", 5), ("order", 4), ("controls", 5), ("items", 2), ("itemkinds", 5) };
+        // each page: its key in the string table ("rules.<id>.title", "rules.<id>.<n>.k" / ".t"), and its items, one letter
+        // each: 'i' a heading and its text, 's' a section's heading alone, 't' a term under a section (its own colour,
+        // set in), 'p' a paragraph with no heading
+        static readonly (string id, string items)[] Pages =
+        {
+            ("basics", "isttttt"), ("order", "iii"), ("end", "iii"), ("controls", "iiiii"), ("items", "iii"), ("itemkinds", "iiiii")
+        };
+        static readonly Color TermColor = new Color32(0x34, 0x40, 0x6a, 0xff);   // the house's navy
+        const float TermIndent = 22;
 
         // items shown with a picture before their label (page id, item number from 1): the item mode's orb and items
         static string IconOf(string page, int n) => (page, n) switch
@@ -43,12 +49,12 @@ namespace FlickCurling.Game
         [SerializeField] Button listButton;      // the title bar's left end, on a page
         [SerializeField] TextMeshProUGUI counter;
         [SerializeField] RectTransform viewport;
-        [SerializeField] RectTransform pageTemplate;   // a page: its figure, then the item template (inactive), then its items
+        [SerializeField] RectTransform pageTemplate;   // a page: a scroll view whose content is its figure, then the item template (inactive), then its items
         [SerializeField] SwipeArea swipe;
         [SerializeField] RectTransform hint, hintHand;   // the swipe hint: the hand (and the arrow over it) inside hint
         [SerializeField] LocalizeStringEvent titleLoc;   // the popup's title: the rules, or the page's
         [SerializeField] Sprite icon;
-        [SerializeField] Vector2 sizeList = new Vector2(900, 1200), sizePage = new Vector2(900, 1660);
+        [SerializeField] Vector2 sizeList = new Vector2(900, 1040), sizePage = new Vector2(900, 1660);
         [SerializeField] float flingSpeed = 900, turnShare = 0.18f;   // a turn: a quick flick, or past this share of the width
 
         RectTransform cur, other;   // the page shown and the one beside it while swiping
@@ -141,8 +147,14 @@ namespace FlickCurling.Game
 
         // ---------------- a page's items ----------------
 
-        void Fill(RectTransform target, int p)
+        // a page's content (in its scroll view), and back at its top
+        static RectTransform Content(RectTransform page) => page.GetComponent<ScrollRect>().content;
+
+        Color? accent;   // the headings' colour (the template's)
+
+        void Fill(RectTransform page, int p)
         {
+            var target = Content(page);
             var cfg = GameConfig.Load();
             var args = new (string, object)[]
             {
@@ -155,19 +167,30 @@ namespace FlickCurling.Game
             figure.GetComponent<LayoutElement>().preferredHeight = RulesFigures.Height(Pages[p].id) + FigureGap;   // (the picture at its top)
             RulesFigures.Draw(figure, Pages[p].id, labelFont);
             const int First = 2;   // (the figure and the template come first)
-            int n = Pages[p].items;
+            if (accent == null) accent = template.GetChild(0).GetComponent<TextMeshProUGUI>().color;
+            string styles = Pages[p].items;
+            int n = styles.Length;
             for (int i = 0; i < n; i++)
             {
                 var item = First + i < target.childCount ? target.GetChild(First + i) : Instantiate(template, target);
                 item.gameObject.SetActive(true);
                 string key = "rules." + Pages[p].id + "." + (i + 1);
+                char style = styles[i];
                 var label = item.GetChild(0).GetComponent<TextMeshProUGUI>();
+                var body = item.GetChild(1).GetComponent<TextMeshProUGUI>();
                 string icon = IconOf(Pages[p].id, i + 1);
-                label.text = icon != null ? $"<indent={IconSize + IconGap}>{Loc.T(key + ".k")}</indent>" : Loc.T(key + ".k");
+                label.gameObject.SetActive(style != 'p');
+                if (style != 'p') label.text = icon != null ? $"<indent={IconSize + IconGap}>{Loc.T(key + ".k")}</indent>" : Loc.T(key + ".k");
+                label.color = style == 't' ? TermColor : accent.Value;
+                var inset = new Vector4(style == 't' ? TermIndent : 0, 0, 0, 0);
+                label.margin = inset; body.margin = inset;
                 SetIcon(label, icon);
-                item.GetChild(1).GetComponent<TextMeshProUGUI>().text = Loc.T(key + ".t", args);
+                body.gameObject.SetActive(style != 's');
+                if (style != 's') body.text = Loc.T(key + ".t", args);
             }
             for (int i = First + n; i < target.childCount; i++) target.GetChild(i).gameObject.SetActive(false);
+            LayoutRebuilder.ForceRebuildLayoutImmediate(target);
+            page.GetComponent<ScrollRect>().verticalNormalizedPosition = 1;
         }
 
         // a picture at the label's left (made the first time; hidden on items without one)
@@ -251,11 +274,13 @@ namespace FlickCurling.Game
             if (hintAnim != null) return;
             hintSeen = true;
             hint.gameObject.SetActive(true);
-            LayoutRebuilder.ForceRebuildLayoutImmediate(cur);
+            var content = Content(cur);
+            LayoutRebuilder.ForceRebuildLayoutImmediate(content);
             RectTransform last = null;
-            foreach (RectTransform c in cur) if (c.gameObject.activeSelf) last = c;
+            foreach (RectTransform c in content) if (c.gameObject.activeSelf) last = c;
             var vr = viewport.rect;
-            float below = viewport.InverseTransformPoint(last.TransformPoint(new Vector3(0, last.rect.yMin))).y;
+            // (a page that fills the window: low in it)
+            float below = Mathf.Max(viewport.InverseTransformPoint(last.TransformPoint(new Vector3(0, last.rect.yMin))).y, vr.yMin + 300);
             hint.position = viewport.TransformPoint(new Vector3(vr.center.x, (below + vr.yMin) / 2));
             var g = hint.GetComponent<CanvasGroup>();
             const float Swing = 130;
