@@ -66,15 +66,15 @@ namespace FlickCurling.Core
 
         public static readonly Dictionary<AiLevel, (double a, double p)> Noise = new Dictionary<AiLevel, (double, double)>
         {
-            { AiLevel.Easy, (0.05, 0.07) }, { AiLevel.Normal, (0.018, 0.03) }, { AiLevel.Hard, (0.006, 0.012) }
+            { AiLevel.Easy, (0.034, 0.05) }, { AiLevel.Normal, (0.018, 0.03) }, { AiLevel.Hard, (0.006, 0.012) }
         };
         static readonly Dictionary<AiLevel, (int n, double ang)> RandomCands = new Dictionary<AiLevel, (int, double)>
         {
-            { AiLevel.Easy, (16, 0.32) }, { AiLevel.Normal, (50, 0.72) }, { AiLevel.Hard, (110, 1.0) }
+            { AiLevel.Easy, (33, 0.52) }, { AiLevel.Normal, (50, 0.72) }, { AiLevel.Hard, (110, 1.0) }
         };
         static readonly Dictionary<AiLevel, double> Weight = new Dictionary<AiLevel, double>
         {
-            { AiLevel.Easy, 0.3 }, { AiLevel.Normal, 0.8 }, { AiLevel.Hard, 1 }
+            { AiLevel.Easy, 0.55 }, { AiLevel.Normal, 0.8 }, { AiLevel.Hard, 1 }
         };
         // candidate tag -> the intent shown to the player
         static readonly Dictionary<string, string> Intent = new Dictionary<string, string>
@@ -523,7 +523,7 @@ namespace FlickCurling.Core
             var hands = m.Held[(int)team];
             int Slot(ItemKind k) => Array.IndexOf(hands, k);
             if (Array.TrueForAll(hands, k => k == ItemKind.None)) return -1;
-            if (lvl == AiLevel.Easy && rng.NextDouble() < 0.4) return -1;
+            if (lvl == AiLevel.Easy && rng.NextDouble() < 0.2) return -1;
             int myLeft = 0;
             for (int k = m.Shot; k < Sheet.Shots; k++) if (m.ShooterAt(k) == team) myLeft++;
             var sc = Rules.Scoring(m.Stones);
