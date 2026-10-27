@@ -826,6 +826,7 @@ namespace FlickCurling.Game
         // come in time)
         void OnlineFinalCard(Team? win)
         {
+            if (!adCounted) { adCounted = true; Ads.MatchPlayed(); }
             ShowCard(() => new CardSpec
             {
                 Eyebrow = Loc.T("over.eyebrow"),
@@ -834,10 +835,11 @@ namespace FlickCurling.Game
                 Buttons =
                 {
                     new CardButton(rematch != null ? Elapsed() : Loc.T("over.again"), ToggleRematch) { KeepOpen = true },
-                    new CardButton(Loc.T("over.menu"), ToMenu)
+                    new CardButton(Loc.T("over.menu"), () => Ads.ShowIfDue(ToMenu))   // (the ad first, when one is due)
                 }
             });
         }
+        bool adCounted;   // (this match counted towards the next ad, once)
 
         (int p, int delta)? points;   // this player's rating points after the match just finished, and its change
 
@@ -897,8 +899,13 @@ namespace FlickCurling.Game
                 hud.SetCardButton(0, Loc.T("over.again"), true);
                 return;
             }
-            StartRematch();
-            hud.SetCardButton(0, Elapsed(), true);
+            // the ad first, when one is due: the search starts once it is closed
+            Ads.ShowIfDue(() =>
+            {
+                if (!this || rematch != null) return;
+                StartRematch();
+                hud.SetCardButton(0, Elapsed(), true);
+            });
         }
 
         void StartRematch()

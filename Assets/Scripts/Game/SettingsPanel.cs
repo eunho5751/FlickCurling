@@ -27,6 +27,8 @@ namespace FlickCurling.Game
         [SerializeField] GameObject rulesRow;
         [SerializeField] Button rules;
         [SerializeField] Button terms, privacy;
+        [SerializeField] Button adPrivacy;   // the ad consent (Google's form): only where Google asks for it
+        [SerializeField] GameObject adPrivacyGap;
         [SerializeField] Vector2 sizeMenu = new Vector2(860, 1180), sizeGame = new Vector2(860, 1500);
         [Tooltip("The settings gear, for buttons that open this popup")]
         public Sprite Icon;
@@ -54,6 +56,17 @@ namespace FlickCurling.Game
             rules.onClick.AddListener(OpenRules);
             terms.onClick.AddListener(() => OpenPage(GameConfig.Load().termsUrl));
             privacy.onClick.AddListener(() => OpenPage(GameConfig.Load().privacyUrl));
+            adPrivacy.onClick.AddListener(Ads.ShowPrivacyOptions);
+            Ads.PrivacyChanged += ShowAdPrivacy;
+        }
+
+        void OnDestroy() => Ads.PrivacyChanged -= ShowAdPrivacy;
+
+        void ShowAdPrivacy()
+        {
+            if (!this) return;
+            bool on = Ads.PrivacyOptionsRequired;
+            adPrivacy.gameObject.SetActive(on); adPrivacyGap.SetActive(on);
         }
 
         // the terms of service or the privacy policy, in the browser (the address is GameConfig's)
@@ -90,6 +103,7 @@ namespace FlickCurling.Game
             var size = inGame ? sizeGame : sizeMenu;
             popup.SetSize(size.x, size.y);
             Show();
+            ShowAdPrivacy();
             popup.Show();
         }
 

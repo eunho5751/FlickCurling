@@ -1073,6 +1073,10 @@ MonoBehaviour:
     m_Localized: Privacy Policy
     m_Metadata:
       m_Items: []
+  - m_Id: 4661804745543680
+    m_Localized: Ad Privacy
+    m_Metadata:
+      m_Items: []
   references:
     version: 2
     RefIds:

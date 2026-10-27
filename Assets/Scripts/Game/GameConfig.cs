@@ -86,6 +86,12 @@ namespace FlickCurling.Game
         [Tooltip("A magnet's grip on a stone right beside it: how quickly that stone takes the magnet's way, per second (less further off)")]
         [Range(1f, 40f)] public float magnetPull = 8;
 
+        [Header("Ads")]
+        [Tooltip("A full-screen ad once every this many matches played (against the AI, two on one device or online; not the tutorial), as the result is left. Never for a player who bought \"remove ads\"")]
+        [Range(1, 10)] public int adEveryMatches = 2;
+        [Tooltip("The AdMob interstitial ad unit ID for Android (ca-app-pub-…/…). The default is Google's test unit: put the game's own in before release")]
+        public string adUnitAndroid = "ca-app-pub-3940256099942544/1033173712";
+
         [Header("Links")]
         [Tooltip("The web page the settings popup's \"Terms of Service\" opens")]
         public string termsUrl = "";

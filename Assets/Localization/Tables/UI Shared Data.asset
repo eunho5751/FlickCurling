@@ -979,6 +979,10 @@ MonoBehaviour:
     m_Key: settings.privacy
     m_Metadata:
       m_Items: []
+  - m_Id: 4661804745543680
+    m_Key: settings.adPrivacy
+    m_Metadata:
+      m_Items: []
   m_Metadata:
     m_Items: []
   m_KeyGenerator:

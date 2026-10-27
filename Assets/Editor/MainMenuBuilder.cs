@@ -785,7 +785,7 @@ namespace FlickCurling.EditorTools
             var lh = legalRow.gameObject.AddComponent<HorizontalLayoutGroup>();
             lh.childAlignment = TextAnchor.MiddleCenter;
             lh.childControlWidth = lh.childControlHeight = true; lh.childForceExpandWidth = lh.childForceExpandHeight = false;
-            void Gap() => Child<RectTransform>(legalRow, "Gap").gameObject.AddComponent<LayoutElement>().flexibleWidth = 1;
+            GameObject Gap() { var g = Child<RectTransform>(legalRow, "Gap").gameObject; g.AddComponent<LayoutElement>().flexibleWidth = 1; return g; }
             Button TextButton(string name, string key)
             {
                 var t = Label(legalRow, name, legendFont, 28, AccountValueInk);
@@ -803,6 +803,9 @@ namespace FlickCurling.EditorTools
             Gap();
             var privacy = TextButton("Privacy", "settings.privacy");
             Gap();
+            // the ad consent, only where Google asks for a way back to it (the EEA, the UK): shown by the panel then
+            var adPrivacy = TextButton("AdPrivacy", "settings.adPrivacy");
+            var adPrivacyGap = Gap();
 
             var panel = go.AddComponent<SettingsPanel>();
             var so = new SerializedObject(panel);
@@ -818,6 +821,8 @@ namespace FlickCurling.EditorTools
             so.FindProperty("toMenu").objectReferenceValue = toMenu;
             so.FindProperty("terms").objectReferenceValue = terms;
             so.FindProperty("privacy").objectReferenceValue = privacy;
+            so.FindProperty("adPrivacy").objectReferenceValue = adPrivacy;
+            so.FindProperty("adPrivacyGap").objectReferenceValue = adPrivacyGap;
             so.FindProperty("Icon").objectReferenceValue = icon.sprite;
             so.ApplyModifiedPropertiesWithoutUndo();
             go.SetActive(false);

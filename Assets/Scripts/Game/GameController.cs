@@ -659,6 +659,7 @@ namespace FlickCurling.Game
             var win = m.Winner;
             RenderHud();
             if (mode == Mode.Online) { OnlineGameOver(); return; }
+            Ads.MatchPlayed();
             // against the AI the player's own result; two players on one device, who won
             bool vsAi = IsAI(Team.B) != IsAI(Team.W);
             ShowCard(() => new CardSpec
@@ -670,8 +671,9 @@ namespace FlickCurling.Game
                     : Loc.T("over.draw", ("score", Versus(110))),
                 Buttons =
                 {
-                    new CardButton(Loc.T("over.again"), () => StartMatch(mode, mapKey)),
-                    new CardButton(Loc.T("over.menu"), ToMenu)
+                    // (leaving the result: the ad first, when one is due)
+                    new CardButton(Loc.T("over.again"), () => Ads.ShowIfDue(() => StartMatch(mode, mapKey))),
+                    new CardButton(Loc.T("over.menu"), () => Ads.ShowIfDue(ToMenu))
                 }
             });
         }
