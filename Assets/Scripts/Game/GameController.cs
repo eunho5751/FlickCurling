@@ -199,7 +199,7 @@ namespace FlickCurling.Game
             else StartMatch(Mode.Pvp, "base");
         }
 
-        void OnDestroy() { Loc.Changed -= OnLocaleChanged; GameSettings.Changed -= OnSettingsChanged; Account.NetworkGuard.Resumed -= OnNetworkBack; OnlineDestroy(); Ui.Flip = false; }
+        void OnDestroy() { ResumeFromSettings(); Loc.Changed -= OnLocaleChanged; GameSettings.Changed -= OnSettingsChanged; Account.NetworkGuard.Resumed -= OnNetworkBack; OnlineDestroy(); Ui.Flip = false; }
 
         SettingsPanel settingsPrefab, settings;
         bool SettingsOpen => settings && settings.IsOpen;
@@ -225,6 +225,25 @@ namespace FlickCurling.Game
             }
             ResetShotInput();   // a pull under way is let go without a shot
             settings.Open(true);
+        }
+
+        // off line (against the AI, two on one device, the tutorial) the match stands still while the settings popup is
+        // open: the game's clock is the scaled one, so time scale 0 holds the stones, the AI and the shot clock (the
+        // popups tween on unscaled time). Online it goes on, as the opponent's does.
+        float? pausedScale;
+
+        void UpdateSettingsPause()
+        {
+            bool hold = SettingsOpen && mode != Mode.Online;
+            if (hold && pausedScale == null) { pausedScale = Time.timeScale; Time.timeScale = 0; }
+            else if (!hold) ResumeFromSettings();
+        }
+
+        void ResumeFromSettings()
+        {
+            if (pausedScale == null) return;
+            Time.timeScale = pausedScale.Value;
+            pausedScale = null;
         }
 
         // the aim sensitivity can change from the settings popup
@@ -832,6 +851,7 @@ namespace FlickCurling.Game
         void Update()
         {
             // the game's clock is the scaled one: Time.timeScale 0 (the network popup) stops the match where it is
+            UpdateSettingsPause();
             float rdt = Mathf.Min(0.05f, Time.deltaTime);
             float dt = rdt;   // game clock (physics, animations)
 
