@@ -14,7 +14,7 @@ namespace FlickCurling.Game
     /// Online play (Docs/OnlineMatch.md) on top of the offline flow: whose turn is played on this device, the shot sent
     /// as input first and then as a record both devices play in step (only the shooter's device runs the physics; the
     /// other catches up), the cards that wait for both players, the result reported the moment the match ends, play
-    /// again with matchmaking. A device dropped from the match's network has lost it (the other wins); one back from a
+    /// again with matchmaking (a friend match: the same friend again, once both ask for it). A device dropped from the match's network has lost it (the other wins); one back from a
     /// short spell in the background takes the match from the opponent's card at once.
     /// The two devices talk through <see cref="OnlineLobby"/> (messages in its inbox).
     /// </summary>
@@ -45,6 +45,7 @@ namespace FlickCurling.Game
         float rematchStart;
 
         bool IsOnline => mode == Mode.Online;
+        bool friendly;   // a friend match (a room's, or the same friend again): never counted, played again with the same friend
         bool IsRemote(Team t) => IsOnline && t != OnlineLobby.MyTeam;
         int TurnSeq => m.InLsd && m.Lsd != null ? m.Lsd.Idx : 1000 + m.End * 100 + m.Shot;
 
@@ -54,9 +55,14 @@ namespace FlickCurling.Game
         {
             Account.DeviceGuard.PlayerMessage -= OnPlayerMessage;
             Account.DeviceGuard.PlayerMessage += OnPlayerMessage;
-            LeaderboardPopup.Invalidate();   // this match will change this player's points
-            OnlineLobby.AwaitRecord(playingMatch);   // and record
+            friendly = OnlineLobby.Friendly;
+            if (!friendly)
+            {
+                LeaderboardPopup.Invalidate();   // this match will change this player's points
+                OnlineLobby.AwaitRecord(OnlineLobby.MatchId);   // and record
+            }
             awaitingState = false;
+            againGoing = false;
             playingMatch = OnlineLobby.MatchId;
             connect = OnlineLobby.Connecting;
             connecting = !connect.IsCompleted;
@@ -70,7 +76,7 @@ namespace FlickCurling.Game
             playback = null;
             myReady.Clear(); oppReady.Clear(); oppDone.Clear(); held.Clear();
             waitingCard = null; commit = null; doneAt = -100;
-            reportTask = null; reportedMatch = ""; points = null; toResult = false;
+            reportTask = null; reportedMatch = ""; points = null; toResult = false; friendGoneShown = null; finalCardUp = false;
             published = (-1, -1, -1, -1); myStamp = appliedStamp = 0; myData = null; resyncUntil = -1;
             arriving = false; oppArrived = false; oppSeen = false; oppFinished = false; playStart = null;
             myVsAt = oppVsAt = null;   // (the opponent's may come in before this device's panel is up)
@@ -140,7 +146,7 @@ namespace FlickCurling.Game
             reportedMatch = id;   // nothing to report
             OffTheSheet();
             if (!string.IsNullOrEmpty(id)) _ = OnlineApi.CancelMatch(id);
-            MatchLaunch.SetSearchAgain();
+            if (!friendly) MatchLaunch.SetSearchAgain();   // (a friend's: back to the menu, nobody to look for)
             ToMenu();
         }
         const float VsSeconds = 2.5f, VsWaitMax = 10;
@@ -199,6 +205,12 @@ namespace FlickCurling.Game
             // still taking that in (it restarts the session's network as the new owner), and leaving under it only breaks
             // that with errors
             _ = OnlineLobby.LeaveSettledAsync();
+            // a friend who did not come: back to the menu only
+            if (friendly)
+            {
+                ShowCard(() => new CardSpec { Eyebrow = Loc.T("mainmenu.online"), Title = Loc.T("online.noShow"), Buttons = { new CardButton(Loc.T("over.menu"), ToMenu) } });
+                return;
+            }
             LookAgainSoon().Forget();
             async UniTaskVoid LookAgainSoon()
             {
@@ -438,6 +450,7 @@ namespace FlickCurling.Game
             TickConnect();
             // the match is over here, or the next one has been found: its messages wait for the next scene
             if (string.IsNullOrEmpty(playingMatch) || OnlineLobby.MatchId != playingMatch) { TickRematch(); return; }
+            TickFriendAgain();
             while (OnlineLobby.Inbox.Count > 0) held.Add(OnlineLobby.Inbox.Dequeue());
             for (int i = 0; i < held.Count; i++)
             {
@@ -725,7 +738,7 @@ namespace FlickCurling.Game
             {
                 Eyebrow = Loc.T("mainmenu.online"),
                 Title = Loc.T("online.forfeitTitle"),
-                Body = Loc.T("online.forfeitBody"),
+                Body = Loc.T(friendly ? "online.forfeitBodyFriend" : "online.forfeitBody"),   // (a friend match is not recorded)
                 Buttons =
                 {
                     new CardButton(Loc.T("online.forfeitStay"), () => { if (under != null) ShowCard(under); }),
@@ -816,8 +829,9 @@ namespace FlickCurling.Game
         void OnlineGameOver()
         {
             OnlineReportResult();   // (reported as the last end's card came up; the report is seeing it too)
-            // out of the session now (play again finds a new one)
-            _ = OnlineLobby.LeaveAsync();
+            // out of the session now (play again finds a new one); a friend's stays for the same friend again, left with
+            // the menu
+            if (!friendly) _ = OnlineLobby.LeaveAsync();
             OnlineFinalCard(m.Winner);
         }
 
@@ -827,18 +841,25 @@ namespace FlickCurling.Game
         void OnlineFinalCard(Team? win)
         {
             if (!adCounted) { adCounted = true; Ads.MatchPlayed(); }
-            ShowCard(() => new CardSpec
+            // a friend match the friend has already left (a forfeit): no playing again, only the way to the menu
+            bool noAgain = friendly && FriendGone;
+            finalCardUp = !noAgain;
+            ShowCard(() =>
             {
-                Eyebrow = Loc.T("over.eyebrow"),
-                Title = MyResult(win, OnlineLobby.MyTeam),
-                Head = points.HasValue ? Loc.T("over.points", ("points", points.Value.p), ("delta", Signed(points.Value.delta))) : "",
-                Buttons =
+                var card = new CardSpec
                 {
-                    new CardButton(rematch != null ? Elapsed() : Loc.T("over.again"), ToggleRematch) { KeepOpen = true },
-                    new CardButton(Loc.T("over.menu"), () => Ads.ShowIfDue(ToMenu))   // (the ad first, when one is due)
-                }
+                    Eyebrow = Loc.T("over.eyebrow"),
+                    Title = MyResult(win, OnlineLobby.MyTeam),
+                    Head = points.HasValue ? Loc.T("over.points", ("points", points.Value.p), ("delta", Signed(points.Value.delta))) : "",
+                };
+                if (!noAgain)
+                    card.Buttons.Add(friendly ? FriendAgainButton()
+                        : new CardButton(rematch != null ? Elapsed() : Loc.T("over.again"), ToggleRematch) { KeepOpen = true });
+                card.Buttons.Add(new CardButton(Loc.T("over.menu"), () => Ads.ShowIfDue(ToMenu)));   // (the ad first, when one is due)
+                return card;
             });
         }
+        bool finalCardUp;   // the final result card is up with play again as its first button
         bool adCounted;   // (this match counted towards the next ad, once)
 
         (int p, int delta)? points;   // this player's rating points after the match just finished, and its change
@@ -855,7 +876,7 @@ namespace FlickCurling.Game
         {
             if (toResult) return;
             string id = reportedMatch;
-            if (!points.HasValue && !string.IsNullOrEmpty(id))
+            if (!friendly && !points.HasValue && !string.IsNullOrEmpty(id))   // (a friend match moves no points)
             {
                 toResult = true;
                 hud.SetCardButton(0, Loc.T("over.waiting"), false);
@@ -930,6 +951,64 @@ namespace FlickCurling.Game
         void TickRematch()
         {
             if (rematch != null) hud.SetCardButton(0, Elapsed(), true);
+        }
+
+        // ---------------- the same friend again ----------------
+
+        // a friend match's play again: each player asks (Ready, CardAgain) on the result card; once both have, both go on
+        // to the next match together. The button says when the friend has left (then there is nobody to play again).
+        const int CardAgain = 4;
+        bool againGoing;
+        bool? friendGoneShown;
+
+        bool FriendGone => !OnlineLobby.InMatch || !OnlineLobby.OpponentPresent;
+
+        (string label, bool on) FriendAgainState() =>
+            FriendGone ? (Loc.T("online.friendLeft"), false)
+            : againGoing || myReady.Contains(CardAgain) ? (Loc.T("online.waiting"), false)
+            : (Loc.T("over.again"), true);
+
+        CardButton FriendAgainButton()
+        {
+            var (label, on) = FriendAgainState();
+            return new CardButton(label, AskAgain) { KeepOpen = true, Interactable = on };
+        }
+
+        void AskAgain()
+        {
+            if (FriendGone || myReady.Contains(CardAgain)) return;
+            // the ad first, when one is due: asked once it is closed
+            Ads.ShowIfDue(() =>
+            {
+                if (!this || FriendGone || !myReady.Add(CardAgain)) return;
+                OnlineSend(OnlineMsg.Ready, CardAgain);
+                var (label, on) = FriendAgainState();
+                hud.SetCardButton(0, label, on);
+            });
+        }
+
+        void TickFriendAgain()
+        {
+            if (!friendly || state != St.Over || againGoing || !finalCardUp || !hud.CardVisible) return;
+            if (myReady.Contains(CardAgain) && oppReady.Contains(CardAgain) && !FriendGone) { GoAgain().Forget(); return; }
+            bool gone = FriendGone;
+            if (friendGoneShown == gone) return;
+            friendGoneShown = gone;
+            var (label, on) = FriendAgainState();
+            hud.SetCardButton(0, label, on);
+        }
+
+        async UniTaskVoid GoAgain()
+        {
+            againGoing = true;
+            hud.SetCardButton(0, Loc.T("online.waiting"), false);
+            OnlineLobby.Trace("the same friend again (result card)");
+            bool ok = await OnlineLobby.RematchFriendAsync();
+            if (!this) return;
+            if (!ok) { againGoing = false; ToMenu(); return; }
+            hud.HideCard();
+            MatchLaunch.SetOnline();
+            ScreenFader.LoadScene(MatchLaunch.GameScene);
         }
 
         string Elapsed()

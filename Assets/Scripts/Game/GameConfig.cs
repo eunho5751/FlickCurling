@@ -31,6 +31,8 @@ namespace FlickCurling.Game
         [Range(15f, 120f)] public float connectSeconds = 45;
         [Tooltip("Seconds to wait, once a match is found, for the opponent to show up in the match's session (normally 1 to 3); past it the match is taken as called off on their side and the search goes on")]
         [Range(2f, 30f)] public float opponentJoinSeconds = 10;
+        [Tooltip("Minutes a friend's room stays open waiting for the friend to come in with its code; then it closes")]
+        [Range(1f, 30f)] public float friendRoomMinutes = 10;
 
         [Header("Stones")]
         [Tooltip("Stone radius in sheet units (the sheet is 100 wide; the house radius is 28)")]

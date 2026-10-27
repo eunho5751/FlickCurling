@@ -1015,6 +1015,106 @@ MonoBehaviour:
     m_Localized: "\u5E83\u544A\u306E\u540C\u610F\u8A2D\u5B9A"
     m_Metadata:
       m_Items: []
+  - m_Id: 4750103522758656
+    m_Localized: "\u30D5\u30EC\u30F3\u30C9"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4750103564701696
+    m_Localized: "\u30EB\u30FC\u30E0\u4F5C\u6210"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4750103564701697
+    m_Localized: "\u30B3\u30FC\u30C9\u5165\u529B"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4750103564701698
+    m_Localized: "\u30EB\u30FC\u30E0\u30B3\u30FC\u30C9"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4750103564701699
+    m_Localized: "\u30B3\u30D4\u30FC"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4750103564701700
+    m_Localized: "\u5171\u6709"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4750103564701701
+    m_Localized: "\u30AD\u30E3\u30F3\u30BB\u30EB"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4750103564701702
+    m_Localized: "\u30EB\u30FC\u30E0\u3092\u4F5C\u6210\u4E2D\u2026"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4750103564701703
+    m_Localized: "\u30D5\u30EC\u30F3\u30C9\u3092\u5F85\u3063\u3066\u3044\u307E\u3059
+      {time}"
+    m_Metadata:
+      m_Items:
+      - rid: 4297768082125881573
+  - m_Id: 4750103573090304
+    m_Localized: "\u30B3\u30FC\u30C9\u3092\u30B3\u30D4\u30FC\u3057\u307E\u3057\u305F"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4750103573090305
+    m_Localized: "\u8AB0\u3082\u6765\u306A\u304B\u3063\u305F\u306E\u3067\u30EB\u30FC\u30E0\u3092\u9589\u3058\u307E\u3057\u305F"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4750103573090306
+    m_Localized: "\u30EB\u30FC\u30E0\u3092\u4F5C\u6210\u3067\u304D\u307E\u305B\u3093\u3067\u3057\u305F\u3002\u3082\u3046\u4E00\u5EA6\u304A\u8A66\u3057\u304F\u3060\u3055\u3044"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4750103573090307
+    m_Localized: "\u30D5\u30EC\u30F3\u30C9\u306E\u30EB\u30FC\u30E0\u30B3\u30FC\u30C9"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4750103573090308
+    m_Localized: "6\u6587\u5B57\u306E\u30B3\u30FC\u30C9"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4750103573090309
+    m_Localized: "\u5165\u5BA4"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4750103573090310
+    m_Localized: "\u623B\u308B"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4750103573090311
+    m_Localized: "\u5165\u5BA4\u4E2D\u2026"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4750103573090312
+    m_Localized: "6\u6587\u5B57\u306E\u30B3\u30FC\u30C9\u3092\u5165\u529B\u3057\u3066\u304F\u3060\u3055\u3044"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4750103573090313
+    m_Localized: "\u30EB\u30FC\u30E0\u304C\u898B\u3064\u304B\u308A\u307E\u305B\u3093\u3002\u30B3\u30FC\u30C9\u3092\u78BA\u8A8D\u3057\u3066\u304F\u3060\u3055\u3044"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4750103573090314
+    m_Localized: "\u3059\u3067\u306B\u8A66\u5408\u304C\u59CB\u307E\u3063\u3066\u3044\u308B\u30EB\u30FC\u30E0\u3067\u3059"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4750103573090315
+    m_Localized: "\u5165\u5BA4\u3067\u304D\u307E\u305B\u3093\u3067\u3057\u305F\u3002\u3082\u3046\u4E00\u5EA6\u304A\u8A66\u3057\u304F\u3060\u3055\u3044"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4750103573090316
+    m_Localized: "\u30D5\u30EA\u30C3\u30AF\u30AB\u30FC\u30EA\u30F3\u30B0\u3001\u4E00\u7DD2\u306B\u3084\u308D\u3046\uFF01\u30EB\u30FC\u30E0\u30B3\u30FC\u30C9:
+      {code}"
+    m_Metadata:
+      m_Items:
+      - rid: 4297768082125881573
+  - m_Id: 4750103573090317
+    m_Localized: "\u30D5\u30EC\u30F3\u30C9\u304C\u9000\u51FA\u3057\u307E\u3057\u305F"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4751954615914496
+    m_Localized: "\u4ECA\u9000\u51FA\u3059\u308B\u3068\u3001\u3053\u306E\u8A66\u5408\u306F\u30D5\u30EC\u30F3\u30C9\u306E\u52DD\u3061\u306B\u306A\u308A\u307E\u3059\u3002"
+    m_Metadata:
+      m_Items: []
   references:
     version: 2
     RefIds:
@@ -1051,3 +1151,5 @@ MonoBehaviour:
         - id: 4406000457011203
         - id: 4566859292528646
         - id: 4604271452409858
+        - id: 4750103564701703
+        - id: 4750103573090316

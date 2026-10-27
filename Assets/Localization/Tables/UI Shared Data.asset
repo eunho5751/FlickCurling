@@ -983,6 +983,102 @@ MonoBehaviour:
     m_Key: settings.adPrivacy
     m_Metadata:
       m_Items: []
+  - m_Id: 4750103522758656
+    m_Key: online.friend
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4750103564701696
+    m_Key: online.createRoom
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4750103564701697
+    m_Key: online.enterCode
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4750103564701698
+    m_Key: online.roomCode
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4750103564701699
+    m_Key: online.copy
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4750103564701700
+    m_Key: online.share
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4750103564701701
+    m_Key: online.cancel
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4750103564701702
+    m_Key: online.creatingRoom
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4750103564701703
+    m_Key: online.waitingFriend
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4750103573090304
+    m_Key: online.copied
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4750103573090305
+    m_Key: online.roomExpired
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4750103573090306
+    m_Key: online.roomFailed
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4750103573090307
+    m_Key: online.codePrompt
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4750103573090308
+    m_Key: online.codePlaceholder
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4750103573090309
+    m_Key: online.join
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4750103573090310
+    m_Key: online.back
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4750103573090311
+    m_Key: online.joiningRoom
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4750103573090312
+    m_Key: online.codeLength
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4750103573090313
+    m_Key: online.roomNotFound
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4750103573090314
+    m_Key: online.roomFull
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4750103573090315
+    m_Key: online.joinFailed
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4750103573090316
+    m_Key: online.shareText
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4750103573090317
+    m_Key: online.friendLeft
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4751954615914496
+    m_Key: online.forfeitBodyFriend
+    m_Metadata:
+      m_Items: []
   m_Metadata:
     m_Items: []
   m_KeyGenerator:

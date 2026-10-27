@@ -1077,6 +1077,104 @@ MonoBehaviour:
     m_Localized: Ad Privacy
     m_Metadata:
       m_Items: []
+  - m_Id: 4750103522758656
+    m_Localized: Friend
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4750103564701696
+    m_Localized: Create Room
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4750103564701697
+    m_Localized: Enter Code
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4750103564701698
+    m_Localized: Room Code
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4750103564701699
+    m_Localized: Copy
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4750103564701700
+    m_Localized: Share
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4750103564701701
+    m_Localized: Cancel
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4750103564701702
+    m_Localized: "Opening a room\u2026"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4750103564701703
+    m_Localized: Waiting for your friend {time}
+    m_Metadata:
+      m_Items:
+      - rid: 4297768082125881571
+  - m_Id: 4750103573090304
+    m_Localized: Code copied
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4750103573090305
+    m_Localized: Nobody came, so the room has closed
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4750103573090306
+    m_Localized: Couldn't open a room. Please try again
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4750103573090307
+    m_Localized: Your friend's room code
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4750103573090308
+    m_Localized: 6-character code
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4750103573090309
+    m_Localized: Join
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4750103573090310
+    m_Localized: Back
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4750103573090311
+    m_Localized: "Joining\u2026"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4750103573090312
+    m_Localized: Enter the 6-character code
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4750103573090313
+    m_Localized: No room with that code. Please check it
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4750103573090314
+    m_Localized: That room's match has already started
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4750103573090315
+    m_Localized: Couldn't join. Please try again
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4750103573090316
+    m_Localized: 'Let''s play Flick Curling! Room code: {code}'
+    m_Metadata:
+      m_Items:
+      - rid: 4297768082125881571
+  - m_Id: 4750103573090317
+    m_Localized: Your friend has left
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4751954615914496
+    m_Localized: If you leave now, your friend wins this match.
+    m_Metadata:
+      m_Items: []
   references:
     version: 2
     RefIds:
@@ -1113,3 +1211,5 @@ MonoBehaviour:
         - id: 4406000457011203
         - id: 4566859292528646
         - id: 4604271452409858
+        - id: 4750103564701703
+        - id: 4750103573090316

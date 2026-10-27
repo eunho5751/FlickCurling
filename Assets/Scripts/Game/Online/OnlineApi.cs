@@ -70,6 +70,15 @@ namespace FlickCurling.Game.Online
         public static Task<MatchInfo> StartMatch(string matchId, string opponentId, string map) =>
             Call<MatchInfo>("StartMatch", new Dictionary<string, object> { ["matchId"] = matchId, ["opponentId"] = opponentId, ["map"] = map });
 
+        /// <summary>As <see cref="StartMatch"/>, for a friend match (a room joined by its code): never counted (no
+        /// won/lost/drawn, no rating).</summary>
+        public static Task<MatchInfo> StartFriendMatch(string matchId, string opponentId, string map) =>
+            Call<MatchInfo>("StartFriendMatch", new Dictionary<string, object> { ["matchId"] = matchId, ["opponentId"] = opponentId, ["map"] = map });
+
+        /// <summary>The match's record, made the right way for the kind of match (a friend's or not).</summary>
+        public static Task<MatchInfo> Start(string matchId, string opponentId, string map, bool friendly) =>
+            friendly ? StartFriendMatch(matchId, opponentId, map) : StartMatch(matchId, opponentId, map);
+
         /// <param name="winner">the winner's player id, or "draw"</param>
         /// <param name="score">the two scores in the order of <see cref="MatchInfo.Players"/></param>
         public static async Task<MatchInfo> ReportResult(string matchId, string winner, int[] score)

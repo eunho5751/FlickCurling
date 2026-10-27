@@ -263,10 +263,12 @@ namespace FlickCurling.EditorTools
             return setup;
         }
 
-        // ---- the online match popup: the mode (random match) and the map as group toggles, and OK (which turns into the
-        // search's elapsed time), laid out like the match setup popup ----
+        // ---- the online match popup: the opponent (random, or a friend) and the map as group toggles, then OK (which
+        // turns into the search's elapsed time) or, for a friend, "create room" / "enter code"; the friend's room (its code
+        // in large letters, copy and share, cancel) and the code's entry each in a view of their own in the same window ----
 
         static readonly Vector2 OnlineSetupSize = new Vector2(860, 764);
+        const float RoomButtonW = 340, RoomCodeSize = 96;
 
         static OnlineSetup BuildOnlineSetup(GameObject popupPrefab, Transform parent)
         {
@@ -282,25 +284,68 @@ namespace FlickCurling.EditorTools
             ((RectTransform)go.transform.Find("Window")).sizeDelta = OnlineSetupSize;
 
             var content = (RectTransform)go.transform.Find("Window/Content");
-            var v = content.gameObject.AddComponent<VerticalLayoutGroup>();
-            v.spacing = SetupGap; v.childAlignment = TextAnchor.UpperCenter;
-            v.childControlWidth = v.childControlHeight = true;
-            v.childForceExpandWidth = true; v.childForceExpandHeight = false;
+            var cv = content.gameObject.AddComponent<VerticalLayoutGroup>();
+            cv.childControlWidth = cv.childControlHeight = true;
+            cv.childForceExpandWidth = cv.childForceExpandHeight = true;
 
-            var modeRow = Row(content, "ModeRow");
+            // the choices
+            var main = View(content, "Main");
+            var modeRow = Row(main, "ModeRow");
             Legend(modeRow, legendFont, "matchsetup.opponent");
-            var mode = Toggle(modeRow, new[] { "online.random" }, 0);
-            var mapRow = Row(content, "MapRow");
+            var mode = Toggle(modeRow, new[] { "online.random", "online.friend" }, 0);
+            var mapRow = Row(main, "MapRow");
             Legend(mapRow, legendFont, "matchsetup.mode");
             var map = Toggle(mapRow, new[] { "map.base", "map.item" }, 0);
-
-            var spacer = Child<RectTransform>(content, "Spacer");
-            spacer.gameObject.AddComponent<LayoutElement>().flexibleHeight = 1;
-            var okRow = Child<RectTransform>(content, "OkRow");
+            Spacer(main);
+            var okRow = Child<RectTransform>(main, "OkRow");
             okRow.gameObject.AddComponent<LayoutElement>().preferredHeight = SetupOkH;
             var okGo = UiPrefabBuilder.Place(UiPrefabBuilder.PrimaryPath, okRow, "Ok");
             Place((RectTransform)okGo.transform, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(SetupOkW, SetupOkH));
             var ok = UiPrefabBuilder.SetLabel(okGo, "matchsetup.ok");
+            var friendRow = ButtonRow(main, "FriendRow");
+            var create = RowButton(friendRow, UiPrefabBuilder.PrimaryPath, "CreateRoom", "online.createRoom");
+            var enter = RowButton(friendRow, UiPrefabBuilder.SecondaryPath, "EnterCode", "online.enterCode");
+            friendRow.gameObject.SetActive(false);
+
+            // the friend's room, waiting
+            var room = View(content, "Room");
+            var roomLegend = Row(room, "LegendRow");
+            Legend(roomLegend, legendFont, "online.roomCode");
+            var code = Label(room, "Code", legendFont, RoomCodeSize, Ink);
+            code.characterSpacing = 18;
+            code.text = "------";
+            code.gameObject.AddComponent<LayoutElement>().preferredHeight = 150;
+            var shareRow = ButtonRow(room, "ShareRow");
+            var copy = RowButton(shareRow, UiPrefabBuilder.SecondaryPath, "Copy", "online.copy");
+            var share = RowButton(shareRow, UiPrefabBuilder.SecondaryPath, "Share", "online.share");
+            var roomStatus = Status(room, "Status", legendFont);
+            Spacer(room);
+            var cancelRow = Child<RectTransform>(room, "CancelRow");
+            cancelRow.gameObject.AddComponent<LayoutElement>().preferredHeight = SetupOkH;
+            var cancelGo = UiPrefabBuilder.Place(UiPrefabBuilder.PrimaryPath, cancelRow, "Cancel");
+            Place((RectTransform)cancelGo.transform, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(SetupOkW, SetupOkH));
+            var cancel = UiPrefabBuilder.SetLabel(cancelGo, "online.cancel");
+            room.gameObject.SetActive(false);
+
+            // a friend's code, entered
+            var join = View(content, "Join");
+            var joinLegend = Row(join, "LegendRow");
+            Legend(joinLegend, legendFont, "online.codePrompt");
+            var inputGo = UiPrefabBuilder.Place(UiPrefabBuilder.InputPath, join, "Input");
+            inputGo.AddComponent<LayoutElement>().preferredHeight = 120;
+            var input = UiPrefabBuilder.SetPlaceholder(inputGo, "online.codePlaceholder");
+            input.characterLimit = 6;
+            input.contentType = TMP_InputField.ContentType.Alphanumeric;
+            input.characterValidation = TMP_InputField.CharacterValidation.Alphanumeric;
+            input.textComponent.alignment = TextAlignmentOptions.Center;
+            input.placeholder.GetComponent<TextMeshProUGUI>().alignment = TextAlignmentOptions.Center;
+            input.pointSize = 56;
+            var joinStatus = Status(join, "Status", legendFont);
+            Spacer(join);
+            var joinRow = ButtonRow(join, "JoinRow");
+            var joinOk = RowButton(joinRow, UiPrefabBuilder.PrimaryPath, "Join", "online.join");
+            var back = RowButton(joinRow, UiPrefabBuilder.SecondaryPath, "Back", "online.back");
+            join.gameObject.SetActive(false);
 
             var setup = go.AddComponent<OnlineSetup>();
             var so = new SerializedObject(setup);
@@ -308,9 +353,67 @@ namespace FlickCurling.EditorTools
             so.FindProperty("mode").objectReferenceValue = mode;
             so.FindProperty("map").objectReferenceValue = map;
             so.FindProperty("ok").objectReferenceValue = ok;
+            so.FindProperty("main").objectReferenceValue = main.gameObject;
+            so.FindProperty("okRow").objectReferenceValue = okRow.gameObject;
+            so.FindProperty("friendRow").objectReferenceValue = friendRow.gameObject;
+            so.FindProperty("createRoom").objectReferenceValue = create;
+            so.FindProperty("enterCode").objectReferenceValue = enter;
+            so.FindProperty("room").objectReferenceValue = room.gameObject;
+            so.FindProperty("code").objectReferenceValue = code;
+            so.FindProperty("copy").objectReferenceValue = copy;
+            so.FindProperty("share").objectReferenceValue = share;
+            so.FindProperty("roomStatus").objectReferenceValue = roomStatus;
+            so.FindProperty("cancel").objectReferenceValue = cancel;
+            so.FindProperty("join").objectReferenceValue = join.gameObject;
+            so.FindProperty("codeInput").objectReferenceValue = input;
+            so.FindProperty("joinStatus").objectReferenceValue = joinStatus;
+            so.FindProperty("joinOk").objectReferenceValue = joinOk;
+            so.FindProperty("back").objectReferenceValue = back;
             so.ApplyModifiedPropertiesWithoutUndo();
             go.SetActive(false);
             return setup;
+        }
+
+        // one of the online popup's views: its rows top to bottom, filling the window's content
+        static RectTransform View(RectTransform parent, string name)
+        {
+            var view = Child<RectTransform>(parent, name);
+            var v = view.gameObject.AddComponent<VerticalLayoutGroup>();
+            v.spacing = SetupGap; v.childAlignment = TextAnchor.UpperCenter;
+            v.childControlWidth = v.childControlHeight = true;
+            v.childForceExpandWidth = true; v.childForceExpandHeight = false;
+            return view;
+        }
+
+        static void Spacer(RectTransform parent) =>
+            Child<RectTransform>(parent, "Spacer").gameObject.AddComponent<LayoutElement>().flexibleHeight = 1;
+
+        // two buttons side by side, centred
+        static RectTransform ButtonRow(RectTransform parent, string name)
+        {
+            var row = Child<RectTransform>(parent, name);
+            row.gameObject.AddComponent<LayoutElement>().preferredHeight = SetupOkH;
+            var h = row.gameObject.AddComponent<HorizontalLayoutGroup>();
+            h.spacing = 28; h.childAlignment = TextAnchor.MiddleCenter;
+            h.childControlWidth = h.childControlHeight = true; h.childForceExpandWidth = h.childForceExpandHeight = false;
+            return row;
+        }
+
+        static Button RowButton(RectTransform row, string prefab, string name, string key)
+        {
+            var go = UiPrefabBuilder.Place(prefab, row, name);
+            var le = go.AddComponent<LayoutElement>(); le.preferredWidth = RoomButtonW; le.preferredHeight = SetupOkH;
+            return UiPrefabBuilder.SetLabel(go, key);
+        }
+
+        // a line under a view's controls (waiting, or what went wrong), set from code
+        static TextMeshProUGUI Status(RectTransform parent, string name, TMP_FontAsset font)
+        {
+            var t = Label(parent, name, font, 32, AccountValueInk);
+            t.textWrappingMode = TextWrappingModes.Normal;
+            t.text = "";
+            t.gameObject.AddComponent<LayoutElement>().preferredHeight = 90;
+            return t;
         }
 
         // ---- the settings popup: music, sound effects and aim sensitivity sliders (with their values) and the language

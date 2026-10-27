@@ -22,7 +22,8 @@ namespace FlickCurlingModule;
 /// result waits for their own report (both dropped: both lose). Records go once both players have acknowledged, or in
 /// the daily clean-up. Every counted result also moves the player's rating points (a win +10, a draw 0, a loss -5, never
 /// below 0), which a player linked to an account (not a guest) has on the "rating" leaderboard: only this module writes
-/// it (players are denied writing to leaderboards by the project's access policy).
+/// it (players are denied writing to leaderboards by the project's access policy). A friend match (a room joined by
+/// its code: StartFriendMatch) is kept and settled the same way, but counts for nobody's won/lost/drawn or rating.
 /// </summary>
 public class OnlineMatch
 {
@@ -59,6 +60,7 @@ public class OnlineMatch
         public string Map { get; set; } = "base";
         public long StartedAt { get; set; }
         public string Status { get; set; } = "ongoing";   // ongoing / finished
+        public bool Friendly { get; set; }                 // a friend match: never counted (no won/lost/drawn, no rating)
         public bool Started { get; set; }                  // both players opened the match (MarkStarted)
         public string Ending { get; set; } = "";           // reported / dropped / abandoned / expired
         public Report? Result { get; set; }
@@ -121,7 +123,16 @@ public class OnlineMatch
     /// caller's current one.
     /// </summary>
     [CloudCodeFunction("StartMatch")]
-    public async Task<MatchInfo> StartMatch(IExecutionContext ctx, string matchId, string opponentId, string map)
+    public Task<MatchInfo> StartMatch(IExecutionContext ctx, string matchId, string opponentId, string map) =>
+        Start(ctx, matchId, opponentId, map, false);
+
+    /// <summary>As StartMatch, for a friend match (the two met in a room by its code): played and settled the same, never
+    /// counted.</summary>
+    [CloudCodeFunction("StartFriendMatch")]
+    public Task<MatchInfo> StartFriendMatch(IExecutionContext ctx, string matchId, string opponentId, string map) =>
+        Start(ctx, matchId, opponentId, map, true);
+
+    async Task<MatchInfo> Start(IExecutionContext ctx, string matchId, string opponentId, string map, bool friendly)
     {
         string me = Require(ctx.PlayerId, "player");
         Require(matchId, "matchId"); Require(opponentId, "opponentId");
@@ -139,6 +150,7 @@ public class OnlineMatch
                 Seed = BitConverter.ToInt32(h, 1) & 0x7fffffff,
                 Map = string.IsNullOrEmpty(map) ? "base" : map,
                 StartedAt = Now(),
+                Friendly = friendly,
             };
             await SaveMatch(ctx, matchId, rec, null);
         }
@@ -184,7 +196,7 @@ public class OnlineMatch
             if (!await TryCommitSeen(ctx, matchId, rec, lockId, me)) continue;   // someone else wrote meanwhile: read again
             await ClearActive(ctx, me, matchId);
 
-            if (settles) await Count(ctx, push, matchId, uncounted, winner);
+            if (settles) await Count(ctx, push, matchId, uncounted, winner, rec.Friendly);
             if (differs)
             {
                 log.LogWarning("match {MatchId}: {Player} reported {Winner} {Score}, settled as {Settled}", matchId, me, winner, string.Join(":", score), rec.Result?.Winner);
@@ -224,7 +236,7 @@ public class OnlineMatch
             }
             if (!await TryCommitSeen(ctx, matchId, rec, lockId, me)) continue;   // someone else wrote meanwhile: read again
             await ClearActive(ctx, me, matchId);
-            foreach (var p in uncounted) await UpdateStats(ctx, push, p, Outcome.Loss, matchId);
+            foreach (var p in uncounted) await UpdateStats(ctx, push, p, Outcome.Loss, matchId, rec.Friendly);
             return Info(rec);
         }
         throw new Exception("could not save the report");
@@ -312,7 +324,7 @@ public class OnlineMatch
             rec.Status = "finished"; rec.Ending = "abandoned"; rec.SettledBy = me; rec.FinishedAt = Now();
             var uncounted = MarkCounted(rec, rec.Players);
             if (!await TrySaveMatch(ctx, matchId, rec, lockId)) continue;
-            foreach (var p in uncounted) await UpdateStats(ctx, push, p, Outcome.Loss, matchId);
+            foreach (var p in uncounted) await UpdateStats(ctx, push, p, Outcome.Loss, matchId, rec.Friendly);
             return Info(rec);
         }
         throw new Exception("could not resolve the match");
@@ -415,7 +427,7 @@ public class OnlineMatch
                 rec.Status = "finished"; rec.Ending = "expired"; rec.FinishedAt = now;
                 var uncounted = MarkCounted(rec, rec.Players);
                 if (!await TrySaveMatch(ctx, key, rec, lockId)) continue;
-                foreach (var p in uncounted) await UpdateStats(ctx, null, p, Outcome.Loss, key);
+                foreach (var p in uncounted) await UpdateStats(ctx, null, p, Outcome.Loss, key, rec.Friendly);
                 expired++;
             }
         }
@@ -445,16 +457,17 @@ public class OnlineMatch
     }
 
     // the players' counts for a settled result: the winner a win, the other a loss, or a draw each
-    async Task Count(IExecutionContext ctx, IPushClient? push, string matchId, IEnumerable<string> players, string winner)
+    async Task Count(IExecutionContext ctx, IPushClient? push, string matchId, IEnumerable<string> players, string winner, bool friendly)
     {
         foreach (var p in players)
-            await UpdateStats(ctx, push, p, winner == "draw" ? Outcome.Draw : winner == p ? Outcome.Win : Outcome.Loss, matchId);
+            await UpdateStats(ctx, push, p, winner == "draw" ? Outcome.Draw : winner == p ? Outcome.Win : Outcome.Loss, matchId, friendly);
     }
 
     // one counted result: won/lost/drawn, the rating points (and how they moved, for the result screen), then the
     // leaderboard if the player is on it, and the player's device (no push from the daily clean-up: nobody waits there)
-    async Task UpdateStats(IExecutionContext ctx, IPushClient? push, string playerId, Outcome outcome, string matchId)
+    async Task UpdateStats(IExecutionContext ctx, IPushClient? push, string playerId, Outcome outcome, string matchId, bool friendly)
     {
+        if (friendly) return;   // a friend match: nobody's record or rating moves
         for (int attempt = 0; attempt < 4; attempt++)
         {
             var (s, lockId) = await GetProtected<Stats>(ctx, playerId, StatsKey);

@@ -18,16 +18,17 @@ using UnityEngine;
 namespace FlickCurling.Game.Online
 {
     /// <summary>
-    /// The online match outside the game scene: finds an opponent (the "quick-match" queue), joins the two in a
-    /// Distributed Authority session (NGO; the network manager lives across scenes), tells the server (OnlineApi) and
-    /// keeps who is who: the match id, both players, which side (team) this device plays, the seed, both records.
+    /// The online match outside the game scene: finds an opponent (the "quick-match" queue), or meets a friend in a
+    /// private room by its code (a friend match: never counted), joins the two in a Distributed Authority session (NGO;
+    /// the network manager lives across scenes), tells the server (OnlineApi) and keeps who is who: the match id, both
+    /// players, which side (team) this device plays, the seed, both records.
     /// Messages for the game (<see cref="OnlineMatchSync"/>) wait in <see cref="Inbox"/> until it reads them.
     /// A device dropped from the session's network has lost the match (Docs/OnlineMatch.md): there is no way back in.
     /// </summary>
     public static class OnlineLobby
     {
         public const string Queue = "quick-match";
-        const string NickKey = "nick", MatchKey = "match";
+        const string NickKey = "nick", MatchKey = "match", MapKey = "map";
 
         public static ISession Session { get; private set; }
         public static string MatchId { get; private set; } = "";
@@ -40,6 +41,8 @@ namespace FlickCurling.Game.Online
         /// "map", the queue's pools), and the match is played on it.</summary>
         public static string SearchMap = "base";
         public static int Seed { get; private set; }
+        /// <summary>A friend match (met in a room by its code, or the same friend again): played as any, never counted.</summary>
+        public static bool Friendly { get; private set; }
         /// <summary>The side this device plays inside the match (black throws the turn order shot first); on screen this
         /// device is always black.</summary>
         public static Team MyTeam { get; private set; } = Team.B;
@@ -94,7 +97,7 @@ namespace FlickCurling.Game.Online
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
         static void ResetStatics()
         {
-            Session = null; MatchId = MyId = OpponentId = MyName = OpponentName = ""; Map = "base"; Seed = 0;
+            Session = null; MatchId = MyId = OpponentId = MyName = OpponentName = ""; Map = "base"; Seed = 0; Friendly = false;
             MyTeam = Team.B; MyStats = OpponentStats = null; Inbox.Clear();
             hooked = false; joinsInFlight = 0; Joining = false; Connecting = Task.FromResult(true); connectingNow = 0; mine = null; mineAfter = null; BestRegion = null; regionAt = -1; measuring = null; finding = false; settling = Task.CompletedTask; leaving = Task.CompletedTask;
         }
@@ -243,6 +246,7 @@ namespace FlickCurling.Game.Online
         static async Task<bool> FindCoreAsync(CancellationToken ct)
         {
             Me();
+            Friendly = false;
             var props = MyProperties();
             // the region measured beforehand (MeasureRegion): the SDK would otherwise measure every region when the
             // session's network is made, seconds while both players wait
@@ -290,7 +294,7 @@ namespace FlickCurling.Game.Online
             // the match's settings straight from its id, as the server works them out too: the game starts without
             // waiting for it; its record is made meanwhile
             Settle(OnlineApi.LocalInfo(MatchId, MyId, OpponentId, SearchMap));
-            OnlineApi.RecordReady = OnlineApi.StartMatch(MatchId, OpponentId, SearchMap);
+            OnlineApi.RecordReady = OnlineApi.Start(MatchId, OpponentId, SearchMap, Friendly);
             Trace("opponent " + OpponentId + " (" + OpponentName + "), connecting");
             Connecting = ConnectAsync(matchId, sessionOptions, true, connectBy);
             return true;
@@ -358,6 +362,21 @@ namespace FlickCurling.Game.Online
             }
             Session = s;
             Trace("joined session " + s.Id + " (" + s.Players.Count + " in, " + (s.IsHost ? "host" : "member") + ")");
+            return await SetupAsync(s, known, connectBy);
+        }
+
+        // a room's session (a friend in it): set up as a matched one, counted among the connections under way
+        static async Task<bool> SetupTracked(ISession s, float connectBy)
+        {
+            connectingNow++;
+            try { return await SetupAsync(s, true, connectBy); }
+            finally { connectingNow--; }
+        }
+
+        // the session joined: the match object up and the opponent's card here, by connectBy (realtime); unknown, the
+        // opponent and the match are taken from the session. False (the match left and forgotten) if it could not be done.
+        static async Task<bool> SetupAsync(ISession s, bool known, float connectBy)
+        {
             using var setup = new CancellationTokenSource(TimeSpan.FromSeconds(Mathf.Max(0.1f, connectBy - Time.realtimeSinceStartup)));
             var ct = setup.Token;
             // the opponent gone while setting up (their app closed): given up at once
@@ -391,7 +410,7 @@ namespace FlickCurling.Game.Online
                     OpponentName = NameOf(opp);
                     MatchId = s.Properties.TryGetValue(MatchKey, out var mk) && !string.IsNullOrEmpty(mk.Value) ? mk.Value : s.Id;
                     Settle(OnlineApi.LocalInfo(MatchId, MyId, OpponentId, SearchMap));
-                    OnlineApi.RecordReady = OnlineApi.StartMatch(MatchId, OpponentId, SearchMap);
+                    OnlineApi.RecordReady = OnlineApi.Start(MatchId, OpponentId, SearchMap, Friendly);
                     FetchStats();
                 }
                 Watch(s);
@@ -456,6 +475,148 @@ namespace FlickCurling.Game.Online
             }
         }
         const int TicketPoll = 1000;
+
+        // ---------------- a friend's room ----------------
+
+        public enum RoomResult { Started, Cancelled, Expired, Failed }
+        public enum JoinResult { Started, NotFound, Full, Failed }
+
+        // out of any earlier match and its network, signed in, the network manager there; false if not signed in
+        static async Task<bool> ReadyForRoom()
+        {
+            await settling;
+            await LeaveAsync();
+            await NetworkDown();
+            if (AccountService.Status != AccountService.State.Ready) await AccountService.StartAsync();
+            if (AccountService.Status != AccountService.State.Ready) return false;
+            Hook();
+            EnsureNetworkManager();
+            Me();
+            return true;
+        }
+
+        static SessionOptions RoomOptions() =>
+            new SessionOptions { MaxPlayers = 2, IsPrivate = true, PlayerProperties = MyProperties() }.WithDistributedAuthorityNetwork(BestRegion);
+
+        /// <summary>
+        /// Opens a private room for a friend on <paramref name="map"/>: its code goes to <paramref name="onCode"/> as soon as
+        /// it is there, then it waits for the friend (GameConfig.friendRoomMinutes at most). Started once the friend is in
+        /// (the two being connected meanwhile, <see cref="Connecting"/>, as a match found); cancelled, expired or failed,
+        /// nothing is left over.
+        /// </summary>
+        public static async Task<RoomResult> CreateRoomAsync(string map, Action<string> onCode, CancellationToken ct)
+        {
+            TraceSearchStart();
+            MeasureRegion();
+            if (!await ReadyForRoom()) return RoomResult.Failed;
+            Friendly = true;
+            SearchMap = map;
+            finding = true;
+            try
+            {
+                var options = RoomOptions();
+                options.SessionProperties[MatchKey] = new SessionProperty("f-" + Guid.NewGuid().ToString("N"), VisibilityPropertyOptions.Member);
+                options.SessionProperties[MapKey] = new SessionProperty(map, VisibilityPropertyOptions.Member);
+                ISession s;
+                Trace("opening a room");
+                try { s = await MultiplayerService.Instance.CreateSessionAsync(options, ct); }
+                catch (OperationCanceledException) { return RoomResult.Cancelled; }
+                catch (Exception e) { Debug.LogWarning("FlickCurling: opening a room failed: " + e.Message); return RoomResult.Failed; }
+                Session = s;
+                Trace("room " + s.Code + " opened");
+                onCode(s.Code);
+                float until = Time.realtimeSinceStartup + GameConfig.Load().friendRoomMinutes * 60;
+                while (s.Players.Count < 2)
+                {
+                    if (Session != s) return RoomResult.Failed;   // (taken away by the service)
+                    if (ct.IsCancellationRequested) { await LeaveAsync(); return RoomResult.Cancelled; }
+                    if (Time.realtimeSinceStartup > until) { Trace("room " + s.Code + " closed (nobody came)"); await LeaveAsync(); return RoomResult.Expired; }
+                    await Task.Delay(200);
+                }
+                // the friend is in: from here on as a match found
+                Joining = true;
+                Trace("friend in the room");
+                TakeRoom(s);
+                return RoomResult.Started;
+            }
+            finally { finding = false; Joining = false; }
+        }
+
+        /// <summary>Joins a friend's room by its code: Started once in (the two being connected meanwhile, as a match
+        /// found), or why not.</summary>
+        public static async Task<JoinResult> JoinRoomAsync(string code)
+        {
+            TraceSearchStart();   // (each step's time in the log: getting ready, then the join itself)
+            MeasureRegion();
+            if (!await ReadyForRoom()) return JoinResult.Failed;
+            Trace("joining room " + code);
+            Friendly = true;
+            finding = true;
+            try
+            {
+                ISession s;
+                try { s = await MultiplayerService.Instance.JoinSessionByCodeAsync(code, new JoinSessionOptions { PlayerProperties = MyProperties() }); }
+                catch (SessionException e) when (e.Error == SessionError.SessionNotFound || e.Error == SessionError.SessionDeleted) { return JoinResult.NotFound; }
+                catch (Exception e)
+                {
+                    // (a room with both players in: the lobby service turns the join away as full)
+                    if (e.Message.IndexOf("full", StringComparison.OrdinalIgnoreCase) >= 0) return JoinResult.Full;
+                    // (no such room: unknown, or a code no room could have, with a letter the service never uses)
+                    if (e.Message.IndexOf("not found", StringComparison.OrdinalIgnoreCase) >= 0
+                        || e.Message.IndexOf("invalid character", StringComparison.OrdinalIgnoreCase) >= 0) return JoinResult.NotFound;
+                    Debug.LogWarning("FlickCurling: joining a room failed: " + e.Message);
+                    return JoinResult.Failed;
+                }
+                Session = s;
+                if (!s.Players.Any(p => p.Id != MyId)) { await LeaveAsync(); return JoinResult.NotFound; }   // (its maker gone)
+                Joining = true;
+                Trace("joined room " + code);
+                SearchMap = s.Properties.TryGetValue(MapKey, out var mp) && !string.IsNullOrEmpty(mp.Value) ? mp.Value : "base";
+                TakeRoom(s);
+                return JoinResult.Started;
+            }
+            finally { finding = false; Joining = false; }
+        }
+
+        // both in the room: who is who and the match's settings from the session (its maker named the match), the
+        // record made, and the two connected behind the game scene
+        static void TakeRoom(ISession s)
+        {
+            var opp = s.Players.First(p => p.Id != MyId);
+            OpponentId = opp.Id;
+            OpponentName = NameOf(opp);
+            MatchId = s.Properties.TryGetValue(MatchKey, out var mk) && !string.IsNullOrEmpty(mk.Value) ? mk.Value : s.Id;
+            Settle(OnlineApi.LocalInfo(MatchId, MyId, OpponentId, SearchMap));
+            OnlineApi.RecordReady = OnlineApi.StartFriendMatch(MatchId, OpponentId, SearchMap);
+            FetchStats();
+            Connecting = SetupTracked(s, Time.realtimeSinceStartup + GameConfig.Load().connectSeconds);
+        }
+
+        /// <summary>
+        /// The same friend again, both having asked for it on the result card: out of this match's session (the player
+        /// whose id comes first leaves at once, the other once that has settled), then both meet in the next match's
+        /// session, named after this one, as two matched players do. True once under way (<see cref="Connecting"/>).
+        /// </summary>
+        public static async Task<bool> RematchFriendAsync()
+        {
+            string last = MatchId, opponentId = OpponentId, opponentName = OpponentName, map = Map;
+            if (string.IsNullOrEmpty(last) || string.IsNullOrEmpty(opponentId)) return false;
+            if (string.CompareOrdinal(MyId, opponentId) < 0) await LeaveAsync();
+            else await LeaveSettledAsync();
+            if (!await ReadyForRoom()) return false;
+            Friendly = true;
+            SearchMap = map;
+            OpponentId = opponentId;
+            OpponentName = opponentName;
+            using (var sha = System.Security.Cryptography.SHA256.Create())
+                MatchId = "f-" + BitConverter.ToString(sha.ComputeHash(System.Text.Encoding.UTF8.GetBytes(last + "/again"))).Replace("-", "").Substring(0, 32).ToLowerInvariant();
+            Settle(OnlineApi.LocalInfo(MatchId, MyId, OpponentId, SearchMap));
+            OnlineApi.RecordReady = OnlineApi.StartFriendMatch(MatchId, OpponentId, SearchMap);
+            FetchStats();
+            Trace("the same friend again: match " + MatchId);
+            Connecting = ConnectAsync(MatchId, RoomOptions(), true, Time.realtimeSinceStartup + GameConfig.Load().connectSeconds);
+            return true;
+        }
         const string MapAttribute = "map";   // the ticket attribute the queue's pools filter on (Assets/Online/Deploy/QuickMatch.mmq)
         /// <summary>
         /// The matchmaking steps, in the log (to follow a match from both devices' logs), each with the time since the
