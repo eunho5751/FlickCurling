@@ -39,6 +39,8 @@ namespace FlickCurling.Game
         [Range(0f, 1f)] public float stoneBounce = 0.9f;
         [Tooltip("How bouncy the side walls are: the share of the speed into the wall that comes back (1: a mirror bounce, nothing lost; lower: flatter and slower off the wall). The dead rails beside the out line are not this")]
         [Range(0f, 1f)] public float wallBounce = 0.75f;
+        [Tooltip("Show the gold ring round the stones that would score now (those closest to the centre), during play")]
+        public bool showScoringGlow = true;
 
         [Header("Shot gauge")]
         [Tooltip("Show the power percentage beside the aim arrow while pulling")]

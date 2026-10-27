@@ -512,7 +512,7 @@ namespace FlickCurling.Game
 
             bool playing = state == St.Aim || state == St.Ai || state == St.AiPull || state == St.Remote || state == St.Moving || state == St.Settle;
             // live scoring glow
-            if (playing || state == St.Menu)
+            if (showScoringGlow && (playing || state == St.Menu))
             {
                 var sc = Rules.Scoring(m.Stones);
                 foreach (var id in sc.Ids)

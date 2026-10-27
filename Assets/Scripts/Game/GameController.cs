@@ -62,7 +62,7 @@ namespace FlickCurling.Game
         Func<CardSpec> cardFactory;   // rebuilds the visible card after a language change
         // your-turn pulse: the launch stone and the turn line grow and shrink while a human is to aim
         float turnPulse = 1;
-        bool showPowerPercent = true, showHitMarker = true;   // from GameConfig
+        bool showPowerPercent = true, showHitMarker = true, showScoringGlow = true;   // from GameConfig
         float launchRingRadius = 8, launchRingWidth = 4.5f, hitRingRadius = 4, hitRingWidth = 3;
         // the shot clock: a human has this long to throw once the turn toast has gone, or the stone is lost
         const float ClockWait = 1.45f;
@@ -115,6 +115,7 @@ namespace FlickCurling.Game
             config.Apply();
             showPowerPercent = config.showPowerPercent;
             showHitMarker = config.showHitMarker;
+            showScoringGlow = config.showScoringGlow;
             ShotTime = config.turnSeconds;
             catchUpSpeed = config.catchUpSpeed;
             launchRingRadius = config.launchRingRadius; launchRingWidth = config.launchRingWidth;
