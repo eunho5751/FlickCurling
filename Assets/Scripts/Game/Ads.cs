@@ -27,6 +27,18 @@ namespace FlickCurling.Game
         static GameConfig Config => GameConfig.Load();
         static bool Off => Application.platform != RuntimePlatform.Android && !Application.isEditor;
 
+#if UNITY_EDITOR
+        // play mode started from another scene than Boot (the main menu, the game): Boot's start-up never ran, so the
+        // store and the ads are started here, or no ad could ever be shown while testing
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
+        static void StartWithoutBoot()
+        {
+            if (UnityEngine.SceneManagement.SceneManager.GetActiveScene().name == "Boot") return;
+            Purchases.Start();
+            Start();
+        }
+#endif
+
         /// <summary>Consent, then the SDK, then the first ad (Boot, once).</summary>
         public static void Start()
         {
