@@ -1,9 +1,9 @@
 ﻿<Solution>
+  <Project Path="FlickCurling.Game.csproj" />
   <Project Path="UniTask.csproj" />
   <Project Path="FlickCurling.Editor.csproj" />
   <Project Path="FlickCurling.Core.csproj" />
   <Project Path="UniTask.Linq.csproj" />
-  <Project Path="FlickCurling.Game.csproj" />
   <Project Path="DOTween.Modules.csproj" />
   <Project Path="UniTask.TextMeshPro.csproj" />
   <Project Path="DOTweenPro.EditorScripts.csproj" />
@@ -12,4 +12,5 @@
   <Project Path="UniTask.DOTween.csproj" />
   <Project Path="FlickCurling.Tests.EditMode.csproj" />
   <Project Path="UniTask.Addressables.csproj" />
+  <Project Path="FlickCurling.PurchasingTangle.csproj" />
 </Solution>

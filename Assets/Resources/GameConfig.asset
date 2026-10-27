@@ -12,17 +12,38 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: efa4e393d3b02fc4f9b017938cf5346a, type: 3}
   m_Name: GameConfig
   m_EditorClassIdentifier: FlickCurling.Game::FlickCurling.Game.GameConfig
-  ends: 4
-  shotsPerTeam: 4
+  ends: 3
+  shotsPerTeam: 5
   cushionTickets: 1
   unlimitedTickets: 1
   turnSeconds: 20
+  catchUpSpeed: 1.15
+  connectSeconds: 45
+  opponentJoinSeconds: 10
   stoneRadius: 5
+  stoneBounce: 0.9
+  wallBounce: 0.75
+  showScoringGlow: 0
   showPowerPercent: 0
   showHitMarker: 1
   launchRingRadius: 8
   launchRingWidth: 4.5
   hitRingRadius: 5
   hitRingWidth: 2.5
-  lsdBumperRadius: 4
-  lsdBumpersPerHalf: 2
+  lsdTargetX: {x: 0.15, y: 0.85}
+  lsdTargetY: {x: 0.5, y: 0.8}
+  itemBoxes: 1
+  itemBoxSize: 4.5
+  itemBoxSpacing: 25
+  itemBoxX: {x: 0.2, y: 0.8}
+  itemBoxY: {x: 0.35, y: 0.85}
+  giantSize: 1.5
+  miniSize: 0.6
+  bombRadius: 25
+  bombPush: 80
+  magnetRadius: 20
+  magnetPull: 12
+  adEveryMatches: 2
+  adUnitAndroid: ca-app-pub-3940256099942544/1033173712
+  termsUrl: 
+  privacyUrl: 
