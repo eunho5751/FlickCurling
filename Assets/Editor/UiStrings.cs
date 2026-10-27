@@ -157,6 +157,7 @@ namespace FlickCurling.EditorTools
             new[] { "end.blank", "<color=#d9a54c>블랭크 엔드</color> ({score})", "<color=#d9a54c>Blank end</color> ({score})", "<color=#d9a54c>ブランクエンド</color>（{score}）" },
             new[] { "score.versus", "{b} {bv} : {wv} {w}", "{b} {bv} : {wv} {w}", "{b} {bv} : {wv} {w}" },
             new[] { "bonus.title", "선공 보너스 가드", "First-thrower bonus guard", "先攻ボーナスガード" },
+            new[] { "hud.lastShot", "마지막 샷", "Last shot", "ラストショット" },
 
             // ---- game over ----
             new[] { "over.eyebrow", "경기 종료", "Game over", "試合終了" },

@@ -1109,6 +1109,10 @@ MonoBehaviour:
       Only on your screen, until you throw.
     m_Metadata:
       m_Items: []
+  - m_Id: 4545619337072640
+    m_Localized: Last shot
+    m_Metadata:
+      m_Items: []
   references:
     version: 2
     RefIds:

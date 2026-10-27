@@ -439,12 +439,15 @@ namespace FlickCurling.Game
             CamTo(AimView(zoom), 3.5f);
             RenderHud();
             // the first thrower's opening turn of each end also notes the bonus guard it starts with
-            hud.TurnToast(Loc.T("hud.turn", ("name", SideOf(m.Cur, 130))), m.Shot == 0 ? Loc.T("bonus.title") : null);
+            hud.TurnToast(Loc.T("hud.turn", ("name", SideOf(m.Cur, 130))), TurnNote());
             sfx.TurnStart();
             StartClock();
             OnlineTurnStarted();
             if (state == St.Ai) RunAI();
         }
+
+        // under the turn: the end's opening turn notes the bonus guard, its last one that it is the last shot
+        string TurnNote() => m.InLsd ? null : m.Shot == 0 ? Loc.T("bonus.title") : m.Shot == Sheet.Shots - 1 ? Loc.T("hud.lastShot") : null;
 
         void RunAI() => RunAIAsync().Forget();
 

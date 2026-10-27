@@ -1031,6 +1031,10 @@ MonoBehaviour:
     m_Key: rules.itemkinds.5.t
     m_Metadata:
       m_Items: []
+  - m_Id: 4545619337072640
+    m_Key: hud.lastShot
+    m_Metadata:
+      m_Items: []
   m_Metadata:
     m_Items: []
   m_KeyGenerator:

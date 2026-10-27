@@ -221,7 +221,7 @@ namespace FlickCurling.Game
                     if (st == null) return;
                     var c = new Vector2((float)st.X, (float)st.Y);
                     var n = (c - p).normalized;
-                    ProtractorLine(c, n, (float)st.Rad, st);   // the stone hit, pushed along the line of centres
+                    ProtractorLine(c, n, (float)st.Rad, st, HitPathCol);   // the stone hit, pushed along the line of centres
                     float e = (float)m.P.EStone;
                     var glance = dir - (1 + e) / 2 * Vector2.Dot(dir, n) * n;   // this one, what is left of its way
                     if (glance.magnitude > 0.08f) ProtractorLine(p, glance.normalized, rad, st);
@@ -287,7 +287,7 @@ namespace FlickCurling.Game
                 Stone real = hit != null ? m.Stones.FirstOrDefault(t => t.Id == hit.Id) : null;
                 if (sd.magnitude > 1e-3f) ProtractorLine(at, sd.normalized, (float)shot.Rad, real);
                 if (hit != null && real != null)
-                    ProtractorLine(new Vector2((float)real.X, (float)real.Y), new Vector2((float)hit.Vx, (float)hit.Vy).normalized, (float)real.Rad, real);
+                    ProtractorLine(new Vector2((float)real.X, (float)real.Y), new Vector2((float)hit.Vx, (float)hit.Vy).normalized, (float)real.Rad, real, HitPathCol);
                 return true;
             }
             return false;
@@ -295,8 +295,12 @@ namespace FlickCurling.Game
 
         // a stone of radius rad going from `from` along d: dashed on until it meets a wall, post or another stone (or a
         // good way on), with a faint circle where it would get to
-        void ProtractorLine(Vector2 from, Vector2 d, float rad, Stone ignore)
+        // the protractor's lines: this player's stone in gold, a stone it hits in red
+        static readonly Color ShotPathCol = Palette.Rgba(255, 214, 120, .9f), HitPathCol = Palette.Rgba(232, 92, 72, .95f);
+
+        void ProtractorLine(Vector2 from, Vector2 d, float rad, Stone ignore, Color? col = null)
         {
+            var lineCol = col ?? ShotPathCol;
             // (it stops only at what it closes in on: not the wall or stone it has just come off)
             bool Meets(float dq, float dp, float reach) => dq < reach && dq < dp;
             var p = from;
@@ -325,8 +329,8 @@ namespace FlickCurling.Game
                 if (stop) break;
                 p = q;
             }
-            aim.Dashed(from, p, U(1.6f), U(4), U(4), Palette.Rgba(255, 214, 120, .9f));
-            aim.Ring(p, rad, U(1.5f), Palette.Rgba(255, 214, 120, .55f));
+            aim.Dashed(from, p, U(1.6f), U(4), U(4), lineCol);
+            aim.Ring(p, rad, U(1.5f), Palette.WithA(lineCol, .55f));
         }
 
         // a bomb stone shows its bomb, and a red ring that beats
