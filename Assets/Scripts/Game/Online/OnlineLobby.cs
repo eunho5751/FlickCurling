@@ -254,10 +254,12 @@ namespace FlickCurling.Game.Online
             // only known from the session, so the scene waits for the connection
             if (OnlineTestMode.Enabled)
             {
-                sessionOptions.SessionProperties[MatchKey] = new SessionProperty(OnlineTestMode.SessionId + "." + Guid.NewGuid().ToString("N").Substring(0, 8),
+                // (one session per mode: players looking for different ones never meet)
+                string testSession = OnlineTestMode.SessionId + "-" + SearchMap;
+                sessionOptions.SessionProperties[MatchKey] = new SessionProperty(testSession + "." + Guid.NewGuid().ToString("N").Substring(0, 8),
                     VisibilityPropertyOptions.Member);
                 Joining = true;
-                Connecting = ConnectAsync(OnlineTestMode.SessionId, sessionOptions, false, Time.realtimeSinceStartup + GameConfig.Load().connectSeconds);
+                Connecting = ConnectAsync(testSession, sessionOptions, false, Time.realtimeSinceStartup + GameConfig.Load().connectSeconds);
                 return await Connecting;
             }
 #endif
@@ -271,6 +273,13 @@ namespace FlickCurling.Game.Online
             // who the opponent is, from the matchmaker's record of the match (before anyone is in its session)
             var opponent = await OpponentAsync(matchId);
             if (opponent == null) return false;   // (the opponent, alone in the session, looks again shortly)
+            // paired with someone looking for another mode (the queue's pools keep them apart: this only happens with a
+            // queue not deployed yet, or a player on an older build): not taken up, both look again
+            if (opponent.Value.map != SearchMap)
+            {
+                Trace("paired with someone looking for another mode (" + opponent.Value.map + "), looking again");
+                return false;
+            }
             OpponentId = opponent.Value.id;
             OpponentName = opponent.Value.name;
             // both records as the tickets carried them (none: all zero), no server call to wait for
@@ -289,7 +298,7 @@ namespace FlickCurling.Game.Online
 
         // the matchmaker's players in match matchId (their tickets carry their nicknames and records): the opponent, or
         // null if that could not be read
-        static async Task<(string id, string name, OnlineApi.PlayerStats stats)?> OpponentAsync(string matchId)
+        static async Task<(string id, string name, OnlineApi.PlayerStats stats, string map)?> OpponentAsync(string matchId)
         {
             for (int tries = 0; tries < 3; tries++)
             {
@@ -301,9 +310,10 @@ namespace FlickCurling.Game.Online
                     if (p == null) continue;
                     TicketData data = null;
                     try { data = p.CustomData?.GetAs<TicketData>(); } catch (Exception) { }
-                    Trace("matchmaking results read");
+                    Trace("matchmaking results read (pool " + results.PoolName + ")");
                     var stats = new OnlineApi.PlayerStats { PlayerId = p.Id, W = data?.w ?? 0, L = data?.l ?? 0, D = data?.d ?? 0 };
-                    return (p.Id, string.IsNullOrEmpty(data?.nick) ? "?" : data.nick, stats);
+                    // (a ticket without a mode: an older build, which only plays the basic one)
+                    return (p.Id, string.IsNullOrEmpty(data?.nick) ? "?" : data.nick, stats, string.IsNullOrEmpty(data?.map) ? "base" : data.map);
                 }
                 catch (Exception e) { Debug.LogWarning("FlickCurling: reading the matchmaking results failed: " + e.Message); }
             }
@@ -313,7 +323,7 @@ namespace FlickCurling.Game.Online
         // what a ticket's player carries (custom data, which the matchmaking results hand the opponent): the nickname
         // and the record, both only shown (the record itself is the server's)
         [Serializable]
-        sealed class TicketData { public string nick; public int w, l, d; }
+        sealed class TicketData { public string nick; public int w, l, d; public string map; }
 
         // into the matched session, the match object up and the opponent's card here (the game scene is open meanwhile),
         // by connectBy (realtime). known: the opponent and the match are known already (from the matchmaker); otherwise
@@ -408,7 +418,7 @@ namespace FlickCurling.Game.Online
             try
             {
                 ticket = (await mm.CreateTicketAsync(new List<Unity.Services.Matchmaker.Models.Player> { new Unity.Services.Matchmaker.Models.Player(MyId,
-                    new TicketData { nick = MyName, w = mine?.W ?? 0, l = mine?.L ?? 0, d = mine?.D ?? 0 }) },
+                    new TicketData { nick = MyName, w = mine?.W ?? 0, l = mine?.L ?? 0, d = mine?.D ?? 0, map = SearchMap }) },
                     new CreateTicketOptions(Queue, new Dictionary<string, object> { [MapAttribute] = SearchMap }))).Id;
                 Trace("ticket " + ticket + " created");
             }
