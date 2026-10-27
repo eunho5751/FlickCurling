@@ -6,6 +6,18 @@ using NUnit.Framework;
 
 namespace FlickCurling.Tests
 {
+    // the rules and physics as they ship, whatever a GameConfig the editor applied last left in the statics
+    [SetUpFixture]
+    public class ShippedRules
+    {
+        [OneTimeSetUp]
+        public void Defaults()
+        {
+            Sheet.Configure();
+            PhysicsParams.Configure();
+        }
+    }
+
     public class PhysicsTests
     {
         static Stone Shot(double ang, double pw, double x = 50, int id = 1, Team t = Team.B) =>

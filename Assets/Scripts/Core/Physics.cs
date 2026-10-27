@@ -5,9 +5,19 @@ namespace FlickCurling.Core
 {
     public sealed class PhysicsParams
     {
-        public double Decel = 60, EStone = 0.9, EWall = 0.75, VMax = 197;
+        // EStone, EWall: how much of the speed into another stone / a lively wall comes back (1: all of it, a wall then
+        // a mirror bounce; 0: none). The game sets them from GameConfig (Configure)
+        public double Decel = 60, EStone = DefaultEStone, EWall = DefaultEWall, VMax = 197;
+        public const double DefaultEStone = 0.9, DefaultEWall = 0.75;
         public const double DeadE = 0.15, DeadSlide = 0.45;
         public static readonly PhysicsParams Default = new PhysicsParams();
+
+        /// <summary>The bounces every match plays with (Default's).</summary>
+        public static void Configure(double stoneBounce = DefaultEStone, double wallBounce = DefaultEWall)
+        {
+            Default.EStone = Sheet.Clamp(stoneBounce, 0, 1);
+            Default.EWall = Sheet.Clamp(wallBounce, 0, 1);
+        }
     }
 
     public interface IPhysicsEvents
