@@ -62,7 +62,7 @@ namespace FlickCurling.EditorTools
             new[] { "matchsetup.ok", "확인", "OK", "OK" },
 
             // ---- online match ----
-            new[] { "online.random", "랜덤 매칭", "Random Match", "ランダムマッチ" },
+            new[] { "online.random", "랜덤", "Random", "ランダム" },
             new[] { "online.waiting", "상대를 기다리는 중…", "Waiting for opponent…", "相手を待っています…" },
             new[] { "online.opponentAiming", "상대가 조준하는 중…", "Opponent is aiming…", "相手が狙っています…" },
             new[] { "online.resuming", "경기로 돌아가는 중…", "Returning to the match…", "試合に戻っています…" },
