@@ -1,7 +1,7 @@
 namespace FlickCurling.Core
 {
     /// <summary>
-    /// The match's random numbers (the turn order shot's bumpers, its coin toss): SplitMix64, integer arithmetic only, so
+    /// The match's random numbers (the turn order shot's target, its coin toss): SplitMix64, integer arithmetic only, so
     /// the same seed gives the same numbers on every device and runtime, and its whole state is one number that a saved
     /// match (MatchState) carries along.
     /// </summary>

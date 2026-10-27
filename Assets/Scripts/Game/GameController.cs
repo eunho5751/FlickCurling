@@ -332,7 +332,7 @@ namespace FlickCurling.Game
             ai[0] = ai[1] = null;
             if (md != Mode.Pvp && md != Mode.Online) ai[1] = (AiLevel)(md - Mode.Easy);
             hud.HudVisible = true;
-            // online: both devices start the same match (the seed decides the draw's bumpers), each showing its player as black
+            // online: both devices start the same match (the seed decides the turn order shot's target), each showing its player as black
             int seed = md == Mode.Online ? Online.OnlineLobby.Seed : fx.Next();
             Ui.Flip = md == Mode.Online && Online.OnlineLobby.MyTeam == Team.W;
             OnlineReset();

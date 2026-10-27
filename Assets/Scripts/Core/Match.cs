@@ -255,7 +255,7 @@ namespace FlickCurling.Core
             return s;
         }
 
-        /// <summary>The field stones move on: during the last stone draw, the map plus the draw's bumpers.</summary>
+        /// <summary>The field stones move on (the turn order shot is thrown on the map as it is).</summary>
         public Field ActiveField => InLsd && Lsd != null ? Lsd.Field : Field;
 
         public void Step()

@@ -539,11 +539,9 @@ namespace FlickCurling.Core
             return -1;
         }
 
-        /// <summary>Last stone draw: straight at the target from the centre lane, with this level's error.</summary>
         /// <summary>
-        /// The last stone draw: tries a fan of angles and powers on <paramref name="field"/> (with the draw's bumpers),
-        /// keeps the throw that comes to rest closest to (tx, ty) - around or off the bumpers - then adds the level's
-        /// aim and power noise.
+        /// The last stone draw: tries a fan of angles and powers on <paramref name="field"/>, keeps the throw that comes
+        /// to rest closest to (tx, ty), then adds the level's aim and power noise.
         /// </summary>
         public AiDecision DecideLsd(AiLevel lvl, double tx, double ty, PhysicsParams p, Field field)
         {
