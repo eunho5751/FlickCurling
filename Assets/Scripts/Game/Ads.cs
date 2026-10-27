@@ -16,13 +16,14 @@ namespace FlickCurling.Game
     /// </summary>
     public static class Ads
     {
-        const string CountKey = "ads.matches";
+        const string CountKey = "ads.matches", NoAdsKey = "ads.noads";
 
         static InterstitialAd ad;
-        static bool started, ready, loading, showing;
+        static bool started, sdkAsked, ready, loading, showing;
+        static int mainThread;
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
-        static void ResetStatics() { ad = null; started = ready = loading = showing = false; PrivacyChanged = null; }
+        static void ResetStatics() { ad = null; started = sdkAsked = ready = loading = showing = false; PrivacyChanged = null; }
 
         static GameConfig Config => GameConfig.Load();
         static bool Off => Application.platform != RuntimePlatform.Android && !Application.isEditor;
@@ -44,29 +45,55 @@ namespace FlickCurling.Game
         {
             if (started || Off) return;
             started = true;
+            mainThread = System.Threading.Thread.CurrentThread.ManagedThreadId;
+            Purchases.Changed += RememberNoAds;
             MobileAds.RaiseAdEventsOnUnityMainThread = true;
             // (in the editor the consent check is only a stand-in that never answers: straight to the SDK, which shows its
             // own stand-in ad)
             if (Application.isEditor) { StartSdk(); return; }
-            // (the consent callbacks can come off the main thread: everything they do is put back on it, by UniTask, as
-            // the SDK's own way back only runs once the SDK has started)
+            // Google's order: the consent check, and the form only where it is still needed; the SDK as soon as ads may be
+            // asked for (already now, with consent from an earlier launch)
             ConsentInformation.Update(new ConsentRequestParameters(), updateError => OnMain(() =>
             {
                 if (updateError != null) Debug.LogWarning("Ads: consent check failed: " + updateError.Message);
+                PrivacyChanged?.Invoke();
+                if (ConsentInformation.CanRequestAds()) { StartSdk(); return; }
                 ConsentForm.LoadAndShowConsentFormIfRequired(formError => OnMain(() =>
                 {
                     if (formError != null) Debug.LogWarning("Ads: consent form failed: " + formError.Message);
                     PrivacyChanged?.Invoke();
                     // (without consent, or while the check could not be made, no ad is asked for; it is tried again at the next launch)
-                    if (!ConsentInformation.CanRequestAds()) return;
+                    if (!ConsentInformation.CanRequestAds()) { Debug.LogWarning("Ads: no consent to ask for ads (yet): the SDK is not started"); return; }
                     StartSdk();
                 }));
             }));
+            if (ConsentInformation.CanRequestAds()) StartSdk();
         }
 
-        static void OnMain(Action a) => UniTask.Post(a);
+        // the consent callbacks can come on another thread: run there, a step goes on at once; elsewhere it is put back
+        // on the main thread (by UniTask: the SDK's own way back only runs once the SDK has started)
+        static void OnMain(Action a)
+        {
+            if (System.Threading.Thread.CurrentThread.ManagedThreadId == mainThread) a();
+            else UniTask.Post(a);
+        }
 
-        static void StartSdk() => MobileAds.Initialize(_ => OnMain(() => { ready = true; Load(); }));
+        // whether this player bought "remove ads": the store's answer once it has one, kept on the device for a launch where
+        // the store cannot be reached (a buyer then still sees none; a player the store has never answered for sees them)
+        static bool NoAds => Purchases.Status == Purchases.State.Ready ? Purchases.NoAds : PlayerPrefs.GetInt(NoAdsKey) == 1;
+
+        static void RememberNoAds()
+        {
+            if (Purchases.Status != Purchases.State.Ready) return;
+            PlayerPrefs.SetInt(NoAdsKey, Purchases.NoAds ? 1 : 0); PlayerPrefs.Save();
+        }
+
+        static void StartSdk()
+        {
+            if (sdkAsked) return;
+            sdkAsked = true;
+            MobileAds.Initialize(_ => OnMain(() => { ready = true; Load(); }));
+        }
 
         /// <summary>A match has come to its result (not the tutorial).</summary>
         public static void MatchPlayed()
@@ -74,6 +101,7 @@ namespace FlickCurling.Game
             if (Off) return;
             PlayerPrefs.SetInt(CountKey, PlayerPrefs.GetInt(CountKey) + 1);
             PlayerPrefs.Save();
+            Load();   // (an earlier load that failed is tried again, in time for the result card's way out)
         }
 
         static bool Due => PlayerPrefs.GetInt(CountKey) >= Mathf.Max(1, Config.adEveryMatches);
@@ -85,8 +113,13 @@ namespace FlickCurling.Game
         public static void ShowIfDue(Action then)
         {
             if (showing) return;
-            // (only once the store has said what this player owns: a buyer is never shown one while it is unknown)
-            if (Off || Purchases.Status != Purchases.State.Ready || Purchases.NoAds || !Due || ad == null || !ad.CanShowAd()) { then(); return; }
+            if (Off || NoAds || !Due) { then(); return; }
+            if (ad == null || !ad.CanShowAd())
+            {
+                Load();   // (due but not loaded: tried again, shown at the next way out)
+                then();
+                return;
+            }
             showing = true;
             var shown = ad; ad = null;
             void Done()
@@ -105,7 +138,7 @@ namespace FlickCurling.Game
 
         static void Load()
         {
-            if (!ready || loading || ad != null || Purchases.NoAds) return;
+            if (!ready || loading || ad != null || NoAds) return;
             string unit = Config.adUnitAndroid;
             if (string.IsNullOrWhiteSpace(unit)) { Debug.LogWarning("Ads: no ad unit set in GameConfig"); return; }
             loading = true;
