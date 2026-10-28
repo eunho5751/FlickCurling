@@ -7,8 +7,9 @@ namespace FlickCurling.Game
     // The tutorial (Docs/Tutorial.md): the game scene opened for it, run by a TutorialDirector. The match here only does
     // what the director asks (shots thrown for it, stones placed, an end measured, the aim and power moved), with the
     // player's input off, until the last step: a match against the easy AI as any starts, with the turn order shot (the
-    // player's own first throws), then one end, the director first pointing out the bonus guard it starts with. No shot
-    // clock, no extra end. The settings popup's way out is "skip the tutorial".
+    // player's own first throws), then the ends GameConfig sets (an extra one on a tie), the director first pointing out
+    // the bonus guard the first starts with: played as any match against the easy AI (the shot clock; the player still
+    // "the player"), ending on the tutorial's own card. The settings popup's way out is "skip the tutorial".
     public sealed partial class GameController
     {
         TutorialDirector tutorial;
@@ -136,8 +137,8 @@ namespace FlickCurling.Game
         // where the box goes: where the toasts stand (just above the min line), over any toast up now
         internal float TutorialBoxBottom => hud.ToastY - hud.ToastStackHeight;
 
-        /// <summary>The player's own end against the easy AI: the player has the last stone (the AI starts, with the
-        /// bonus guard).</summary>
+        /// <summary>The player's own match against the easy AI, as long as any (GameConfig's ends): the turn order shot,
+        /// then the ends.</summary>
         internal void TutorialPlay(Action<Action> beforeDuel, Action<Action> beforeEnd)
         {
             tutorialInput = true;

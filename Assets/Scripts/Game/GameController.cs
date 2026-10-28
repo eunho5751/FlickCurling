@@ -551,7 +551,7 @@ namespace FlickCurling.Game
 
         void StartClock()
         {
-            if (InTutorial) { clock = -1; return; }   // no shot clock while learning
+            if (TutorialBlocksInput) { clock = -1; return; }   // no shot clock while shown (the tutorial's own match has it)
             clock = state == St.Aim || state == St.Remote ? ShotTime : -1;
             clockWait = ClockWait + (!m.InLsd && m.Shot == 0 ? 0.45f : 0);   // the end's first turn toast stays up longer
             if (mode == Mode.Online && clock >= 0) deadline = Now + clockWait + ShotTime;
@@ -621,7 +621,7 @@ namespace FlickCurling.Game
         {
             var sc = measure.Sc;
             Action next;
-            var step = InTutorial ? AfterEnd.GameOver : m.NextStep();   // the tutorial's one end
+            var step = m.NextStep();   // (the tutorial's match too: as many ends as GameConfig says, an extra one on a tie)
             switch (step)
             {
                 case AfterEnd.NextEnd:
@@ -813,7 +813,7 @@ namespace FlickCurling.Game
             if (mode == Mode.Online) return OnlineSideName(t);
             if (mode == Mode.Pvp) return Loc.T(t == Team.B ? "hud.player1" : "hud.player2");
             if (t == Team.W) return Loc.T("hud.ai");
-            if (InTutorial) return Loc.T("hud.player");   // the tutorial's player is just "the player"
+            if (InTutorial) return Loc.T("hud.player");   // the tutorial's player is just "the player" (its own match too)
             string nick = Account.Nickname.Display(Account.AccountService.PlayerName);
             return string.IsNullOrEmpty(nick) ? Loc.T("hud.player") : nick;
         }
