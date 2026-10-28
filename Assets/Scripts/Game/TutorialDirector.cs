@@ -61,7 +61,7 @@ namespace FlickCurling.Game
             text = Ui.Label(bubble, "", 16, Palette.Text, false, TextAnchor.MiddleCenter);
             text.textWrappingMode = TextWrappingModes.Normal;
             text.raycastTarget = false;
-            hint = Ui.Label(bubble, Loc.T("tutorial.tap"), 11, Palette.Brass, false, TextAnchor.LowerRight, "Hint");
+            hint = Ui.Label(bubble, Loc.T("tutorial.tap"), 11, Palette.Brass, false, TextAnchor.LowerCenter, "Hint");   // (centred: clear of the stones left at both edges)
             hint.raycastTarget = false;
 
             hand = Sprite(layer, "Hand", "Tutorial/hand", new Vector2(0.38f, 1));   // the fingertip is the point
