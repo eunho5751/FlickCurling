@@ -234,7 +234,7 @@ namespace FlickCurling.Game
 
         void UpdateSettingsPause()
         {
-            bool hold = SettingsOpen && mode != Mode.Online;
+            bool hold = (SettingsOpen || askingToLeave) && mode != Mode.Online;   // (the tutorial's "skip it?" card too)
             if (hold && pausedScale == null) { pausedScale = Time.timeScale; Time.timeScale = 0; }
             else if (!hold) ResumeFromSettings();
         }

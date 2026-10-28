@@ -485,12 +485,13 @@ namespace FlickCurling.Game
             FillCard(c, onAnyClick);
             cardShown = true;
             cardOv.gameObject.SetActive(true);
-            // the main menu popup's entrance: the dim and card fade in while the card grows a little past its size
+            // the main menu popup's entrance: the dim and card fade in while the card grows a little past its size (real
+            // time: a card can come up while the match stands still)
             DOTween.Kill(cardGroup); DOTween.Kill(cardRt);
             cardGroup.alpha = 0; cardGroup.interactable = cardGroup.blocksRaycasts = true;
             cardPop = 0.9f;
-            DOTween.To(() => cardGroup.alpha, a => cardGroup.alpha = a, 1, 0.15f).SetTarget(cardGroup);
-            DOTween.To(() => cardPop, v => cardPop = v, 1, 0.2f).SetEase(Ease.OutBack).SetTarget(cardRt);
+            DOTween.To(() => cardGroup.alpha, a => cardGroup.alpha = a, 1, 0.15f).SetTarget(cardGroup).SetUpdate(true);
+            DOTween.To(() => cardPop, v => cardPop = v, 1, 0.2f).SetEase(Ease.OutBack).SetTarget(cardRt).SetUpdate(true);
             return cardSeq;
         }
 
@@ -563,7 +564,7 @@ namespace FlickCurling.Game
             cardShown = false;
             DOTween.Kill(cardGroup); DOTween.Kill(cardRt);
             cardGroup.interactable = cardGroup.blocksRaycasts = false;
-            DOTween.To(() => cardGroup.alpha, a => cardGroup.alpha = a, 0, 0.12f).SetTarget(cardGroup)
+            DOTween.To(() => cardGroup.alpha, a => cardGroup.alpha = a, 0, 0.12f).SetTarget(cardGroup).SetUpdate(true)
                 .OnComplete(() => cardOv.gameObject.SetActive(false));
         }
 

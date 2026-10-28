@@ -211,8 +211,12 @@ namespace FlickCurling.Game
         }
 
         // settings, "skip the tutorial": asked once more
+        // the match stands still while the card asks (askingToLeave: the same hold as the settings popup's)
+        bool askingToLeave;
+
         void RequestSkipTutorial()
         {
+            askingToLeave = true;
             var under = hud.CardVisible ? cardFactory : null;
             ShowCard(() => new CardSpec
             {
@@ -221,7 +225,7 @@ namespace FlickCurling.Game
                 Body = Loc.T("tutorial.skipBody"),
                 Buttons =
                 {
-                    new CardButton(Loc.T("tutorial.skipStay"), () => { if (under != null) ShowCard(under); }),
+                    new CardButton(Loc.T("tutorial.skipStay"), () => { askingToLeave = false; if (under != null) ShowCard(under); }),
                     new CardButton(Loc.T("tutorial.skipLeave"), () => FinishTutorial())
                 }
             });
