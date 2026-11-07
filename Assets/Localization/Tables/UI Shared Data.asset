@@ -851,10 +851,6 @@ MonoBehaviour:
     m_Key: rules.itemkinds.5.t
     m_Metadata:
       m_Items: []
-  - m_Id: 4545619337072640
-    m_Key: hud.lastShot
-    m_Metadata:
-      m_Items: []
   - m_Id: 4566859292528642
     m_Key: rules.items.3.k
     m_Metadata:
@@ -1077,6 +1073,10 @@ MonoBehaviour:
       m_Items: []
   - m_Id: 4751954615914496
     m_Key: online.forfeitBodyFriend
+    m_Metadata:
+      m_Items: []
+  - m_Id: 8690121547108352
+    m_Key: hud.lastTurn
     m_Metadata:
       m_Items: []
   m_Metadata:

@@ -159,6 +159,7 @@ namespace FlickCurling.EditorTools
             new[] { "hud.extra", "연장", "Extra", "延長" },
             new[] { "hud.total", "합", "Total", "計" },
             new[] { "hud.turn", "{name} 차례", "{name} Turn", "{name}の番" },
+            new[] { "hud.lastTurn", "{name} 마지막 차례", "{name} Last Turn", "{name}の最後の番" },
             new[] { "hud.tickets", "쿠션권 {b} {bn} · {w} {wn}", "Tickets {b} {bn} · {w} {wn}", "クッション券 {b} {bn}・{w} {wn}" },
             new[] { "hud.noRecord", "기록 없음", "No record", "記録なし" },
 
@@ -184,7 +185,6 @@ namespace FlickCurling.EditorTools
             new[] { "end.blank", "<color=#d9a54c>블랭크 엔드</color> ({score})", "<color=#d9a54c>Blank end</color> ({score})", "<color=#d9a54c>ブランクエンド</color>（{score}）" },
             new[] { "score.versus", "{b} {bv} : {wv} {w}", "{b} {bv} : {wv} {w}", "{b} {bv} : {wv} {w}" },
             new[] { "bonus.title", "선공 보너스 가드", "First-thrower bonus guard", "先攻ボーナスガード" },
-            new[] { "hud.lastShot", "마지막 샷", "Last shot", "ラストショット" },
 
             // ---- game over ----
             new[] { "over.eyebrow", "경기 종료", "Game over", "試合終了" },

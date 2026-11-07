@@ -658,7 +658,7 @@ namespace FlickCurling.Game
                     aimAng = 0; ResetShotInput();
                     CamTo(AimView(zoom), 3.5f);
                     RenderHud();
-                    hud.TurnToast(Loc.T("hud.turn", ("name", SideOf(m.Cur, 130))), TurnNote());
+                    hud.TurnToast(TurnTitle(), TurnNote());
                     deadline = snap.Deadline;   // the turn's own deadline
                     ClockFromDeadline();
                     OnlineTurnStarted();

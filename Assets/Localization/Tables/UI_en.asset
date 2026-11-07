@@ -922,10 +922,6 @@ MonoBehaviour:
       Only on your screen, until you throw.
     m_Metadata:
       m_Items: []
-  - m_Id: 4545619337072640
-    m_Localized: Last shot
-    m_Metadata:
-      m_Items: []
   - m_Id: 4566859292528642
     m_Localized: Item respawn
     m_Metadata:
@@ -1175,6 +1171,11 @@ MonoBehaviour:
     m_Localized: If you leave now, your friend wins this match.
     m_Metadata:
       m_Items: []
+  - m_Id: 8690121547108352
+    m_Localized: '{name} Last Turn'
+    m_Metadata:
+      m_Items:
+      - rid: 4297768082125881571
   references:
     version: 2
     RefIds:
@@ -1213,3 +1214,4 @@ MonoBehaviour:
         - id: 4604271452409858
         - id: 4750103564701703
         - id: 4750103573090316
+        - id: 8690121547108352
