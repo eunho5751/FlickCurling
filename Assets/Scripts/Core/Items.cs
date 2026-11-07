@@ -128,7 +128,7 @@ namespace FlickCurling.Core
                 int slot = Array.IndexOf(hands, ItemKind.None);
                 if (slot >= 0)
                 {
-                    var k = (ItemKind)(1 + (int)(rng.NextDouble() * Kinds));
+                    var k = PickItem(rng.NextDouble(), hands);
                     hands[slot] = k;
                     Boxes.RemoveAt(i);
                     Listener?.OnBox(s, b, BoxEvent.Taken, fx, fy, k, slot);
@@ -142,6 +142,24 @@ namespace FlickCurling.Core
         }
 
         const int Kinds = 5;   // the items a box may hold (ItemKind after None)
+
+        /// <summary>The item a box gives, for r in [0, 1): any kind alike, except one the side already holds, which
+        /// counts only Sheet.HeldItemWeight of another.</summary>
+        public static ItemKind PickItem(double r, ItemKind[] hands)
+        {
+            double Weight(int k) => Array.IndexOf(hands, (ItemKind)k) >= 0 ? Sheet.HeldItemWeight : 1;
+            double total = 0;
+            for (int k = 1; k <= Kinds; k++) total += Weight(k);
+            if (total <= 0) return (ItemKind)(1 + (int)(r * Kinds));
+            double at = r * total;
+            for (int k = 1; k <= Kinds; k++)
+            {
+                at -= Weight(k);
+                if (at < 0) return (ItemKind)k;
+            }
+            for (int k = Kinds; k >= 1; k--) if (Weight(k) > 0) return (ItemKind)k;   // (r rounding up to the end)
+            return (ItemKind)Kinds;
+        }
 
         // every step while a magnet stone moves: each other stone near it is towed, its speed drawn toward the magnet's
         // own plus a little toward the magnet (until they touch), harder the closer it is, so it follows the magnet along

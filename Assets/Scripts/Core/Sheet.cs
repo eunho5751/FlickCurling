@@ -41,11 +41,12 @@ namespace FlickCurling.Core
         public static double BombPush { get; private set; } = 80;        // the speed it gives a stone beside it (less further off)
         public static double MagnetR { get; private set; } = 20;         // how far a magnet pulls (from its centre)
         public static double MagnetPull { get; private set; } = 8;       // its grip on a stone right beside it (how fast that takes the magnet's way, per second; less further off)
+        public static double HeldItemWeight { get; private set; } = 0.5; // a box's chance of an item its taker already holds, against another's
         // the corners just above the min line where each side's stones left are printed: no box is put there
         public const double ItemKeepOutW = 24, ItemKeepOutH = 9;
 
         public static void ConfigureItems(int boxes, double boxR, double xMin, double xMax, double yMin, double yMax, double giant, double mini, double bombR, double bombPush,
-                                          double magnetR = 20, double magnetPull = 8, double spacing = 25)
+                                          double magnetR = 20, double magnetPull = 8, double spacing = 25, double heldWeight = 0.5)
         {
             ItemBoxSpacing = Math.Max(0, spacing);
             MagnetR = Math.Max(0, magnetR); MagnetPull = Math.Max(0, magnetPull);
@@ -55,6 +56,7 @@ namespace FlickCurling.Core
             ItemYMin = Math.Min(yMin, yMax); ItemYMax = Math.Max(yMin, yMax);
             GiantSize = Clamp(giant, 0.2, 3); MiniSize = Clamp(mini, 0.2, 3);
             BombR = Math.Max(0, bombR); BombPush = Math.Max(0, bombPush);
+            HeldItemWeight = Clamp(heldWeight, 0, 1);
         }
 
         public static void ConfigureLsdTarget(double xMin, double xMax, double yMin, double yMax)

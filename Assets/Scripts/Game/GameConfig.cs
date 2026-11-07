@@ -87,6 +87,8 @@ namespace FlickCurling.Game
         [Range(5f, 60f)] public float magnetRadius = 20;
         [Tooltip("A magnet's grip on a stone right beside it: how quickly that stone takes the magnet's way, per second (less further off)")]
         [Range(1f, 40f)] public float magnetPull = 8;
+        [Tooltip("A box's chance of giving an item its taker already holds, against any other item's (1: the same as any other, 0.5: half, 0: never)")]
+        [Range(0f, 1f)] public float heldItemChance = 0.5f;
 
         [Header("Ads")]
         [Tooltip("A full-screen ad once every this many matches played (against the AI, two on one device or online; not the tutorial), as the result is left. Never for a player who bought \"remove ads\"")]
@@ -110,7 +112,7 @@ namespace FlickCurling.Game
             Sheet.ConfigureLsdTarget(X(lsdTargetX.x), X(lsdTargetX.y), Y(lsdTargetY.x), Y(lsdTargetY.y));
             // (0..1 from the min line to the house's centre)
             double BoxY(float v) => Sheet.Hog + v * (Sheet.TeeY - Sheet.Hog);
-            Sheet.ConfigureItems(itemBoxes, itemBoxSize, X(itemBoxX.x), X(itemBoxX.y), BoxY(itemBoxY.x), BoxY(itemBoxY.y), giantSize, miniSize, bombRadius, bombPush, magnetRadius, magnetPull, itemBoxSpacing);
+            Sheet.ConfigureItems(itemBoxes, itemBoxSize, X(itemBoxX.x), X(itemBoxX.y), BoxY(itemBoxY.x), BoxY(itemBoxY.y), giantSize, miniSize, bombRadius, bombPush, magnetRadius, magnetPull, itemBoxSpacing, heldItemChance);
         }
 
         /// <summary>The project's config (Resources/GameConfig), or the defaults if it is missing.</summary>

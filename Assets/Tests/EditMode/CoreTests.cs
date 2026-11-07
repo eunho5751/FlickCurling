@@ -443,6 +443,37 @@ namespace FlickCurling.Tests
             Sheet.ConfigureItems(2, 3.2, 0, Sheet.W, Sheet.Hog, Sheet.TeeY, 1.5, 0.6, 20, 80, 20, 8);
         }
 
+        // how often each kind comes, over r spread evenly across [0, 1)
+        static Dictionary<ItemKind, double> Shares(ItemKind[] hands)
+        {
+            const int n = 90000;
+            var c = new Dictionary<ItemKind, double>();
+            for (int i = 0; i < n; i++)
+            {
+                var k = Match.PickItem((i + 0.5) / n, hands);
+                c[k] = (c.TryGetValue(k, out var v) ? v : 0) + 1.0 / n;
+            }
+            return c;
+        }
+
+        [Test]
+        public void AnItemAlreadyHeldComesLessOften()
+        {
+            var empty = Shares(new[] { ItemKind.None, ItemKind.None });
+            foreach (var k in new[] { ItemKind.Giant, ItemKind.Mini, ItemKind.Bomb, ItemKind.Magnet, ItemKind.Protractor })
+                Assert.AreEqual(0.2, empty[k], 1e-3, "empty hands: all alike");
+            Assert.IsFalse(empty.ContainsKey(ItemKind.None));
+
+            // holding a bomb: it counts half (0.5 / 4.5), the others 1 / 4.5 each
+            var held = Shares(new[] { ItemKind.Bomb, ItemKind.None });
+            Assert.AreEqual(0.5 / 4.5, held[ItemKind.Bomb], 1e-3);
+            Assert.AreEqual(1 / 4.5, held[ItemKind.Giant], 1e-3);
+
+            Sheet.ConfigureItems(2, 3.2, 0, Sheet.W, Sheet.Hog, Sheet.TeeY, 1.5, 0.6, 20, 80, 20, 8, 25, 0);
+            Assert.IsFalse(Shares(new[] { ItemKind.Bomb, ItemKind.None }).ContainsKey(ItemKind.Bomb), "0: never");
+            Assert.AreEqual(ItemKind.Protractor, Match.PickItem(0.9999999999, new[] { ItemKind.Bomb, ItemKind.None }));
+        }
+
         // an end in item mode, its turn begun, the sheet cleared of the guard and the boxes for the test to set
         static Match ItemEnd(int seed = 1)
         {
