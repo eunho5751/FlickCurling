@@ -18,7 +18,17 @@
             "teamRules": []
           }
         ],
-        "matchRules": []
+        "matchRules": [
+          {
+            "name": "same-version",
+            "type": "Difference",
+            "source": "Players.CustomData.ver",
+            "reference": 0,
+            "not": false,
+            "enableRule": true,
+            "relaxations": []
+          }
+        ]
       },
       "name": "OneOnOne",
       "backfillEnabled": false
@@ -42,7 +52,17 @@
               "teamRules": []
             }
           ],
-          "matchRules": []
+          "matchRules": [
+            {
+              "name": "same-version",
+              "type": "Difference",
+              "source": "Players.CustomData.ver",
+              "reference": 0,
+              "not": false,
+              "enableRule": true,
+              "relaxations": []
+            }
+          ]
         },
         "name": "OneOnOne",
         "backfillEnabled": false
@@ -65,7 +85,17 @@
               "teamRules": []
             }
           ],
-          "matchRules": []
+          "matchRules": [
+            {
+              "name": "same-version",
+              "type": "Difference",
+              "source": "Players.CustomData.ver",
+              "reference": 0,
+              "not": false,
+              "enableRule": true,
+              "relaxations": []
+            }
+          ]
         },
         "name": "OneOnOne",
         "backfillEnabled": false

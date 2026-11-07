@@ -1231,6 +1231,22 @@ MonoBehaviour:
     m_Metadata:
       m_Items:
       - rid: 4297768082125881572
+  - m_Id: 8707339966140416
+    m_Localized: "\uCE5C\uAD6C\uC640 \uAC8C\uC784 \uBC84\uC804\uC774 \uB2EC\uB77C\uC694.
+      \uB458 \uB2E4 \uCD5C\uC2E0 \uBC84\uC804\uC73C\uB85C \uC5C5\uB370\uC774\uD2B8\uD574
+      \uC8FC\uC138\uC694"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 8707340058415104
+    m_Localized: "\uC0C8 \uBC84\uC804\uC774 \uB098\uC654\uC5B4\uC694!\n\uC628\uB77C\uC778
+      \uB300\uC804\uC740 \uCD5C\uC2E0 \uBC84\uC804\uC5D0\uC11C\uB9CC \uD560 \uC218
+      \uC788\uC5B4\uC694"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 8707340058415105
+    m_Localized: "\uC5C5\uB370\uC774\uD2B8"
+    m_Metadata:
+      m_Items: []
   references:
     version: 2
     RefIds:

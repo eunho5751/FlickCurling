@@ -28,7 +28,29 @@ namespace FlickCurling.Game.Online
     public static class OnlineLobby
     {
         public const string Queue = "quick-match";
-        const string NickKey = "nick", MatchKey = "match", MapKey = "map";
+        const string NickKey = "nick", MatchKey = "match", MapKey = "map", VerKey = "ver";
+
+        /// <summary>
+        /// This build's version (Application.version, "1.2.3") as one number, 1002003: only players on the same one meet
+        /// (the matchmaker's queue keeps tickets of different ones apart, a friend's room turns another one away), since
+        /// two devices simulate a match alike only on the same build.
+        /// </summary>
+        public static int VersionCode
+        {
+            get
+            {
+                int code = 0, parts = 0;
+                foreach (var part in (Application.version ?? "").Split('.'))
+                {
+                    if (parts == 3) break;
+                    int.TryParse(new string(part.TakeWhile(char.IsDigit).ToArray()), out int n);
+                    code = code * 1000 + Math.Min(n, 999);
+                    parts++;
+                }
+                for (; parts < 3; parts++) code *= 1000;
+                return code;
+            }
+        }
 
         public static ISession Session { get; private set; }
         public static string MatchId { get; private set; } = "";
@@ -148,7 +170,11 @@ namespace FlickCurling.Game.Online
         }
 
         static Dictionary<string, PlayerProperty> MyProperties() =>
-            new Dictionary<string, PlayerProperty> { [NickKey] = new PlayerProperty(MyName, VisibilityPropertyOptions.Member) };
+            new Dictionary<string, PlayerProperty>
+            {
+                [NickKey] = new PlayerProperty(MyName, VisibilityPropertyOptions.Member),
+                [VerKey] = new PlayerProperty(VersionCode.ToString(), VisibilityPropertyOptions.Member),
+            };
 
         static void Me()
         {
@@ -325,9 +351,10 @@ namespace FlickCurling.Game.Online
         }
 
         // what a ticket's player carries (custom data, which the matchmaking results hand the opponent): the nickname
-        // and the record, both only shown (the record itself is the server's)
+        // and the record, both only shown (the record itself is the server's), and the build's version, which the queue's
+        // rule keeps equal within a match (Assets/Online/Deploy/QuickMatch.mmq)
         [Serializable]
-        sealed class TicketData { public string nick; public int w, l, d; public string map; }
+        sealed class TicketData { public string nick; public int w, l, d; public string map; public int ver; }
 
         // into the matched session, the match object up and the opponent's card here (the game scene is open meanwhile),
         // by connectBy (realtime). known: the opponent and the match are known already (from the matchmaker); otherwise
@@ -437,7 +464,7 @@ namespace FlickCurling.Game.Online
             try
             {
                 ticket = (await mm.CreateTicketAsync(new List<Unity.Services.Matchmaker.Models.Player> { new Unity.Services.Matchmaker.Models.Player(MyId,
-                    new TicketData { nick = MyName, w = mine?.W ?? 0, l = mine?.L ?? 0, d = mine?.D ?? 0, map = SearchMap }) },
+                    new TicketData { nick = MyName, w = mine?.W ?? 0, l = mine?.L ?? 0, d = mine?.D ?? 0, map = SearchMap, ver = VersionCode }) },
                     new CreateTicketOptions(Queue, new Dictionary<string, object> { [MapAttribute] = SearchMap }))).Id;
                 Trace("ticket " + ticket + " created");
             }
@@ -479,7 +506,7 @@ namespace FlickCurling.Game.Online
         // ---------------- a friend's room ----------------
 
         public enum RoomResult { Started, Cancelled, Expired, Failed }
-        public enum JoinResult { Started, NotFound, Full, Failed }
+        public enum JoinResult { Started, NotFound, Full, Version, Failed }
 
         // out of any earlier match and its network, signed in, the network manager there; false if not signed in
         static async Task<bool> ReadyForRoom()
@@ -502,9 +529,11 @@ namespace FlickCurling.Game.Online
         /// Opens a private room for a friend on <paramref name="map"/>: its code goes to <paramref name="onCode"/> as soon as
         /// it is there, then it waits for the friend (GameConfig.friendRoomMinutes at most). Started once the friend is in
         /// (the two being connected meanwhile, <see cref="Connecting"/>, as a match found); cancelled, expired or failed,
-        /// nothing is left over.
+        /// nothing is left over. A friend on another version of the game is not played: <paramref name="onOtherVersion"/>
+        /// is told, that friend is sent out of the room (one on an older build may not leave by themselves) and the room
+        /// waits on.
         /// </summary>
-        public static async Task<RoomResult> CreateRoomAsync(string map, Action<string> onCode, CancellationToken ct)
+        public static async Task<RoomResult> CreateRoomAsync(string map, Action<string> onCode, Action onOtherVersion, CancellationToken ct)
         {
             TraceSearchStart();
             MeasureRegion();
@@ -517,6 +546,7 @@ namespace FlickCurling.Game.Online
                 var options = RoomOptions();
                 options.SessionProperties[MatchKey] = new SessionProperty("f-" + Guid.NewGuid().ToString("N"), VisibilityPropertyOptions.Member);
                 options.SessionProperties[MapKey] = new SessionProperty(map, VisibilityPropertyOptions.Member);
+                options.SessionProperties[VerKey] = new SessionProperty(VersionCode.ToString(), VisibilityPropertyOptions.Member);
                 ISession s;
                 Trace("opening a room");
                 try { s = await MultiplayerService.Instance.CreateSessionAsync(options, ct); }
@@ -526,8 +556,23 @@ namespace FlickCurling.Game.Online
                 Trace("room " + s.Code + " opened");
                 onCode(s.Code);
                 float until = Time.realtimeSinceStartup + GameConfig.Load().friendRoomMinutes * 60;
-                while (s.Players.Count < 2)
+                string turnedAway = null;
+                while (true)
                 {
+                    var friend = s.Players.FirstOrDefault(p => p.Id != MyId);
+                    if (friend != null)
+                    {
+                        if (friend.Properties.TryGetValue(VerKey, out var fv) && fv.Value == VersionCode.ToString()) break;
+                        if (turnedAway != friend.Id)
+                        {
+                            turnedAway = friend.Id;
+                            Trace("friend on another version");
+                            onOtherVersion?.Invoke();
+                            try { await s.AsHost().RemovePlayerAsync(friend.Id); }
+                            catch (Exception e) { Debug.Log("FlickCurling: sending a friend on another version out of the room: " + e.Message); }
+                        }
+                    }
+                    else turnedAway = null;
                     if (Session != s) return RoomResult.Failed;   // (taken away by the service)
                     if (ct.IsCancellationRequested) { await LeaveAsync(); return RoomResult.Cancelled; }
                     if (Time.realtimeSinceStartup > until) { Trace("room " + s.Code + " closed (nobody came)"); await LeaveAsync(); return RoomResult.Expired; }
@@ -569,6 +614,13 @@ namespace FlickCurling.Game.Online
                 }
                 Session = s;
                 if (!s.Players.Any(p => p.Id != MyId)) { await LeaveAsync(); return JoinResult.NotFound; }   // (its maker gone)
+                // (a room made on another version of the game: left, the two cannot play)
+                if (!s.Properties.TryGetValue(VerKey, out var rv) || rv.Value != VersionCode.ToString())
+                {
+                    Trace("room " + code + " on another version");
+                    await LeaveAsync();
+                    return JoinResult.Version;
+                }
                 Joining = true;
                 Trace("joined room " + code);
                 SearchMap = s.Properties.TryGetValue(MapKey, out var mp) && !string.IsNullOrEmpty(mp.Value) ? mp.Value : "base";

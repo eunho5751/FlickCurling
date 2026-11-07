@@ -1079,6 +1079,18 @@ MonoBehaviour:
     m_Key: hud.lastTurn
     m_Metadata:
       m_Items: []
+  - m_Id: 8707339966140416
+    m_Key: online.otherVersion
+    m_Metadata:
+      m_Items: []
+  - m_Id: 8707340058415104
+    m_Key: online.updateNeeded
+    m_Metadata:
+      m_Items: []
+  - m_Id: 8707340058415105
+    m_Key: online.update
+    m_Metadata:
+      m_Items: []
   m_Metadata:
     m_Items: []
   m_KeyGenerator:

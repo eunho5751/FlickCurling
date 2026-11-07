@@ -1176,6 +1176,21 @@ MonoBehaviour:
     m_Metadata:
       m_Items:
       - rid: 4297768082125881571
+  - m_Id: 8707339966140416
+    m_Localized: You and your friend have different versions. Please both update
+      to the latest
+    m_Metadata:
+      m_Items: []
+  - m_Id: 8707340058415104
+    m_Localized: 'A new version is out!
+
+      Online matches need the latest version'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 8707340058415105
+    m_Localized: Update
+    m_Metadata:
+      m_Items: []
   references:
     version: 2
     RefIds:

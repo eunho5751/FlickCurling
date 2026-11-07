@@ -16,7 +16,10 @@ namespace FlickCurling.Game.Online
     /// scene opens on it (and if the two cannot be connected there, the menu comes back with this popup looking again).
     /// A friend: "create room" opens a private room on the chosen map and shows its code (copy, share; cancel closes it;
     /// GameConfig.friendRoomMinutes without the friend and it closes itself), "enter code" joins a friend's room by its
-    /// code (the room's map is played). Either way the Game scene opens once both are in.
+    /// code (the room's map is played). Either way the Game scene opens once both are in, and only on the same version of
+    /// the game (a friend on another one is told so).
+    /// Online matches need the newest build: when Google Play has a newer one (<see cref="AppUpdate"/>), the popup shows
+    /// only that, with "update" (Play's update screen).
     /// </summary>
     public sealed class OnlineSetup : MonoBehaviour
     {
@@ -40,8 +43,12 @@ namespace FlickCurling.Game.Online
         [SerializeField] TextMeshProUGUI joinStatus;
         [SerializeField] Button joinOk, back;
 
+        [Header("An update to take first")]
+        [SerializeField] GameObject update;
+        [SerializeField] Button updateNow;
+
         const int CodeLength = 6;
-        const float CopiedShow = 2;
+        const float CopiedShow = 2, OtherVersionShow = 5;
 
         CancellationTokenSource search;
         float started;
@@ -50,7 +57,7 @@ namespace FlickCurling.Game.Online
 
         CancellationTokenSource roomCts;   // a room open (or opening), waiting for the friend
         string roomCode;
-        float roomSince, copiedUntil;
+        float roomSince, copiedUntil, otherVersionUntil;
         bool roomGone;                      // closed by itself, or could not be opened: its line stays
         bool joining;
 
@@ -68,6 +75,7 @@ namespace FlickCurling.Game.Online
             cancel.onClick.AddListener(() => { CloseRoom(); Show(main); });
             joinOk.onClick.AddListener(Join);
             back.onClick.AddListener(() => Show(main));
+            updateNow.onClick.AddListener(UpdateNow);
             // the code as typed: letters and digits only, in capitals
             codeInput.onValidateInput = (_, __, c) => char.IsLetterOrDigit(c) && c < 128 ? char.ToUpperInvariant(c) : '\0';
             codeInput.onSubmit.AddListener(_ => Join());
@@ -78,11 +86,13 @@ namespace FlickCurling.Game.Online
         public void Open()
         {
             OnlineLobby.MeasureRegion();   // ahead of a match (in the background)
+            AppUpdate.Check();             // (asked again each time: an update put out meanwhile)
             mode.Select(0, false, false);
             map.Select(0, false, false);
             Stop();
             ok.interactable = true;
-            Show(main);
+            updateNow.interactable = true;
+            Show(NeedsUpdate ? update : main);
             popup.SetSize(860, 764);
             popup.Show();
         }
@@ -91,6 +101,7 @@ namespace FlickCurling.Game.Online
         public void OpenSearching()
         {
             Open();
+            if (NeedsUpdate) return;
             Toggle();
             OnlineLobby.Trace("search started again (match not connected)");
         }
@@ -100,6 +111,7 @@ namespace FlickCurling.Game.Online
             main.SetActive(view == main);
             room.SetActive(view == room);
             join.SetActive(view == join);
+            update.SetActive(view == update);
             if (view == main) ShowChoice();
         }
 
@@ -164,6 +176,19 @@ namespace FlickCurling.Game.Online
         {
             if (search != null) Tick();
             if (room.activeSelf) TickRoom();
+            // Play's answer came after the popup opened: an update first, unless already looking or in a room
+            if (NeedsUpdate && main.activeSelf && search == null && roomCts == null) Show(update);
+        }
+
+        // ---------------- an update to take first ----------------
+
+        static bool NeedsUpdate => AppUpdate.Status == AppUpdate.State.Available;
+
+        async void UpdateNow()
+        {
+            updateNow.interactable = false;
+            await AppUpdate.StartAsync();   // (taken: the app restarts on the new build)
+            if (this) updateNow.interactable = true;
         }
 
         void Tick()
@@ -179,7 +204,7 @@ namespace FlickCurling.Game.Online
         {
             CloseRoom();
             roomCts = new CancellationTokenSource();
-            roomCode = null; roomGone = false; copiedUntil = 0;
+            roomCode = null; roomGone = false; copiedUntil = otherVersionUntil = 0;
             code.text = new string('-', CodeLength);
             roomStatus.text = Loc.T("online.creatingRoom");
             copy.interactable = share.interactable = false;
@@ -195,6 +220,9 @@ namespace FlickCurling.Game.Online
                 roomCode = c; roomSince = Time.unscaledTime;
                 code.text = c;
                 copy.interactable = share.interactable = true;
+            }, () =>
+            {
+                if (this && roomCts == cts) otherVersionUntil = Time.unscaledTime + OtherVersionShow;
             }, cts.Token);
             if (!this || roomCts != cts) return;
             roomCts = null;
@@ -224,7 +252,8 @@ namespace FlickCurling.Game.Online
             cancel.interactable = !OnlineLobby.Joining;
             if (roomGone || roomCode == null) return;
             string text;
-            if (Time.unscaledTime < copiedUntil) text = Loc.T("online.copied");
+            if (Time.unscaledTime < otherVersionUntil) text = Loc.T("online.otherVersion");
+            else if (Time.unscaledTime < copiedUntil) text = Loc.T("online.copied");
             else
             {
                 int t = Mathf.FloorToInt(Time.unscaledTime - roomSince);
@@ -274,7 +303,8 @@ namespace FlickCurling.Game.Online
             if (result == OnlineLobby.JoinResult.Started) { Go(); return; }
             SetJoining(false);
             joinStatus.text = Loc.T(result == OnlineLobby.JoinResult.NotFound ? "online.roomNotFound"
-                : result == OnlineLobby.JoinResult.Full ? "online.roomFull" : "online.joinFailed");
+                : result == OnlineLobby.JoinResult.Full ? "online.roomFull"
+                : result == OnlineLobby.JoinResult.Version ? "online.otherVersion" : "online.joinFailed");
         }
 
         void SetJoining(bool on)

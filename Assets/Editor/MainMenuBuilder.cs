@@ -347,6 +347,23 @@ namespace FlickCurling.EditorTools
             var back = RowButton(joinRow, UiPrefabBuilder.SecondaryPath, "Back", "online.back");
             join.gameObject.SetActive(false);
 
+            // a newer build in the store: only that, and "update"
+            var update = View(content, "Update");
+            Spacer(update);
+            var updateText = Label(update, "Message", legendFont, 40, Ink);
+            updateText.textWrappingMode = TextWrappingModes.Normal;
+            updateText.lineSpacing = 12;
+            updateText.text = UiStrings.Entries.First(e => e[0] == "online.updateNeeded")[1];
+            LocalizeEvents.BindText(updateText, Loc.Table, "online.updateNeeded");
+            updateText.gameObject.AddComponent<LayoutElement>().preferredHeight = 200;
+            Spacer(update);
+            var updateRow = Child<RectTransform>(update, "UpdateRow");
+            updateRow.gameObject.AddComponent<LayoutElement>().preferredHeight = SetupOkH;
+            var updateGo = UiPrefabBuilder.Place(UiPrefabBuilder.PrimaryPath, updateRow, "UpdateNow");
+            Place((RectTransform)updateGo.transform, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(SetupOkW, SetupOkH));
+            var updateNow = UiPrefabBuilder.SetLabel(updateGo, "online.update");
+            update.gameObject.SetActive(false);
+
             var setup = go.AddComponent<OnlineSetup>();
             var so = new SerializedObject(setup);
             so.FindProperty("popup").objectReferenceValue = go.GetComponent<Popup>();
@@ -369,6 +386,8 @@ namespace FlickCurling.EditorTools
             so.FindProperty("joinStatus").objectReferenceValue = joinStatus;
             so.FindProperty("joinOk").objectReferenceValue = joinOk;
             so.FindProperty("back").objectReferenceValue = back;
+            so.FindProperty("update").objectReferenceValue = update.gameObject;
+            so.FindProperty("updateNow").objectReferenceValue = updateNow;
             so.ApplyModifiedPropertiesWithoutUndo();
             go.SetActive(false);
             return setup;
