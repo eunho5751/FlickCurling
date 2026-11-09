@@ -1091,6 +1091,10 @@ MonoBehaviour:
     m_Key: online.update
     m_Metadata:
       m_Items: []
+  - m_Id: 9425486662782976
+    m_Key: app.name
+    m_Metadata:
+      m_Items: []
   m_Metadata:
     m_Items: []
   m_KeyGenerator:

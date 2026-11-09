@@ -11,6 +11,9 @@ namespace FlickCurling.EditorTools
         // key, ko, en, ja
         public static readonly string[][] Entries =
         {
+            // ---- the app's name (on the phone, under its icon) ----
+            new[] { "app.name", "플릭 컬링", "Flick Curling", "フリックカーリング" },
+
             // ---- teams, levels, maps, modes ----
             new[] { "team.B", "흑", "Black", "黒" },
             new[] { "team.W", "백", "White", "白" },

@@ -1191,6 +1191,10 @@ MonoBehaviour:
     m_Localized: Update
     m_Metadata:
       m_Items: []
+  - m_Id: 9425486662782976
+    m_Localized: Flick Curling
+    m_Metadata:
+      m_Items: []
   references:
     version: 2
     RefIds:

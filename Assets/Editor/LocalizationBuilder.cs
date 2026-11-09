@@ -55,12 +55,30 @@ namespace FlickCurling.EditorTools
             LocalizationSettings.ProjectLocale = ko;
 
             // first launch: a choice the player made before, else the device language, else English
+            // (set again only if they differ, so a rebuild leaves the settings asset as it was)
             var selectors = settings.GetStartupLocaleSelectors();
-            selectors.Clear();
-            selectors.Add(new PlayerPrefLocaleSelector { PlayerPreferenceKey = "flickcurling-locale" });
-            selectors.Add(new CommandLineLocaleSelector());
-            selectors.Add(new SystemLocaleSelector());
-            selectors.Add(new SpecificLocaleSelector { LocaleId = new LocaleIdentifier("en") });
+            bool selectorsSet = selectors.Count == 4
+                && selectors[0] is PlayerPrefLocaleSelector pp && pp.PlayerPreferenceKey == "flickcurling-locale"
+                && selectors[1] is CommandLineLocaleSelector && selectors[2] is SystemLocaleSelector
+                && selectors[3] is SpecificLocaleSelector sp && sp.LocaleId.Code == "en";
+            if (!selectorsSet)
+            {
+                selectors.Clear();
+                selectors.Add(new PlayerPrefLocaleSelector { PlayerPreferenceKey = "flickcurling-locale" });
+                selectors.Add(new CommandLineLocaleSelector());
+                selectors.Add(new SystemLocaleSelector());
+                selectors.Add(new SpecificLocaleSelector { LocaleId = new LocaleIdentifier("en") });
+            }
+
+            // the app's name under its icon on the phone, in the phone's language (Android: a strings.xml per locale)
+            var appInfo = LocalizationSettings.Metadata.GetMetadata<UnityEngine.Localization.Platform.Android.AppInfo>();
+            if (appInfo == null)
+            {
+                appInfo = new UnityEngine.Localization.Platform.Android.AppInfo();
+                LocalizationSettings.Metadata.AddMetadata(appInfo);
+            }
+            if (appInfo.DisplayName == null || appInfo.DisplayName.TableEntryReference.Key != "app.name")
+                appInfo.DisplayName = new LocalizedString(TableName, "app.name");
             EditorUtility.SetDirty(settings);
 
             var collection = LocalizationEditorSettings.GetStringTableCollection(TableName)
