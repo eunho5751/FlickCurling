@@ -97,7 +97,9 @@ namespace FlickCurling.Game
         Team Me => IsOnline ? Online.OnlineLobby.MyTeam : IsAI(Team.B) ? Team.W : Team.B;
         // the HUD shows the side as a stone icon rather than its name
         string SideOf(Team t, int scalePct = 115) => Ui.Icon(t, scalePct) + (IsAI(t) ? Loc.T("team.ai") : "");
-        static string EndLabel(int n) => n <= Sheet.Ends ? Loc.T("hud.end", ("n", n)) : Loc.T("hud.extra");
+        // an end's name: "End 3", then "Extra", "Extra 2", ... for the extra ends
+        static string EndLabel(int n) => n <= Sheet.Ends ? Loc.T("hud.end", ("n", n)) : ExtraLabel(n - Sheet.Ends);
+        static string ExtraLabel(int k) => k == 1 ? Loc.T("hud.extra") : Loc.T("hud.extraN", ("n", k));
         // the side shown on the left (as black) and the one on the right: online, this device's player is on the left
         static Team Left => Ui.Shown(Team.B);
         static Team Right => Ui.Shown(Team.W);
@@ -691,9 +693,7 @@ namespace FlickCurling.Game
             {
                 Eyebrow = Loc.T("over.eyebrow"),
                 Title = vsAi ? MyResult(win, IsAI(Team.B) ? Team.W : Team.B)
-                    : win.HasValue
-                    ? Loc.T("over.win", ("name", SideOf(win.Value, 110)), ("score", Versus(110)))
-                    : Loc.T("over.draw", ("score", Versus(110))),
+                    : win.HasValue ? Loc.T("over.win", ("name", SideOf(win.Value, 110)), ("score", Versus(110))) : Versus(110),
                 Buttons =
                 {
                     // (leaving the result: the ad first, when one is due)
@@ -703,9 +703,10 @@ namespace FlickCurling.Game
             });
         }
 
-        // a player's own result on the final card: won, lost or drawn, with the score
+        // a player's own result on the final card: won or lost, with the score (a match is never left level: extra ends
+        // go on until one side wins; should one end level all the same, just the score)
         string MyResult(Team? win, Team me) =>
-            Loc.T(!win.HasValue ? "over.myDraw" : win.Value == me ? "over.myWin" : "over.myLoss", ("score", Versus(110)));
+            win.HasValue ? Loc.T(win.Value == me ? "over.myWin" : "over.myLoss", ("score", Versus(110))) : Versus(110);
 
         // back to the main menu scene, through the screen fade; whatever is under way here stops
         void ToMenu()
@@ -758,7 +759,7 @@ namespace FlickCurling.Game
             int ends = Math.Max(Sheet.Ends, Math.Max(m.End, m.Scores[0].Count));
             var rows = new List<string[]>();
             var head = new List<string> { "" };
-            for (int i = 1; i <= ends; i++) head.Add(i <= Sheet.Ends ? i.ToString() : Loc.T("hud.extra"));
+            for (int i = 1; i <= ends; i++) head.Add(i <= Sheet.Ends ? i.ToString() : ExtraLabel(i - Sheet.Ends));
             head.Add(Loc.T("hud.total"));
             rows.Add(head.ToArray());
             foreach (var t in new[] { Left, Right })

@@ -273,7 +273,7 @@ namespace FlickCurling.Game
         {
             // filled in when the server's answer comes (the match does not wait for it)
             myStats ??= OnlineLobby.MyStats; oppStats ??= OnlineLobby.OpponentStats;
-            string Rec(OnlineApi.PlayerStats s) => Loc.T("hud.record", ("w", s?.W ?? 0), ("l", s?.L ?? 0), ("d", s?.D ?? 0));   // none: all zero
+            string Rec(OnlineApi.PlayerStats s) => Loc.T("hud.record", ("w", s?.W ?? 0), ("l", s?.L ?? 0));   // none: all zero
             var mine = Rec(myStats); var theirs = Rec(oppStats);
             return Left == OnlineLobby.MyTeam ? new[] { mine, theirs } : new[] { theirs, mine };
         }
@@ -710,8 +710,8 @@ namespace FlickCurling.Game
             reportedMatch = id;
             var win = m.Winner;
             string Who(Team t) => t == OnlineLobby.MyTeam ? OnlineLobby.MyId : OnlineLobby.OpponentId;
-            string winner = win.HasValue ? Who(win.Value) : "draw";
-            reportTask = OnlineApi.ReportResult(id, winner, ReportScores());
+            if (!win.HasValue) return;   // (never level at the end: extra ends go on until one side wins)
+            reportTask = OnlineApi.ReportResult(id, Who(win.Value), ReportScores());
         }
 
         // the two scores in the order the server keeps the players (by id)
@@ -837,7 +837,7 @@ namespace FlickCurling.Game
         }
 
         // the final result card, which every online match ends on (a forfeit's card leads to it): this player's own result
-        // (won, lost or drawn), then the rating points the server now has for this player and what this match did to them (blank if they did not
+        // (won or lost), then the rating points the server now has for this player and what this match did to them (blank if they did not
         // come in time)
         void OnlineFinalCard(Team? win)
         {

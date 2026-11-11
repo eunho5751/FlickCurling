@@ -57,7 +57,6 @@ namespace FlickCurling.Game.Online
         public readonly NetworkVariable<bool> HasStats = new(false, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Owner);
         public readonly NetworkVariable<int> W = new(0, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Owner);
         public readonly NetworkVariable<int> L = new(0, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Owner);
-        public readonly NetworkVariable<int> D = new(0, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Owner);
         public readonly NetworkVariable<MatchSnapshot> State = new(new MatchSnapshot(), NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Owner);
 
         static readonly List<OnlinePlayerState> all = new List<OnlinePlayerState>();
@@ -74,7 +73,7 @@ namespace FlickCurling.Game.Online
             Nick.Value = Truncate(OnlineLobby.MyName);
             var s = OnlineLobby.MyStats;
             HasStats.Value = s != null;
-            if (s != null) { W.Value = s.W; L.Value = s.L; D.Value = s.D; }
+            if (s != null) { W.Value = s.W; L.Value = s.L; }
         }
 
         public override void OnNetworkDespawn() => all.Remove(this);
@@ -109,7 +108,7 @@ namespace FlickCurling.Game.Online
 
         /// <summary>Their record as the card has it (null if they had none to give).</summary>
         public OnlineApi.PlayerStats Stats =>
-            HasStats.Value ? new OnlineApi.PlayerStats { PlayerId = PlayerId.Value.ToString(), W = W.Value, L = L.Value, D = D.Value } : null;
+            HasStats.Value ? new OnlineApi.PlayerStats { PlayerId = PlayerId.Value.ToString(), W = W.Value, L = L.Value } : null;
 
         /// <summary>Writes where the match is on this device's card; returns the stamp (network time), or -1 if there is
         /// no card yet.</summary>

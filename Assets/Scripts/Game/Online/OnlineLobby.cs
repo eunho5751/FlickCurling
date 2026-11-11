@@ -240,7 +240,7 @@ namespace FlickCurling.Game.Online
         {
             var s = OnlineApi.ParseSettled(type, message);
             if (s == null || !s.HasRecord) return;
-            TakeRecord(new OnlineApi.PlayerStats { PlayerId = AuthenticationService.Instance.PlayerId, W = s.w, L = s.l, D = s.dr, P = s.p, LastMatch = s.m, LastDelta = s.d });
+            TakeRecord(new OnlineApi.PlayerStats { PlayerId = AuthenticationService.Instance.PlayerId, W = s.w, L = s.l, P = s.p, LastMatch = s.m, LastDelta = s.d });
         }
 
         /// <summary>Whether a match has been found and the opponent is being looked up (cancelling is not possible).</summary>
@@ -341,7 +341,7 @@ namespace FlickCurling.Game.Online
                     TicketData data = null;
                     try { data = p.CustomData?.GetAs<TicketData>(); } catch (Exception) { }
                     Trace("matchmaking results read (pool " + results.PoolName + ")");
-                    var stats = new OnlineApi.PlayerStats { PlayerId = p.Id, W = data?.w ?? 0, L = data?.l ?? 0, D = data?.d ?? 0 };
+                    var stats = new OnlineApi.PlayerStats { PlayerId = p.Id, W = data?.w ?? 0, L = data?.l ?? 0 };
                     // (a ticket without a mode: an older build, which only plays the basic one)
                     return (p.Id, string.IsNullOrEmpty(data?.nick) ? "?" : data.nick, stats, string.IsNullOrEmpty(data?.map) ? "base" : data.map);
                 }
@@ -354,7 +354,7 @@ namespace FlickCurling.Game.Online
         // and the record, both only shown (the record itself is the server's), and the build's version, which the queue's
         // rule keeps equal within a match (Assets/Online/Deploy/QuickMatch.mmq)
         [Serializable]
-        sealed class TicketData { public string nick; public int w, l, d; public string map; public int ver; }
+        sealed class TicketData { public string nick; public int w, l; public string map; public int ver; }
 
         // into the matched session, the match object up and the opponent's card here (the game scene is open meanwhile),
         // by connectBy (realtime). known: the opponent and the match are known already (from the matchmaker); otherwise
@@ -464,7 +464,7 @@ namespace FlickCurling.Game.Online
             try
             {
                 ticket = (await mm.CreateTicketAsync(new List<Unity.Services.Matchmaker.Models.Player> { new Unity.Services.Matchmaker.Models.Player(MyId,
-                    new TicketData { nick = MyName, w = mine?.W ?? 0, l = mine?.L ?? 0, d = mine?.D ?? 0, map = SearchMap, ver = VersionCode }) },
+                    new TicketData { nick = MyName, w = mine?.W ?? 0, l = mine?.L ?? 0, map = SearchMap, ver = VersionCode }) },
                     new CreateTicketOptions(Queue, new Dictionary<string, object> { [MapAttribute] = SearchMap }))).Id;
                 Trace("ticket " + ticket + " created");
             }

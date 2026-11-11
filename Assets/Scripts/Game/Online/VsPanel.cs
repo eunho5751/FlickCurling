@@ -8,7 +8,7 @@ namespace FlickCurling.Game.Online
 {
     /// <summary>
     /// The record panel shown as an online match opens (Docs/OnlineMatch.md, 3.3): the opponent's card on top, this
-    /// player's at the bottom and VS between them, each card with its stone, nickname and won / lost / drawn. Its own
+    /// player's at the bottom and VS between them, each card with its stone, nickname and won / lost. Its own
     /// overlay canvas (1080 x 1920 reference, like the menus); it slides in, holds, fades out and calls back.
     /// It ends when <c>endAt</c> says (a time on the clock <c>now</c> reads, shared by both devices): online, the given
     /// time after the later of the two panels appeared, so both go together however long each device took.
@@ -128,7 +128,7 @@ namespace FlickCurling.Game.Online
             DOTween.To(() => rt.anchoredPosition.x, x => rt.anchoredPosition = new Vector2(x, rt.anchoredPosition.y), 0, t).SetEase(Ease.OutCubic);
 
         static string RecordText(OnlineApi.PlayerStats stats) =>
-            Loc.T("hud.record", ("w", stats?.W ?? 0), ("l", stats?.L ?? 0), ("d", stats?.D ?? 0));   // none: all zero
+            Loc.T("hud.record", ("w", stats?.W ?? 0), ("l", stats?.L ?? 0));   // none: all zero
 
         static RectTransform Card(Transform parent, string name, Vector2 pos, string stone, string nick, OnlineApi.PlayerStats stats)
         {

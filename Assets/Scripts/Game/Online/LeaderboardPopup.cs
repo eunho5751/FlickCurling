@@ -151,8 +151,8 @@ namespace FlickCurling.Game.Online
                 rows[i].gameObject.SetActive(used);
                 if (!used) continue;
                 var e = entries[i];
-                var (w, l, d) = Record(e);
-                rows[i].Set(e.Rank + 1, Nickname.Display(e.PlayerName), (int)e.Score, WinRate(w, l, d), e.PlayerId == AccountService.PlayerId);
+                var (w, l) = Record(e);
+                rows[i].Set(e.Rank + 1, Nickname.Display(e.PlayerName), (int)e.Score, WinRate(w, l), e.PlayerId == AccountService.PlayerId);
             }
             listStatus.text = entries == null ? Loc.T("leaderboard.failed") : Loc.T("leaderboard.empty");
             listStatus.gameObject.SetActive(n == 0);
@@ -173,31 +173,31 @@ namespace FlickCurling.Game.Online
             };
             googleButton.interactable = !AccountService.Busy;
             if (!ranked) return;
-            var (w, l, d) = Record(entry);
+            var (w, l) = Record(entry);
             myRank.text = (entry.Rank + 1).ToString("N0");
             myPoints.text = ((int)entry.Score).ToString("N0");
-            myRate.text = WinRate(w, l, d);
+            myRate.text = WinRate(w, l);
         }
 
-        // won/lost/drawn, which the module writes with each score
-        [Serializable] sealed class Meta { public int w, l, d; }
+        // won/lost, which the module writes with each score
+        [Serializable] sealed class Meta { public int w, l; }
 
-        static (int, int, int) Record(LeaderboardEntry e)
+        static (int, int) Record(LeaderboardEntry e)
         {
-            if (e?.Metadata == null) return (0, 0, 0);
+            if (e?.Metadata == null) return (0, 0);
             try
             {
                 var m = JsonUtility.FromJson<Meta>(e.Metadata);
-                return m == null ? (0, 0, 0) : (m.w, m.l, m.d);
+                return m == null ? (0, 0) : (m.w, m.l);
             }
-            catch (Exception) { return (0, 0, 0); }
+            catch (Exception) { return (0, 0); }
         }
 
         // wins out of every match played (draws included), whole per cent; "-" before any. The number is what is centred:
         // an invisible "%" in front balances the one after it
-        static string WinRate(int w, int l, int d)
+        static string WinRate(int w, int l)
         {
-            int n = w + l + d;
+            int n = w + l;
             return n == 0 ? "-" : "<alpha=#00>%<alpha=#FF>" + Mathf.RoundToInt(100f * w / n) + "%";
         }
 

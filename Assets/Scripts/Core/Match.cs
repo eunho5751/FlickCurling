@@ -61,7 +61,7 @@ namespace FlickCurling.Core
 
     /// <summary>
     /// Match rules: ends, shot order, bonus guard, launch lanes, cushion tickets and the no-ticket foul,
-    /// judging, scoring, hammer (blank ends pass it), extra end and the last stone draw.
+    /// judging, scoring, hammer (blank ends pass it), extra ends (until one side wins) and the last stone draw.
     /// Timing and animation are left to the caller.
     /// </summary>
     public sealed partial class Match : IPhysicsEvents
@@ -343,7 +343,7 @@ namespace FlickCurling.Core
         public AfterEnd NextStep()
         {
             if (End < Sheet.Ends) return AfterEnd.NextEnd;
-            if (End == Sheet.Ends && Total(Team.B) == Total(Team.W)) return AfterEnd.ExtraEnd;
+            if (Total(Team.B) == Total(Team.W)) return AfterEnd.ExtraEnd;   // (level: extra ends until one side scores; no draws)
             return AfterEnd.GameOver;
         }
 

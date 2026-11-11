@@ -192,11 +192,6 @@ MonoBehaviour:
     m_Metadata:
       m_Items:
       - rid: 4297768082125881571
-  - m_Id: 2262749237
-    m_Localized: <color=#d9a54c>Draw</color> ({score})
-    m_Metadata:
-      m_Items:
-      - rid: 4297768082125881571
   - m_Id: 2262749239
     m_Localized: Play again
     m_Metadata:
@@ -431,7 +426,7 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 1694707769856003
-    m_Localized: '{w}W {l}L {d}D'
+    m_Localized: '{w}W {l}L'
     m_Metadata:
       m_Items:
       - rid: 4297768082125881571
@@ -574,11 +569,6 @@ MonoBehaviour:
       - rid: 4297768082125881571
   - m_Id: 2752037559128065
     m_Localized: Defeat! ({score})
-    m_Metadata:
-      m_Items:
-      - rid: 4297768082125881571
-  - m_Id: 2752037559128066
-    m_Localized: <color=#d9a54c>Draw</color> ({score})
     m_Metadata:
       m_Items:
       - rid: 4297768082125881571
@@ -968,8 +958,8 @@ MonoBehaviour:
   - m_Id: 4566859296722947
     m_Localized: "\u2022<indent=1em>The side that scored goes first in the next end.
       After a blank end, going second passes to the other side.</indent>\n\u2022<indent=1em>The
-      higher total after the last end wins.</indent>\n\u2022<indent=1em>Level, one
-      extra end is played; if it is still level, it's a draw.</indent>"
+      higher total after the last end wins.</indent>\n\u2022<indent=1em>Level, extra
+      ends are played until one side wins.</indent>"
     m_Metadata:
       m_Items: []
   - m_Id: 4604271452409856
@@ -1248,6 +1238,11 @@ MonoBehaviour:
       the side whose stone comes up throws last.'
     m_Metadata:
       m_Items: []
+  - m_Id: 10167814247600128
+    m_Localized: Extra {n}
+    m_Metadata:
+      m_Items:
+      - rid: 4297768082125881571
   references:
     version: 2
     RefIds:
@@ -1272,13 +1267,11 @@ MonoBehaviour:
         - id: 263283141431296
         - id: 363280344207360
         - id: 2262749228
-        - id: 2262749237
         - id: 1099965122138116
         - id: 1694707769856003
         - id: 2585780847300608
         - id: 2752037559128064
         - id: 2752037559128065
-        - id: 2752037559128066
         - id: 4351939523301379
         - id: 4406000457011201
         - id: 4406000457011203
@@ -1289,3 +1282,4 @@ MonoBehaviour:
         - id: 8690121547108352
         - id: 10163382965424128
         - id: 10163383124807680
+        - id: 10167814247600128

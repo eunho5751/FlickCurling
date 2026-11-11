@@ -16,14 +16,15 @@ namespace FlickCurlingModule;
 
 /// <summary>
 /// Online match bookkeeping (Docs/OnlineMatch.md): a match's record in the private Game Data item "matches" (one key
-/// per match id), each player's current match id and won/lost/drawn in their protected data (they can read it, only
+/// per match id), each player's current match id and won/lost in their protected data (they can read it, only
 /// this module writes it), and a count of their reports that differed from the result in their private data. The first result report settles a match; a
 /// second one is only compared. A player dropped from the match's network loses at once (ReportDropped); the other's
 /// result waits for their own report (both dropped: both lose). Records go once both players have acknowledged, or in
-/// the daily clean-up. Every counted result also moves the player's rating points (a win +10, a draw 0, a loss -5, never
+/// the daily clean-up. Every counted result also moves the player's rating points (a win +10, a loss -5, never
 /// below 0), which a player linked to an account (not a guest) has on the "rating" leaderboard: only this module writes
 /// it (players are denied writing to leaderboards by the project's access policy). A friend match (a room joined by
-/// its code: StartFriendMatch) is kept and settled the same way, but counts for nobody's won/lost/drawn or rating.
+/// its code: StartFriendMatch) is kept and settled the same way, but counts for nobody's won/lost or rating. A match always has a winner (level after the
+/// last end, the game plays extra ends until one side scores): no draws.
 /// </summary>
 public class OnlineMatch
 {
@@ -47,7 +48,7 @@ public class OnlineMatch
 
     public class Report
     {
-        public string Winner { get; set; } = "";     // a player id, or "draw"
+        public string Winner { get; set; } = "";     // a player id
         public int[] Score { get; set; } = new int[2];  // in the order of Players
         public long At { get; set; }
     }
@@ -60,7 +61,7 @@ public class OnlineMatch
         public string Map { get; set; } = "base";
         public long StartedAt { get; set; }
         public string Status { get; set; } = "ongoing";   // ongoing / finished
-        public bool Friendly { get; set; }                 // a friend match: never counted (no won/lost/drawn, no rating)
+        public bool Friendly { get; set; }                 // a friend match: never counted (no won/lost, no rating)
         public bool Started { get; set; }                  // both players opened the match (MarkStarted)
         public string Ending { get; set; } = "";           // reported / dropped / abandoned / expired
         public Report? Result { get; set; }
@@ -70,21 +71,20 @@ public class OnlineMatch
         public bool Mismatch { get; set; }
         public List<string> Acks { get; set; } = new();
         public List<string> Dropped { get; set; } = new();   // players who reported being dropped from the match
-        public List<string> Counted { get; set; } = new();   // players whose won/lost/drawn has this match in it
+        public List<string> Counted { get; set; } = new();   // players whose won/lost has this match in it
     }
 
     public class Stats
     {
         public int W { get; set; }
         public int L { get; set; }
-        public int D { get; set; }
         public int P { get; set; }                    // rating points
         public bool Ranked { get; set; }              // linked to an account: on the leaderboard (SyncLeaderboard)
         public string LastMatch { get; set; } = "";   // the last match counted, and what it did to P
         public int LastDelta { get; set; }
     }
 
-    enum Outcome { Win, Draw, Loss }
+    enum Outcome { Win, Loss }
     const int WinPoints = 10, LossPoints = 5;
     const string LeaderboardId = "rating";
     const string SettledMessage = "matchSettled";   // push to a player whose result was just counted
@@ -111,7 +111,6 @@ public class OnlineMatch
         public string PlayerId { get; set; } = "";
         public int W { get; set; }
         public int L { get; set; }
-        public int D { get; set; }
         public int P { get; set; }
     }
 
@@ -174,7 +173,7 @@ public class OnlineMatch
             var (rec, lockId) = await LoadMatch(ctx, matchId);
             if (rec == null) throw new Exception("no such match");
             if (!rec.Players.Contains(me)) throw new Exception("not a player of this match");
-            if (winner != "draw" && !rec.Players.Contains(winner)) throw new Exception("bad winner");
+            if (!rec.Players.Contains(winner)) throw new Exception("bad winner");
             if (score == null || score.Length != 2 || score.Any(s => s < 0 || s > 99)) throw new Exception("bad score");
             bool settles = false, differs = false;
             var uncounted = new List<string>();
@@ -350,7 +349,7 @@ public class OnlineMatch
             try { await api.CloudSaveData.SetProtectedItemAsync(ctx, ctx.ServiceToken, ctx.ProjectId, me, new SetItemBody(StatsKey, s, lockId)); }
             catch (ApiException e) when (Conflict(e)) { continue; }
             // a player who unlinked stops being updated; their old entry stays until it is taken off in the dashboard
-            if (linked && s.W + s.L + s.D > 0) await PostScore(ctx, me, s);
+            if (linked && s.W + s.L > 0) await PostScore(ctx, me, s);
             return linked;
         }
         throw new Exception("could not update the player");
@@ -374,7 +373,7 @@ public class OnlineMatch
         return Info(rec);
     }
 
-    /// <summary>Won/lost/drawn of the given players (the caller's opponent's included; only this module writes them).</summary>
+    /// <summary>Won/lost of the given players (the caller's opponent's included; only this module writes them).</summary>
     [CloudCodeFunction("GetStats")]
     public async Task<List<PlayerStats>> GetStats(IExecutionContext ctx, string[] playerIds)
     {
@@ -384,7 +383,7 @@ public class OnlineMatch
         {
             var (s, _) = await GetProtected<Stats>(ctx, id, StatsKey);
             s ??= new Stats();
-            list.Add(new PlayerStats { PlayerId = id, W = s.W, L = s.L, D = s.D, P = s.P });
+            list.Add(new PlayerStats { PlayerId = id, W = s.W, L = s.L, P = s.P });
         }
         return list;
     }
@@ -456,14 +455,14 @@ public class OnlineMatch
         return fresh;
     }
 
-    // the players' counts for a settled result: the winner a win, the other a loss, or a draw each
+    // the players' counts for a settled result: the winner a win, the other a loss
     async Task Count(IExecutionContext ctx, IPushClient? push, string matchId, IEnumerable<string> players, string winner, bool friendly)
     {
         foreach (var p in players)
-            await UpdateStats(ctx, push, p, winner == "draw" ? Outcome.Draw : winner == p ? Outcome.Win : Outcome.Loss, matchId, friendly);
+            await UpdateStats(ctx, push, p, winner == p ? Outcome.Win : Outcome.Loss, matchId, friendly);
     }
 
-    // one counted result: won/lost/drawn, the rating points (and how they moved, for the result screen), then the
+    // one counted result: won/lost, the rating points (and how they moved, for the result screen), then the
     // leaderboard if the player is on it, and the player's device (no push from the daily clean-up: nobody waits there)
     async Task UpdateStats(IExecutionContext ctx, IPushClient? push, string playerId, Outcome outcome, string matchId, bool friendly)
     {
@@ -476,7 +475,6 @@ public class OnlineMatch
             switch (outcome)
             {
                 case Outcome.Win: s.W++; s.P += WinPoints; break;
-                case Outcome.Draw: s.D++; break;
                 default: s.L++; s.P = Math.Max(0, s.P - LossPoints); break;
             }
             s.LastMatch = matchId; s.LastDelta = s.P - before;
@@ -490,7 +488,7 @@ public class OnlineMatch
             // and the whole record (the device keeps it for its next ticket)
             if (push != null)
             {
-                try { await push.SendPlayerMessageAsync(ctx, JsonConvert.SerializeObject(new { m = matchId, p = s.P, d = s.LastDelta, w = s.W, l = s.L, dr = s.D }), SettledMessage, playerId); }
+                try { await push.SendPlayerMessageAsync(ctx, JsonConvert.SerializeObject(new { m = matchId, p = s.P, d = s.LastDelta, w = s.W, l = s.L }), SettledMessage, playerId); }
                 catch (Exception e) { log.LogWarning("settled push to {Player} failed: {Error}", playerId, e.Message); }   // the device reads its stats too
             }
             return;
@@ -498,13 +496,13 @@ public class OnlineMatch
         log.LogError("could not update the stats of {Player}", playerId);
     }
 
-    // the player's leaderboard entry: the rating points, with won/lost/drawn for the win rate
+    // the player's leaderboard entry: the rating points, with won/lost for the win rate
     async Task PostScore(IExecutionContext ctx, string playerId, Stats s)
     {
         try
         {
             await api.Leaderboards.AddLeaderboardPlayerScoreAsync(ctx, ctx.ServiceToken, Guid.Parse(ctx.ProjectId), LeaderboardId, playerId,
-                new Unity.Services.Leaderboards.Model.AddLeaderboardScore(s.P, new Dictionary<string, int> { ["w"] = s.W, ["l"] = s.L, ["d"] = s.D }));
+                new Unity.Services.Leaderboards.Model.AddLeaderboardScore(s.P, new Dictionary<string, int> { ["w"] = s.W, ["l"] = s.L }));
         }
         catch (Exception e) { log.LogError("could not post the score of {Player}: {Error}", playerId, e.Message); }
     }

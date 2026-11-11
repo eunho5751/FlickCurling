@@ -290,14 +290,18 @@ namespace FlickCurling.Tests
         }
 
         [Test]
-        public void TiedAfterFourEndsPlaysOneExtraEnd()
+        public void TiedPlaysExtraEndsUntilOneSideWins()
         {
             var m = new Match(Maps.Build("base"));
             for (int e = 1; e <= 4; e++) { m.End = e; m.Stones = new List<Stone>(); m.FinishEnd(); }
             Assert.AreEqual(AfterEnd.ExtraEnd, m.NextStep());
             m.End = 5; m.FinishEnd();
+            Assert.AreEqual(AfterEnd.ExtraEnd, m.NextStep(), "a blank extra end: another one");
+            m.End = 6; m.FinishEnd();
+            Assert.AreEqual(AfterEnd.ExtraEnd, m.NextStep());
+            m.Scores[1][5] = 1;   // (the last extra end scored by white)
             Assert.AreEqual(AfterEnd.GameOver, m.NextStep());
-            Assert.IsNull(m.Winner);
+            Assert.AreEqual(Team.W, m.Winner);
         }
 
         [Test]

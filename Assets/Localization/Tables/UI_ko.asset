@@ -193,11 +193,6 @@ MonoBehaviour:
     m_Metadata:
       m_Items:
       - rid: 4297768082125881572
-  - m_Id: 2262749237
-    m_Localized: "<color=#d9a54c>\uBB34\uC2B9\uBD80</color> ({score})"
-    m_Metadata:
-      m_Items:
-      - rid: 4297768082125881572
   - m_Id: 2262749239
     m_Localized: "\uB2E4\uC2DC \uD558\uAE30"
     m_Metadata:
@@ -432,7 +427,7 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 1694707769856003
-    m_Localized: "{w}\uC2B9 {l}\uD328 {d}\uBB34"
+    m_Localized: "{w}\uC2B9 {l}\uD328"
     m_Metadata:
       m_Items:
       - rid: 4297768082125881572
@@ -578,11 +573,6 @@ MonoBehaviour:
       - rid: 4297768082125881572
   - m_Id: 2752037559128065
     m_Localized: "\uD328\uBC30! ({score})"
-    m_Metadata:
-      m_Items:
-      - rid: 4297768082125881572
-  - m_Id: 2752037559128066
-    m_Localized: "<color=#d9a54c>\uBB34\uC2B9\uBD80</color> ({score})"
     m_Metadata:
       m_Items:
       - rid: 4297768082125881572
@@ -1010,8 +1000,8 @@ MonoBehaviour:
       \uD6C4\uACF5\uC774 \uC0C1\uB300\uC5D0\uAC8C \uB118\uC5B4\uAC00\uC694.</indent>\n\u2022<indent=1em>\uB9C8\uC9C0\uB9C9
       \uC5D4\uB4DC\uAE4C\uC9C0 \uC810\uC218 \uD569\uACC4\uAC00 \uB192\uC740 \uCABD\uC774
       \uC774\uACA8\uC694.</indent>\n\u2022<indent=1em>\uD569\uACC4\uAC00 \uAC19\uC73C\uBA74
-      \uC5F0\uC7A5 1\uC5D4\uB4DC\uB97C \uD558\uACE0, \uADF8\uB798\uB3C4 \uAC19\uC73C\uBA74
-      \uBB34\uC2B9\uBD80\uC608\uC694.</indent>"
+      \uC2B9\uBD80\uAC00 \uB0A0 \uB54C\uAE4C\uC9C0 \uC5F0\uC7A5 \uC5D4\uB4DC\uB97C
+      \uACC4\uC18D\uD574\uC694.</indent>"
     m_Metadata:
       m_Items: []
   - m_Id: 4604271452409856
@@ -1310,6 +1300,11 @@ MonoBehaviour:
       \uD6C4\uACF5\uC774 \uB3FC\uC694."
     m_Metadata:
       m_Items: []
+  - m_Id: 10167814247600128
+    m_Localized: "\uC5F0\uC7A5 {n}"
+    m_Metadata:
+      m_Items:
+      - rid: 4297768082125881572
   references:
     version: 2
     RefIds:
@@ -1334,13 +1329,11 @@ MonoBehaviour:
         - id: 263283141431296
         - id: 363280344207360
         - id: 2262749228
-        - id: 2262749237
         - id: 1099965122138116
         - id: 1694707769856003
         - id: 2585780847300608
         - id: 2752037559128064
         - id: 2752037559128065
-        - id: 2752037559128066
         - id: 4351939523301379
         - id: 4406000457011201
         - id: 4406000457011203
@@ -1351,3 +1344,4 @@ MonoBehaviour:
         - id: 8690121547108352
         - id: 10163382965424128
         - id: 10163383124807680
+        - id: 10167814247600128

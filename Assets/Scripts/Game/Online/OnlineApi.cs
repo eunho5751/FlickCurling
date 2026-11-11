@@ -12,7 +12,7 @@ namespace FlickCurling.Game.Online
 {
     /// <summary>
     /// The calls to the Cloud Code module FlickCurlingModule (CloudCode/FlickCurlingModule, Docs/OnlineMatch.md), which
-    /// keeps the match records and everyone's won/lost/drawn. Failures are logged and come back as null / false: online
+    /// keeps the match records and everyone's won/lost. Failures are logged and come back as null / false: online
     /// play goes on without the bookkeeping (until the module is deployed, for one).
     /// </summary>
     public static class OnlineApi
@@ -28,14 +28,14 @@ namespace FlickCurling.Game.Online
             public string FirstThrower = "";
             public long Seed;
             public string Map = "";
-            public string Winner = "";        // a player id or "draw"
+            public string Winner = "";        // a player id
             public string Ending = "";        // reported / abandoned / expired
         }
 
         public sealed class PlayerStats
         {
             public string PlayerId = "";
-            public int W, L, D;
+            public int W, L;
             public int P;                       // rating points
             public string LastMatch = "";       // the last match counted, and what it did to P
             public int LastDelta;
@@ -71,7 +71,7 @@ namespace FlickCurling.Game.Online
             Call<MatchInfo>("StartMatch", new Dictionary<string, object> { ["matchId"] = matchId, ["opponentId"] = opponentId, ["map"] = map });
 
         /// <summary>As <see cref="StartMatch"/>, for a friend match (a room joined by its code): never counted (no
-        /// won/lost/drawn, no rating).</summary>
+        /// won/lost, no rating).</summary>
         public static Task<MatchInfo> StartFriendMatch(string matchId, string opponentId, string map) =>
             Call<MatchInfo>("StartFriendMatch", new Dictionary<string, object> { ["matchId"] = matchId, ["opponentId"] = opponentId, ["map"] = map });
 
@@ -79,7 +79,7 @@ namespace FlickCurling.Game.Online
         public static Task<MatchInfo> Start(string matchId, string opponentId, string map, bool friendly) =>
             friendly ? StartFriendMatch(matchId, opponentId, map) : StartMatch(matchId, opponentId, map);
 
-        /// <param name="winner">the winner's player id, or "draw"</param>
+        /// <param name="winner">the winner's player id (a match always has one)</param>
         /// <param name="score">the two scores in the order of <see cref="MatchInfo.Players"/></param>
         public static async Task<MatchInfo> ReportResult(string matchId, string winner, int[] score)
         {
@@ -136,7 +136,7 @@ namespace FlickCurling.Game.Online
         public static Task<List<PlayerStats>> GetStats(params string[] playerIds) =>
             Call<List<PlayerStats>>("GetStats", new Dictionary<string, object> { ["playerIds"] = playerIds });
 
-        /// <summary>The signed-in player's own won / lost / drawn, read straight from their protected player data (the module
+        /// <summary>The signed-in player's own won / lost, read straight from their protected player data (the module
         /// writes it; nothing yet: all zero), or null if it could not be read.</summary>
         public static async Task<PlayerStats> MyStats(string playerId)
         {
@@ -203,15 +203,15 @@ namespace FlickCurling.Game.Online
                 { MissingMemberHandling = Unity.Services.CloudSave.Internal.Http.MissingMemberHandling.Ignore });
 
         static PlayerStats Stats(string playerId, PlayerStats s) =>
-            new PlayerStats { PlayerId = playerId, W = s?.W ?? 0, L = s?.L ?? 0, D = s?.D ?? 0, P = s?.P ?? 0, LastMatch = s?.LastMatch ?? "", LastDelta = s?.LastDelta ?? 0 };
+            new PlayerStats { PlayerId = playerId, W = s?.W ?? 0, L = s?.L ?? 0, P = s?.P ?? 0, LastMatch = s?.LastMatch ?? "", LastDelta = s?.LastDelta ?? 0 };
 
         /// <summary>The module's push as it counts this player's result: the match, the rating points and their change,
         /// and the whole record after it.</summary>
         [Serializable] public sealed class Settled
         {
             public string m = ""; public int p, d;
-            public int w = -1, l = -1, dr = -1;   // (-1: a push without the record, from a module before it carried it)
-            public bool HasRecord => w >= 0 && l >= 0 && dr >= 0;
+            public int w = -1, l = -1;   // (-1: a push without the record, from a module before it carried it)
+            public bool HasRecord => w >= 0 && l >= 0;
         }
         public const string SettledType = "matchSettled";
 

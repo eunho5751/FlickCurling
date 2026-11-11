@@ -175,10 +175,6 @@ MonoBehaviour:
     m_Key: over.win
     m_Metadata:
       m_Items: []
-  - m_Id: 2262749237
-    m_Key: over.draw
-    m_Metadata:
-      m_Items: []
   - m_Id: 2262749239
     m_Key: over.again
     m_Metadata:
@@ -537,10 +533,6 @@ MonoBehaviour:
       m_Items: []
   - m_Id: 2752037559128065
     m_Key: over.myLoss
-    m_Metadata:
-      m_Items: []
-  - m_Id: 2752037559128066
-    m_Key: over.myDraw
     m_Metadata:
       m_Items: []
   - m_Id: 3136817844899840
@@ -1141,6 +1133,10 @@ MonoBehaviour:
       m_Items: []
   - m_Id: 10165108531449856
     m_Key: tutorial.coin
+    m_Metadata:
+      m_Items: []
+  - m_Id: 10167814247600128
+    m_Key: hud.extraN
     m_Metadata:
       m_Items: []
   m_Metadata:
