@@ -118,7 +118,8 @@ namespace FlickCurling.Core
                 var s = Stones.FirstOrDefault(t => t.Live && Sheet.Dist(t.X, t.Y, b.X, b.Y) < t.Rad + Sheet.ItemBoxR);
                 if (s == null) continue;
                 double fx = b.X, fy = b.Y;
-                if (s.Team != b.Team)
+                // the other side's stone, or one whose side has both hands full: the box breaks (back after the round)
+                if (s.Team != b.Team || Array.IndexOf(Held[(int)s.Team], ItemKind.None) < 0)
                 {
                     Boxes.RemoveAt(i);
                     Listener?.OnBox(s, b, BoxEvent.Gone, fx, fy, ItemKind.None, -1);
@@ -126,18 +127,10 @@ namespace FlickCurling.Core
                 }
                 var hands = Held[(int)s.Team];
                 int slot = Array.IndexOf(hands, ItemKind.None);
-                if (slot >= 0)
-                {
-                    var k = PickItem(rng.NextDouble(), hands);
-                    hands[slot] = k;
-                    Boxes.RemoveAt(i);
-                    Listener?.OnBox(s, b, BoxEvent.Taken, fx, fy, k, slot);
-                    continue;
-                }
-                var p = FreeSpot(b);
-                if (!p.HasValue) { Boxes.RemoveAt(i); Listener?.OnBox(s, b, BoxEvent.Gone, fx, fy, ItemKind.None, -1); continue; }
-                b.X = p.Value.x; b.Y = p.Value.y;
-                Listener?.OnBox(s, b, BoxEvent.Moved, fx, fy, ItemKind.None, -1);
+                var k = PickItem(rng.NextDouble(), hands);
+                hands[slot] = k;
+                Boxes.RemoveAt(i);
+                Listener?.OnBox(s, b, BoxEvent.Taken, fx, fy, k, slot);
             }
         }
 

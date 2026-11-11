@@ -559,17 +559,15 @@ namespace FlickCurling.Tests
         }
 
         [Test]
-        public void FullHandsMoveTheBoxElsewhere()
+        public void FullHandsBreakTheBox()
         {
             var m = ItemEnd();
             var me = m.Cur;
             m.Held[(int)me][0] = ItemKind.Bomb; m.Held[(int)me][1] = ItemKind.Mini;
-            var b = Box(m, me, 50, 100);
+            Box(m, me, 50, 100);
             m.Release(0, 0.7);
             m.RunToRest();
-            Assert.AreEqual(1, m.Boxes.Count);
-            Assert.IsFalse(b.X == 50 && b.Y == 100, "moved");
-            Assert.Greater(Sheet.Dist(b.X, b.Y, 50, 100), Sheet.ItemBoxR);
+            Assert.AreEqual(0, m.Boxes.Count, "gone, not put somewhere else (back after the round, as any taken)");
             CollectionAssert.AreEqual(new[] { ItemKind.Bomb, ItemKind.Mini }, m.Held[(int)me]);
         }
 
