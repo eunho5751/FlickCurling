@@ -450,9 +450,9 @@ namespace FlickCurling.Game
             ShowCard(() => new CardSpec
             {
                 Eyebrow = Loc.T(coinMatch ? "lsd.resultEyebrowCoin" : "lsd.resultEyebrow"),
-                // against the AI or online, the player's own place too ("you go first"); two on one device have no "you"
                 Head = mode == Mode.Pvp ? "" : Loc.T(Me == win ? "lsd.youSecond" : "lsd.youFirst", ("icon", Ui.Icon(Me))),
-                Title = Loc.T("lsd.hasHammer", ("first", SideOf(Sheet.Other(win), 110)), ("name", SideOf(win, 110))),
+                // two on one device: who goes first and who second; against the AI or online, only the player's own place
+                Title = mode == Mode.Pvp ? Loc.T("lsd.hasHammer", ("first", SideOf(Sheet.Other(win), 110)), ("name", SideOf(win, 110))) : "",
                 Countdown = CardCountdown,
                 Buttons = { SyncButton(CardLsdResult, Loc.T("end.start", ("n", 1)), () => { m.FinishLsd(); StartEnd(); }) }
             });

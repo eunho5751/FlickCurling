@@ -539,7 +539,7 @@ namespace FlickCurling.Game
         void FillCard(CardSpec c, Action onAnyClick)
         {
             cardEyebrow.text = c.Eyebrow;
-            cardTitle.text = c.Title;
+            cardTitle.text = c.Title; cardTitle.gameObject.SetActive(!string.IsNullOrEmpty(c.Title));
             cardHead.text = c.Head; cardHead.gameObject.SetActive(!string.IsNullOrEmpty(c.Head));
             // the big line: a short value (a score) large; a sentence smaller than the title, shrinking to stay on one line
             cardHead.enableAutoSizing = false; cardHead.fontSize = 34;   // measure at full size
