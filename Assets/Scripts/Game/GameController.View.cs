@@ -707,7 +707,8 @@ namespace FlickCurling.Game
             var (names, records, roles, pips) = info.Value;
             // each side in its half: its stones left just above the min line at its own edge; below the min line (in item
             // mode under its hands) the stone and the name (a long name wraps under its first letter), centred in the
-            // half, first or last under the stone, then (online) the record; sizes and gaps in sheet units (times s)
+            // half, first or last under the stone, and (online) the record under the name, centred on it; sizes and gaps in
+            // sheet units (times s)
             int nameSize = Mathf.RoundToInt(5.4f * 1.3f * 0.8f * s), small = Mathf.RoundToInt(3.4f * s), pipSize = Mathf.RoundToInt(5.1f * s);
             // a name wraps past the width of a stone and six letters (measured once per size)
             if (nameCapSize != nameSize)
@@ -722,15 +723,16 @@ namespace FlickCurling.Game
             {
                 float cx = X(i == 0 ? W / 4 : W * 3 / 4);
                 float h = hud.LabelWrapped(names[i], cx, top, nameSize, ink, nameW, out float w, true);
-                float below = top + h;
+                float roleY = top + nameSize * 1.6f + small * 0.55f;   // (under the stone icon, clear of it)
                 if (roles != null)
                 {
-                    float roleY = top + nameSize * 1.6f + small * 0.55f;   // (under the stone icon, clear of it)
                     hud.Label(roles[i], cx - w / 2 + iconW / 2, roleY, small, ink, 0, true);
-                    below = Mathf.Max(below, roleY + small * 0.5f);
                     hud.Label(pips[i], i == 0 ? X(PipInset) : X(W - PipInset), Y(PipY), pipSize, ink, i == 0 ? -1 : 1, true);
                 }
-                if (records != null) hud.Label(records[i], cx, below + RecordGap * s + small * 0.7f, small, ink);
+                // the record under the name (the line beside first / last, or lower if the name wraps), centred on the
+                // name's letters (right of the stone icon)
+                if (records != null)
+                    hud.Label(records[i], cx + iconW / 2, Mathf.Max(roleY, top + h + RecordGap * s + small * 0.5f), small, ink);
             }
         }
         const float NameY = 52, NameYItems = 43;   // sheet y of the name's first line (in item mode, under the hands)
