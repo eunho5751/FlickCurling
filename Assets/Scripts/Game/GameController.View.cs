@@ -732,7 +732,10 @@ namespace FlickCurling.Game
                 // the record under the name (the line beside first / last, or lower if the name wraps), centred on the
                 // name's letters (right of the stone icon)
                 if (records != null)
-                    hud.Label(records[i], cx + iconW / 2, Mathf.Max(roleY, top + h + RecordGap * s + small * 0.5f), small, ink);
+                {
+                    bool wrapped = h > nameSize * 1.8f;   // (a name on two lines: under its second)
+                    hud.Label(records[i], cx + iconW / 2, wrapped ? top + h + RecordGap * s + small * 0.5f : roleY, small, ink);
+                }
             }
         }
         const float NameY = 52, NameYItems = 43;   // sheet y of the name's first line (in item mode, under the hands)
