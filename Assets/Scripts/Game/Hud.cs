@@ -347,7 +347,7 @@ namespace FlickCurling.Game
 
         // ---------------- the turn order coin ----------------
 
-        const float CoinViewPx = 340, CoinHold = 0.9f;
+        const float CoinViewPx = 272, CoinHold = 0.9f;
 
         /// <summary>
         /// The turn order coin tossed in 3D over a light dimming (<see cref="CoinFlip"/>), landing on

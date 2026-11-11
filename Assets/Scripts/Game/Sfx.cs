@@ -55,7 +55,8 @@ namespace FlickCurling.Game
             return env * (Mathf.Sin(ph) + Mathf.Sin(3 * ph) / 5 + Mathf.Sin(5 * ph) / 12);
         }
 
-        AudioClip turnClip, popClip, endClip, voidClip, warnClip, itemGetClip, itemUseClip, boxBreakClip, boxMoveClip, boomClip;
+        AudioClip turnClip, popClip, endClip, voidClip, warnClip, itemGetClip, itemUseClip, boxBreakClip, boxMoveClip, boomClip,
+            coinFlickClip, coinHitClip, coinRevealClip;
         readonly AudioClip[] takeoutClips = new AudioClip[3];
 
         void Play(ref AudioClip clip, Func<AudioClip> make)
@@ -160,6 +161,48 @@ namespace FlickCurling.Game
                 return 0.55f * env * (2.2f * lp + 0.6f * thump) + 0.2f * n * Mathf.Pow(0.001f, t / 0.08f);
             });
         });
+
+        // ---- the turn order coin ----
+
+        // a struck metal disc: a high ring with the inharmonic overtones of a plate, the upper ones dying first
+        static float Ring(float t, float f, float len)
+        {
+            if (t < 0 || t > len * 1.5f) return 0;
+            float env = Mathf.Min(1, t / 0.002f);
+            return env * (Mathf.Sin(2 * Mathf.PI * f * t) * Mathf.Pow(0.001f, t / len)
+                          + 0.6f * Mathf.Sin(2 * Mathf.PI * f * 1.72f * t) * Mathf.Pow(0.001f, t / (len * 0.6f))
+                          + 0.4f * Mathf.Sin(2 * Mathf.PI * f * 2.63f * t) * Mathf.Pow(0.001f, t / (len * 0.4f))
+                          + 0.25f * Mathf.Sin(2 * Mathf.PI * f * 3.49f * t) * Mathf.Pow(0.001f, t / (len * 0.25f)));
+        }
+
+        /// <summary>The coin flicked up: a thumb's click and the coin ringing, wavering as it spins.</summary>
+        public void CoinFlick() => Play(ref coinFlickClip, () =>
+        {
+            var r = new System.Random(21);
+            return Make("coinFlick", 0.9f, t =>
+            {
+                float click = (float)(r.NextDouble() * 2 - 1) * Mathf.Pow(0.001f, t / 0.012f);
+                float spin = 1 - 0.45f * (0.5f + 0.5f * Mathf.Sin(2 * Mathf.PI * 15 * t));   // (it turns: the ring comes and goes)
+                return 0.22f * click + 0.13f * spin * Ring(t - 0.004f, 2650, 0.7f);
+            });
+        });
+
+        /// <summary>The coin lands (or bounces) on the floor: a short metal clink, as loud as the landing (0..1).</summary>
+        public void CoinHit(float strength)
+        {
+            if (!On || strength < 0.03f) return;
+            if (coinHitClip == null)
+            {
+                var r = new System.Random(22);
+                coinHitClip = Make("coinHit", 0.35f, t =>
+                    0.2f * (float)(r.NextDouble() * 2 - 1) * Mathf.Pow(0.001f, t / 0.008f) + 0.2f * Ring(t, 2300, 0.2f));
+            }
+            src.PlayOneShot(coinHitClip, (0.35f + 0.65f * Mathf.Clamp01(strength)) * GameSettings.SfxVolume);
+        }
+
+        /// <summary>The coin at rest, the side shown: two bright bell notes up.</summary>
+        public void CoinReveal() => Play(ref coinRevealClip, () => Make("coinReveal", 0.8f, t =>
+            0.2f * (Bell(t, 1568, 0.3f) + Bell(t - 0.09f, 2093, 0.6f))));
 
         AudioClip Blip(int freq, float q, float len)
         {

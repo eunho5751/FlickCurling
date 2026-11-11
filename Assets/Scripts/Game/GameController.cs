@@ -372,11 +372,11 @@ namespace FlickCurling.Game
             var win = m.TossCoin();   // (from the seed: online, the same on both devices)
             state = St.Coin;
             RenderHud();
-            sfx.Pop();
+            sfx.CoinFlick();
             int tok = token;
             hud.CoinToss(Ui.Shown(win), m.Seed,
-                k => { if (tok == token) sfx.Blip(0.12f + 0.3f * k, 2200); },   // (each bounce: a little metal tick)
-                () => { if (tok == token) sfx.TurnStart(); },
+                k => { if (tok == token) sfx.CoinHit(k); },
+                () => { if (tok == token) sfx.CoinReveal(); },
                 () => { if (tok == token) LsdResultCard(win); });
         }
 

@@ -19,8 +19,10 @@ namespace FlickCurling.Game
     {
         const float Radius = 0.5f, Half = 0.04f;   // the coin: 1 across, 0.08 thick
         const int Segments = 48;
-        const float Step = 1 / 120f, MaxTime = 6, RestTime = 0.25f;
-        const int Tries = 8;                        // tosses tried for one that lies flat (not on its edge)
+        const float Step = 1 / 120f, MaxTime = 8, RestTime = 0.25f;
+        const int Tries = 8;                        // tosses tried for one that lies flat (should the nudges not do it)
+        const int Nudges = 3;                       // a coin come to rest on its edge is pushed over, this many times at most
+        const float NudgeImpulse = 0.004f;
         public const int TexturePx = 512;
         // far below the sheet, out of the game camera's sight
         static readonly Vector3 Origin = new Vector3(0, -5000, 0);
@@ -137,7 +139,8 @@ namespace FlickCurling.Game
             Show(0);
         }
 
-        // one toss from the throw to rest, step by step (each step's pose kept, and the bounces); true if it ends flat
+        // one toss from the throw to rest, step by step (each step's pose kept, and the bounces); one that comes to rest
+        // standing on its edge is pushed over at its top, one way or the other. True if it ends flat
         bool Simulate(Rigidbody rb, System.Random r)
         {
             float Rand(float a, float b) => a + (b - a) * (float)r.NextDouble();
@@ -151,6 +154,7 @@ namespace FlickCurling.Game
             rb.angularVelocity = new Vector3((r.Next(2) * 2 - 1) * Rand(22, 30), Rand(-2, 2), Rand(-3, 3));
             var ps = scene.GetPhysicsScene();
             float rest = 0, prevVy = 0;
+            int nudges = 0;
             for (int i = 0; i < MaxTime / Step; i++)
             {
                 ps.Simulate(Step);
@@ -159,10 +163,18 @@ namespace FlickCurling.Game
                 if (prevVy < -0.6f && v.y > 0.05f) hits.Add((i, Mathf.Clamp01(-prevVy / 5)));
                 prevVy = v.y;
                 rest = v.sqrMagnitude < 0.0025f && rb.angularVelocity.sqrMagnitude < 0.01f ? rest + Step : 0;
-                if (rest > RestTime || rb.IsSleeping()) break;
+                if (!(rest > RestTime || rb.IsSleeping())) continue;
+                if (Flat(rb) || nudges == Nudges) break;
+                nudges++; rest = 0;
+                rb.WakeUp();
+                var across = rb.rotation * Vector3.up;   // (on its edge: the faces look sideways)
+                across.y = 0;
+                rb.AddForceAtPosition(across.normalized * ((r.Next(2) * 2 - 1) * NudgeImpulse), rb.worldCenterOfMass + Vector3.up * Radius * 0.9f, ForceMode.Impulse);
             }
-            return Mathf.Abs(Vector3.Dot(rb.rotation * Vector3.up, Vector3.up)) > 0.95f;
+            return Flat(rb);
         }
+
+        static bool Flat(Rigidbody rb) => Mathf.Abs(Vector3.Dot(rb.rotation * Vector3.up, Vector3.up)) > 0.95f;
 
         void Update()
         {
