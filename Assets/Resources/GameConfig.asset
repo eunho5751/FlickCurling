@@ -20,9 +20,10 @@ MonoBehaviour:
   catchUpSpeed: 1.15
   connectSeconds: 45
   opponentJoinSeconds: 10
+  friendRoomMinutes: 10
   stoneRadius: 5
   stoneBounce: 0.9
-  wallBounce: 0.75
+  wallSpeedKept: 0.9
   showScoringGlow: 0
   showPowerPercent: 0
   showHitMarker: 1
@@ -30,6 +31,7 @@ MonoBehaviour:
   launchRingWidth: 4.5
   hitRingRadius: 5
   hitRingWidth: 2.5
+  coinToss: 1
   lsdTargetX: {x: 0.15, y: 0.85}
   lsdTargetY: {x: 0.5, y: 0.8}
   itemBoxes: 1
@@ -43,7 +45,8 @@ MonoBehaviour:
   bombPush: 80
   magnetRadius: 20
   magnetPull: 12
+  heldItemChance: 0.5
   adEveryMatches: 2
-  adUnitAndroid: ca-app-pub-3940256099942544/1033173712
-  termsUrl: 
-  privacyUrl: 
+  adUnitAndroid: ca-app-pub-9353969695783526/6320444808
+  termsUrl: https://lakegames.site/flickcurling/terms
+  privacyUrl: https://lakegames.site/flickcurling/privacy
