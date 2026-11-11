@@ -93,6 +93,8 @@ namespace FlickCurling.Game
         Field shownField;
 
         bool IsAI(Team t) => ai[(int)t].HasValue;
+        // the side this device's player plays (against the AI, the one the AI does not; online, the lobby's)
+        Team Me => IsOnline ? Online.OnlineLobby.MyTeam : IsAI(Team.B) ? Team.W : Team.B;
         // the HUD shows the side as a stone icon rather than its name
         string SideOf(Team t, int scalePct = 115) => Ui.Icon(t, scalePct) + (IsAI(t) ? Loc.T("team.ai") : "");
         static string EndLabel(int n) => n <= Sheet.Ends ? Loc.T("hud.end", ("n", n)) : Loc.T("hud.extra");
@@ -448,6 +450,8 @@ namespace FlickCurling.Game
             ShowCard(() => new CardSpec
             {
                 Eyebrow = Loc.T(coinMatch ? "lsd.resultEyebrowCoin" : "lsd.resultEyebrow"),
+                // against the AI or online, the player's own place too ("you go first"); two on one device have no "you"
+                Head = mode == Mode.Pvp ? "" : Loc.T(Me == win ? "lsd.youSecond" : "lsd.youFirst", ("icon", Ui.Icon(Me))),
                 Title = Loc.T("lsd.hasHammer", ("first", SideOf(Sheet.Other(win), 110)), ("name", SideOf(win, 110))),
                 Countdown = CardCountdown,
                 Buttons = { SyncButton(CardLsdResult, Loc.T("end.start", ("n", 1)), () => { m.FinishLsd(); StartEnd(); }) }

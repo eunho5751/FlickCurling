@@ -1293,6 +1293,16 @@ MonoBehaviour:
       \uB358\uC9C0\uB294 \uC720\uB9AC\uD55C \uCABD\uC774\uC5D0\uC694."
     m_Metadata:
       m_Items: []
+  - m_Id: 10163382965424128
+    m_Localized: "{icon} \uB2F9\uC2E0\uC740 \uC120\uACF5\uC785\uB2C8\uB2E4."
+    m_Metadata:
+      m_Items:
+      - rid: 4297768082125881572
+  - m_Id: 10163383124807680
+    m_Localized: "{icon} \uB2F9\uC2E0\uC740 \uD6C4\uACF5\uC785\uB2C8\uB2E4."
+    m_Metadata:
+      m_Items:
+      - rid: 4297768082125881572
   references:
     version: 2
     RefIds:
@@ -1332,3 +1342,5 @@ MonoBehaviour:
         - id: 4750103564701703
         - id: 4750103573090316
         - id: 8690121547108352
+        - id: 10163382965424128
+        - id: 10163383124807680

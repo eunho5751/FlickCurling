@@ -1233,6 +1233,16 @@ MonoBehaviour:
       last stone, the better place to be.'
     m_Metadata:
       m_Items: []
+  - m_Id: 10163382965424128
+    m_Localized: '{icon} You go first.'
+    m_Metadata:
+      m_Items:
+      - rid: 4297768082125881571
+  - m_Id: 10163383124807680
+    m_Localized: '{icon} You go second.'
+    m_Metadata:
+      m_Items:
+      - rid: 4297768082125881571
   references:
     version: 2
     RefIds:
@@ -1272,3 +1282,5 @@ MonoBehaviour:
         - id: 4750103564701703
         - id: 4750103573090316
         - id: 8690121547108352
+        - id: 10163382965424128
+        - id: 10163383124807680

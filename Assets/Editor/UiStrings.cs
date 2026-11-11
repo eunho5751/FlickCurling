@@ -184,6 +184,8 @@ namespace FlickCurling.EditorTools
             new[] { "lsd.headCoin", "동전에 나온 쪽이 1엔드의 후공이 됩니다!", "The side the coin shows throws last in end 1!", "コインに出た方が1エンドの後攻になります！" },
             new[] { "lsd.toss", "코인 토스", "Toss the coin", "コイントス" },
             new[] { "lsd.resultEyebrowCoin", "코인 토스 결과", "Coin toss result", "コイントスの結果" },
+            new[] { "lsd.youFirst", "{icon} 당신은 선공입니다.", "{icon} You go first.", "{icon} あなたは先攻です。" },
+            new[] { "lsd.youSecond", "{icon} 당신은 후공입니다.", "{icon} You go second.", "{icon} あなたは後攻です。" },
 
             // ---- ends ----
             new[] { "end.start", "{n}엔드 시작", "Start end {n}", "第{n}エンド開始" },
