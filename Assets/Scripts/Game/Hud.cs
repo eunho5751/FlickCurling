@@ -363,7 +363,8 @@ namespace FlickCurling.Game
             var group = dim.gameObject.AddComponent<CanvasGroup>();
             var view = Ui.Rect(dim, "Coin");
             view.anchorMin = view.anchorMax = new Vector2(.5f, .5f);
-            view.sizeDelta = Vector2.one * Mathf.Min(CoinViewPx, viewW - 32);
+            float w = Mathf.Min(CoinViewPx, viewW - 32, (viewH - 24) / CoinFlip.Aspect);
+            view.sizeDelta = new Vector2(w, w * CoinFlip.Aspect);
             var raw = view.gameObject.AddComponent<RawImage>();
             raw.raycastTarget = false;
             DOTween.To(() => dimImg.color.a, a => dimImg.color = Palette.WithA(dimImg.color, a), .4f, .25f).SetTarget(dim);

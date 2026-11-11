@@ -24,6 +24,9 @@ namespace FlickCurling.Game
         const int Nudges = 3;                       // a coin come to rest on its edge is pushed over, this many times at most
         const float NudgeImpulse = 0.004f;
         public const int TexturePx = 512;
+        /// <summary>The view's height against its width: tall, so a high toss stays inside it (the coin at rest in its
+        /// middle).</summary>
+        public const float Aspect = 2f;
         // far below the sheet, out of the game camera's sight
         static readonly Vector3 Origin = new Vector3(0, -5000, 0);
         static Mesh coinMesh, shadowMesh;
@@ -125,20 +128,39 @@ namespace FlickCurling.Game
             mr.sortingOrder = 0;
 
             // the camera above, a little toward the viewer, looking down at where it comes to rest
-            rt = new RenderTexture(TexturePx, TexturePx, 16, RenderTextureFormat.ARGB32) { name = "CoinToss", antiAliasing = 4 };
+            rt = new RenderTexture(TexturePx, Mathf.RoundToInt(TexturePx * Aspect), 16, RenderTextureFormat.ARGB32) { name = "CoinToss", antiAliasing = 4 };
             var camGo = new GameObject("CoinCamera");
             SceneManager.MoveGameObjectToScene(camGo, scene);
             cam = camGo.AddComponent<Camera>();
             cam.clearFlags = CameraClearFlags.SolidColor;
             cam.backgroundColor = new Color(0, 0, 0, 0);
-            cam.fieldOfView = 30;
+            // (30 degrees across the width, as the square view had: the coin as large, the view only taller)
+            cam.fieldOfView = 2 * Mathf.Atan(Aspect * Mathf.Tan(15 * Mathf.Deg2Rad)) * Mathf.Rad2Deg;
             cam.nearClipPlane = 0.1f; cam.farClipPlane = 50;
             cam.targetTexture = rt;
             camGo.transform.position = Origin + new Vector3(0, 7.2f, -3.6f);
             camGo.transform.LookAt(Origin + new Vector3(0, 0.45f, 0));
+            for (int k = 0; k < 3; k++) Frame();
             view.texture = rt;
 
             Show(0);
+        }
+
+        // the camera turned a little (its distance kept, so the coin stays as large) to have the whole toss in the
+        // middle of the view: the coin's rim, in every pose, as seen
+        void Frame()
+        {
+            float x0 = float.MaxValue, x1 = float.MinValue, y0 = float.MaxValue, y1 = float.MinValue;
+            foreach (var (p, q) in frames)
+                for (int k = 0; k < 8; k++)
+                {
+                    float a = k * Mathf.PI / 4;
+                    var v = cam.WorldToViewportPoint(Origin + p + q * new Vector3(Mathf.Cos(a) * Radius, 0, Mathf.Sin(a) * Radius));
+                    x0 = Mathf.Min(x0, v.x); x1 = Mathf.Max(x1, v.x); y0 = Mathf.Min(y0, v.y); y1 = Mathf.Max(y1, v.y);
+                }
+            float fovY = cam.fieldOfView, fovX = Camera.VerticalToHorizontalFieldOfView(fovY, cam.aspect);
+            // (looking lower brings what is low up into the view; looking right, what is right)
+            cam.transform.Rotate(-((y0 + y1) / 2 - 0.5f) * fovY, ((x0 + x1) / 2 - 0.5f) * fovX, 0, Space.Self);
         }
 
         // one toss from the throw to rest, step by step (each step's pose kept, and the bounces); one that comes to rest
