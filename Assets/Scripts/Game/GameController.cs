@@ -374,7 +374,10 @@ namespace FlickCurling.Game
             RenderHud();
             sfx.Pop();
             int tok = token;
-            hud.CoinToss(Ui.Shown(win), () => { if (tok == token) sfx.TurnStart(); }, () => { if (tok == token) LsdResultCard(win); });
+            hud.CoinToss(Ui.Shown(win), m.Seed,
+                k => { if (tok == token) sfx.Blip(0.12f + 0.3f * k, 2200); },   // (each bounce: a little metal tick)
+                () => { if (tok == token) sfx.TurnStart(); },
+                () => { if (tok == token) LsdResultCard(win); });
         }
 
         string ModeName()

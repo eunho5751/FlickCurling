@@ -347,50 +347,34 @@ namespace FlickCurling.Game
 
         // ---------------- the turn order coin ----------------
 
-        const float CoinPx = 150, CoinRise = 230, CoinSpin = 2.1f, CoinHold = 0.9f;
-        const int CoinHalfTurns = 11;   // half turns in the air (odd: it lands on the face it did not start on)
+        const float CoinViewPx = 340, CoinHold = 0.9f;
 
         /// <summary>
-        /// The turn order coin tossed in the middle of the screen, over a light dimming: it spins up and falls back,
-        /// landing on <paramref name="shown"/>'s face (the side as shown on this device). <paramref name="landed"/> as it
-        /// lands, <paramref name="done"/> once it has gone.
+        /// The turn order coin tossed in 3D over a light dimming (<see cref="CoinFlip"/>), landing on
+        /// <paramref name="shown"/>'s stone (the side as shown on this device): <paramref name="hit"/> at each bounce,
+        /// <paramref name="landed"/> once it lies still, <paramref name="done"/> once it has gone.
         /// </summary>
-        public void CoinToss(Team shown, Action landed, Action done)
+        public void CoinToss(Team shown, int seed, Action<float> hit, Action landed, Action done)
         {
             var dim = Ui.Rect(root, "CoinToss"); Ui.Stretch(dim);
             dim.SetSiblingIndex(cardOv.GetSiblingIndex());   // over the sheet and the toasts, under the cards
             var dimImg = dim.gameObject.AddComponent<Image>();
             dimImg.color = Palette.Rgba(20, 13, 8, 0);        // (it takes the touches while the coin is up)
             var group = dim.gameObject.AddComponent<CanvasGroup>();
-            var coin = Ui.Rect(dim, "Coin");
-            coin.anchorMin = coin.anchorMax = new Vector2(.5f, .5f);
-            coin.sizeDelta = new Vector2(CoinPx, CoinPx);
-            var img = coin.gameObject.AddComponent<Image>();
-            img.raycastTarget = false;
-            var start = CoinHalfTurns % 2 == 1 ? Sheet.Other(shown) : shown;
-            CoinFrame(coin, img, start, 0);
-            float t = 0;
-            DOTween.Sequence()
-                .Append(DOTween.To(() => dimImg.color.a, a => dimImg.color = Palette.WithA(dimImg.color, a), .4f, .25f))
-                .Append(DOTween.To(() => t, v => { t = v; CoinFrame(coin, img, start, v); }, 1, CoinSpin).SetEase(Ease.Linear))
-                .AppendCallback(() => landed?.Invoke())
-                .Append(coin.DOPunchScale(Vector3.one * .14f, .35f, 6, .6f))
-                .AppendInterval(CoinHold)
-                .Append(DOTween.To(() => group.alpha, a => group.alpha = a, 0, .25f))
-                .OnComplete(() => { UnityEngine.Object.Destroy(dim.gameObject); done?.Invoke(); });
-        }
-
-        // the coin at t (0..1) of its flight: the spin slowing to a stop as it lands, the height a toss's arc, the face
-        // the one up at that moment (darker as it turns edge on)
-        static void CoinFrame(RectTransform coin, Image img, Team start, float t)
-        {
-            float ang = (1 - (1 - t) * (1 - t)) * CoinHalfTurns * Mathf.PI;
-            int half = Mathf.FloorToInt(ang / Mathf.PI + 0.5f);
-            img.sprite = CoinArt.Face(half % 2 == 0 ? start : Sheet.Other(start));
-            float edge = Mathf.Abs(Mathf.Cos(ang)), h = 4 * t * (1 - t), grow = 1 + 0.35f * h;
-            coin.localScale = new Vector3(grow, Mathf.Max(0.04f, edge) * grow, 1);
-            coin.anchoredPosition = new Vector2(0, CoinRise * h);
-            img.color = Color.Lerp(new Color(.72f, .72f, .72f, 1), Color.white, edge);
+            var view = Ui.Rect(dim, "Coin");
+            view.anchorMin = view.anchorMax = new Vector2(.5f, .5f);
+            view.sizeDelta = Vector2.one * Mathf.Min(CoinViewPx, viewW - 32);
+            var raw = view.gameObject.AddComponent<RawImage>();
+            raw.raycastTarget = false;
+            DOTween.To(() => dimImg.color.a, a => dimImg.color = Palette.WithA(dimImg.color, a), .4f, .25f).SetTarget(dim);
+            CoinFlip.Toss(raw, shown, seed, hit, () =>
+            {
+                landed?.Invoke();
+                DOTween.Sequence().SetTarget(dim)
+                    .AppendInterval(CoinHold)
+                    .Append(DOTween.To(() => group.alpha, a => group.alpha = a, 0, .25f))
+                    .OnComplete(() => { UnityEngine.Object.Destroy(dim.gameObject); done?.Invoke(); });
+            });
         }
 
         public void ClearToasts()
