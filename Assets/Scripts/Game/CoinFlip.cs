@@ -72,7 +72,8 @@ namespace FlickCurling.Game
             var go = new GameObject("Coin");
             SceneManager.MoveGameObjectToScene(go, scene);
             coin = go.transform;
-            go.AddComponent<MeshFilter>().sharedMesh = coinMesh ??= BuildCoin();
+            if (!coinMesh) coinMesh = BuildCoin();   // (Unity's own null: see BuildCoin)
+            go.AddComponent<MeshFilter>().sharedMesh = coinMesh;
             var mr = go.AddComponent<MeshRenderer>();
             var col = go.AddComponent<MeshCollider>();
             col.sharedMesh = coinMesh;
@@ -116,7 +117,8 @@ namespace FlickCurling.Game
             var sh = new GameObject("Shadow");
             SceneManager.MoveGameObjectToScene(sh, scene);
             shadow = sh.transform;
-            sh.AddComponent<MeshFilter>().sharedMesh = shadowMesh ??= BuildShadow();
+            if (!shadowMesh) shadowMesh = BuildShadow();
+            sh.AddComponent<MeshFilter>().sharedMesh = shadowMesh;
             var shr = sh.AddComponent<MeshRenderer>();
             shr.sharedMaterial = Resources.Load<Material>("Coin/CoinShadow");
             shr.sortingOrder = -1;   // (drawn before the coin)
@@ -209,7 +211,8 @@ namespace FlickCurling.Game
         // ---------------- the meshes ----------------
 
         // a short cylinder: submesh 0 the top face (+y), 1 the bottom face, 2 the rim; each face's picture upright as
-        // seen from its own side
+        // seen from its own side. Made once for the whole run (the meshes are kept from a scene change's unloading of
+        // unused assets)
         static Mesh BuildCoin()
         {
             var v = new List<Vector3>(); var n = new List<Vector3>(); var uv = new List<Vector2>();
@@ -246,7 +249,7 @@ namespace FlickCurling.Game
                 rim.Add(a0); rim.Add(a1); rim.Add(b0);
                 rim.Add(b0); rim.Add(a1); rim.Add(b1);
             }
-            var m = new Mesh { name = "Coin", subMeshCount = 3 };
+            var m = new Mesh { name = "Coin", subMeshCount = 3, hideFlags = HideFlags.DontUnloadUnusedAsset };
             m.SetVertices(v); m.SetNormals(n); m.SetUVs(0, uv);
             m.SetTriangles(top, 0); m.SetTriangles(bottom, 1); m.SetTriangles(rim, 2);
             m.RecalculateBounds();
@@ -267,7 +270,7 @@ namespace FlickCurling.Game
                 c.Add(new Color(0.08f, 0.04f, 0.01f, 0));
             }
             for (int k = 0; k < seg; k++) { tris.Add(0); tris.Add(k + 2); tris.Add(k + 1); }
-            var m = new Mesh { name = "CoinShadow" };
+            var m = new Mesh { name = "CoinShadow", hideFlags = HideFlags.DontUnloadUnusedAsset };
             m.SetVertices(v); m.SetColors(c); m.SetTriangles(tris, 0);
             m.RecalculateBounds();
             return m;

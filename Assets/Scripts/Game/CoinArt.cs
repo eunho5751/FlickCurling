@@ -14,7 +14,13 @@ namespace FlickCurling.Game
         static Sprite faceB, faceW;
 
         /// <summary>The coin's face with the side's stone (the colour as painted: pass the side as shown).</summary>
-        public static Sprite Face(Team t) => t == Team.B ? faceB ??= Paint(Team.B) : faceW ??= Paint(Team.W);
+        public static Sprite Face(Team t)
+        {
+            // (Unity's own null: kept from being unloaded with a scene's unused assets, but checked all the same)
+            if (t == Team.B) { if (!faceB) faceB = Paint(Team.B); return faceB; }
+            if (!faceW) faceW = Paint(Team.W);
+            return faceW;
+        }
 
         static readonly Color GoldLight = new Color32(0xff, 0xe7, 0x9a, 0xff), Gold = new Color32(0xf0, 0xbb, 0x45, 0xff),
             GoldDeep = new Color32(0xb8, 0x7a, 0x1e, 0xff), Rim = new Color32(0x7a, 0x4a, 0x10, 0xff);
@@ -56,7 +62,10 @@ namespace FlickCurling.Game
             var t = new Texture2D(Size, Size, TextureFormat.RGBA32, true) { name = "Coin", wrapMode = TextureWrapMode.Clamp, filterMode = FilterMode.Trilinear };
             t.SetPixels(px);
             t.Apply();
-            return Sprite.Create(t, new Rect(0, 0, Size, Size), new Vector2(.5f, .5f), 100);
+            t.hideFlags = HideFlags.DontUnloadUnusedAsset;   // (made once for the whole run: a scene change must not take it)
+            var sp = Sprite.Create(t, new Rect(0, 0, Size, Size), new Vector2(.5f, .5f), 100);
+            sp.hideFlags = HideFlags.DontUnloadUnusedAsset;
+            return sp;
         }
     }
 }
