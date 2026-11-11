@@ -1139,6 +1139,10 @@ MonoBehaviour:
     m_Key: lsd.youSecond
     m_Metadata:
       m_Items: []
+  - m_Id: 10165108531449856
+    m_Key: tutorial.coin
+    m_Metadata:
+      m_Items: []
   m_Metadata:
     m_Items: []
   m_KeyGenerator:

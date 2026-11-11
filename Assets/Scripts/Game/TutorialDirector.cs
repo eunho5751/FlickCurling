@@ -105,10 +105,13 @@ namespace FlickCurling.Game
                 await Say("tutorial.aim", AimDemo, area: 0);
                 await Say("tutorial.power", PowerDemo, area: 1);
                 await Say("tutorial.spot", SpotDemo, area: 2);
-                // on to a real start: the turn order shot, which the player throws themselves. From here the tutorial
+                // on to a real start: the turn order (a coin, or the shot the player throws themselves). From here the tutorial
                 // counts as done (a player who leaves now is not shown it again)
                 TutorialProgress.MarkDone();
                 await Say("tutorial.lsd");
+                // the turn order by a coin (GameConfig.coinToss): told before it is tossed (the target shot is told on
+                // the sheet, as it is thrown)
+                if (GameConfig.Load().coinToss) await Say("tutorial.coin");
             }
             catch (OperationCanceledException) { return; }
             Play();

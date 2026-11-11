@@ -215,6 +215,7 @@ namespace FlickCurling.EditorTools
             new[] { "tutorial.spot", "최소 라인 위를 터치하면 그곳을 향해 바로 조준해요. 드래그하면 조준이 따라와요.", "Touch above the min line to aim straight at that spot. Drag and the aim follows.", "最小ラインより上をタッチすると、その場所にすぐ狙いを合わせます。ドラッグすると狙いがついてきます。" },
             new[] { "tutorial.lsd", "이제 직접 해 볼 턴이에요!", "Your turn now!", "今度はあなたの番です！" },
             new[] { "tutorial.target", "경기는 선후공 정하기로 시작해요. 이 표적을 향해 상대와 동시에 한 알씩 던져서, 표적에 더 가까운 쪽이 마지막 알을 던지는 후공이 돼요.", "A match starts with the turn order shot: both sides throw one stone at this target at the same time, and whoever gets closer throws last.", "試合は先攻・後攻決めから始まります。この的を狙って相手と同時に1個ずつ投げ、的に近いほうが最後の石を投げる後攻になります。" },
+            new[] { "tutorial.coin", "경기는 선후공 정하기로 시작해요. 동전을 던져서, 동전에 나온 알 쪽이 마지막 알을 던지는 후공이 돼요.", "A match starts by deciding the turn order: a coin is tossed, and the side whose stone comes up throws last.", "試合は先攻・後攻決めから始まります。コインを投げて、出た石の方が最後の石を投げる後攻になります。" },
             new[] { "tutorial.guard", "선공은 하우스 앞에 보너스 가드 알 하나를 두고 시작해요. 마지막 알을 가진 후공에 맞서는 선공의 이점이에요. 이제 AI를 이겨 보세요!", "The side that throws first starts with a bonus guard in front of the house, to make up for the other side having the last stone. Now beat the AI!", "先攻はハウスの前にボーナスガードを1個置いてスタートします。最後の石を持つ後攻に対する先攻の利点です。さあ、AIに勝ってみましょう！" },
             new[] { "tutorial.tap", "탭하여 계속", "Tap to continue", "タップして続ける" },
             new[] { "tutorial.skip", "튜토리얼 건너뛰기", "Skip the tutorial", "チュートリアルをスキップ" },

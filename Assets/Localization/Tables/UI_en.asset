@@ -1243,6 +1243,11 @@ MonoBehaviour:
     m_Metadata:
       m_Items:
       - rid: 4297768082125881571
+  - m_Id: 10165108531449856
+    m_Localized: 'A match starts by deciding the turn order: a coin is tossed, and
+      the side whose stone comes up throws last.'
+    m_Metadata:
+      m_Items: []
   references:
     version: 2
     RefIds:
