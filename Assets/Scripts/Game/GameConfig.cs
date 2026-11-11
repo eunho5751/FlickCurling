@@ -39,8 +39,8 @@ namespace FlickCurling.Game
         [Range(2f, 8f)] public float stoneRadius = 4;
         [Tooltip("How bouncy stones are on each other: the share of the speed they meet with that comes back (1: a head-on hit stops the thrown stone dead and the hit one takes it all; 0: they go on together)")]
         [Range(0f, 1f)] public float stoneBounce = 0.9f;
-        [Tooltip("How bouncy the side walls are: the share of the speed into the wall that comes back (1: a mirror bounce, nothing lost; lower: flatter and slower off the wall). The dead rails beside the out line are not this")]
-        [Range(0f, 1f)] public float wallBounce = 0.75f;
+        [Tooltip("The side walls bounce a stone like a mirror (the angle out the same as the angle in); this is the share of its speed it keeps (1: none lost; 0.8: a fifth lost). The dead rails beside the out line are not this")]
+        [Range(0f, 1f)] public float wallSpeedKept = 0.8f;
         [Tooltip("Show the gold ring round the stones that would score now (those closest to the centre), during play")]
         public bool showScoringGlow = true;
 
@@ -107,7 +107,7 @@ namespace FlickCurling.Game
         public void Apply()
         {
             Sheet.Configure(ends, shotsPerTeam, stoneRadius, cushionTickets, unlimitedTickets);
-            PhysicsParams.Configure(stoneBounce, wallBounce);
+            PhysicsParams.Configure(stoneBounce, wallSpeedKept);
             // (0..1 across the sheet, and from the min line to the out line, in sheet units)
             double X(float v) => v * Sheet.W;
             double Y(float v) => Sheet.Hog + v * (Sheet.Back - Sheet.Hog);

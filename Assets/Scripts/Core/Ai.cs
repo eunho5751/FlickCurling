@@ -108,15 +108,15 @@ namespace FlickCurling.Core
         bool BankShot(double lx, double tx, double ty, bool left, out double ang, out double pw)
         {
             ang = pw = 0;
-            double xp = left ? SR : W - SR, e = P.EWall;
+            double xp = left ? SR : W - SR;
             double A = tx - xp, B = xp - lx;
-            double den = A - e * B;
+            double den = A - B;   // (a mirror bounce: the angle out the angle in)
             if (Math.Abs(den) < 1e-6) return false;
-            double yh = (A * LY - e * B * ty) / den;
+            double yh = (A * LY - B * ty) / den;
             if (yh <= LY + 5 || yh >= ty) return false;
             double d1 = Sheet.Hypot(xp - lx, yh - LY), d2 = Sheet.Hypot(tx - xp, ty - yh);
-            double cx = (xp - lx) / d1, cy = (yh - LY) / d1;
-            double k2 = (e * cx) * (e * cx) + cy * cy;   // share of speed kept by the bounce, squared
+            double k2 = P.WallKeep * P.WallKeep;   // share of speed kept by the bounce, squared
+            if (k2 < 1e-6) return false;
             double v0 = Math.Sqrt(2 * P.Decel * d1 + 2 * P.Decel * d2 / k2);
             ang = AngTo(lx, xp, yh); pw = v0 / P.VMax;
             return true;
@@ -125,10 +125,10 @@ namespace FlickCurling.Core
         bool BankPoint(double lx, double tx, double ty, bool left, out Pt p)
         {
             p = default;
-            double xp = left ? SR : W - SR, eg = P.EWall;
-            double A = tx - xp, B = xp - lx, den = A - eg * B;
+            double xp = left ? SR : W - SR;
+            double A = tx - xp, B = xp - lx, den = A - B;   // (a mirror bounce)
             if (Math.Abs(den) < 1e-6) return false;
-            double yh = (A * LY - eg * B * ty) / den;
+            double yh = (A * LY - B * ty) / den;
             if (yh <= LY + 5 || yh >= ty) return false;
             if (!map.InWindow(yh)) return false;   // that stretch of rail is dead
             p = new Pt(xp, yh);

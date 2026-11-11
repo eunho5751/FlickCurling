@@ -267,7 +267,7 @@ namespace FlickCurling.Game
                         if (d < bd) { bd = d; near = q; wall = w; }
                     }
                     var n = (p - near).normalized;
-                    float e = wall.Dead ? (float)PhysicsParams.DeadE : (float)m.P.EWall;
+                    float e = wall.Dead ? (float)PhysicsParams.DeadE : 1;   // (a lively wall: a mirror)
                     var outv = dir - (1 + e) * Vector2.Dot(dir, n) * n;
                     if (wall.Dead && !wall.IsBottom)
                     {

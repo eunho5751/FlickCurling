@@ -225,6 +225,20 @@ namespace FlickCurling.Tests
         }
 
         [Test]
+        public void ASideWallIsAMirrorThatSlowsTheStone()
+        {
+            // a stone heading up and into the left wall, mid-sheet (lively rail), stepped until it comes off
+            var map = Maps.Build("base");
+            var s = new Stone { Id = 1, Team = Team.B, X = Sheet.SR + 1, Y = 60, Vx = -60, Vy = 80 };
+            var stones = new List<Stone> { s };
+            double inAng = Math.Atan2(-s.Vx, s.Vy);
+            for (int i = 0; i < 20 && s.Vx < 0; i++) Sim.Step(stones, map, PhysicsParams.Default);
+            Assert.Greater(s.Vx, 0, "off the wall");
+            Assert.AreEqual(inAng, Math.Atan2(s.Vx, s.Vy), 0.02, "the angle out the angle in");
+            Assert.AreEqual(100 * PhysicsParams.Default.WallKeep, Sheet.Hypot(s.Vx, s.Vy), 3, "its speed down to WallKeep (and a little slide)");
+        }
+
+        [Test]
         public void WallAfterHittingAStoneIsNotACushion()
         {
             var m = NewEnd();

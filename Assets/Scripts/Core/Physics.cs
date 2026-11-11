@@ -5,18 +5,19 @@ namespace FlickCurling.Core
 {
     public sealed class PhysicsParams
     {
-        // EStone, EWall: how much of the speed into another stone / a lively wall comes back (1: all of it, a wall then
-        // a mirror bounce; 0: none). The game sets them from GameConfig (Configure)
-        public double Decel = 60, EStone = DefaultEStone, EWall = DefaultEWall, VMax = 197;
-        public const double DefaultEStone = 0.9, DefaultEWall = 0.75;
+        // EStone: how much of the speed into another stone comes back (1: all of it; 0: none). WallKeep: a lively wall is
+        // a mirror (the angle out the angle in) and the stone keeps this share of its speed. The game sets them from
+        // GameConfig (Configure)
+        public double Decel = 60, EStone = DefaultEStone, WallKeep = DefaultWallKeep, VMax = 197;
+        public const double DefaultEStone = 0.9, DefaultWallKeep = 0.8;
         public const double DeadE = 0.15, DeadSlide = 0.45;
         public static readonly PhysicsParams Default = new PhysicsParams();
 
         /// <summary>The bounces every match plays with (Default's).</summary>
-        public static void Configure(double stoneBounce = DefaultEStone, double wallBounce = DefaultEWall)
+        public static void Configure(double stoneBounce = DefaultEStone, double wallKeep = DefaultWallKeep)
         {
             Default.EStone = Sheet.Clamp(stoneBounce, 0, 1);
-            Default.EWall = Sheet.Clamp(wallBounce, 0, 1);
+            Default.WallKeep = Sheet.Clamp(wallKeep, 0, 1);
         }
     }
 
@@ -45,14 +46,22 @@ namespace FlickCurling.Core
             double vn = s.Vx * nx + s.Vy * ny;
             if (vn < 0)
             {
-                double e = g.Dead ? PhysicsParams.DeadE : p.EWall;
-                // only the part heading into the wall loses energy, so the rebound lies flatter
-                s.Vx -= (1 + e) * vn * nx; s.Vy -= (1 + e) * vn * ny;
-                // a dead rail also eats the slide along the wall
-                if (!g.IsBottom && g.Dead)
+                if (g.Dead)
                 {
-                    double k = PhysicsParams.DeadSlide, tx = -ny, ty = nx, vt = s.Vx * tx + s.Vy * ty;
-                    s.Vx += (k - 1) * vt * tx; s.Vy += (k - 1) * vt * ty;
+                    // a dead rail: only the part heading into it comes back (a little), so the rebound lies flat
+                    double e = PhysicsParams.DeadE;
+                    s.Vx -= (1 + e) * vn * nx; s.Vy -= (1 + e) * vn * ny;
+                    // and (a side one) it also eats the slide along the wall
+                    if (!g.IsBottom)
+                    {
+                        double k = PhysicsParams.DeadSlide, tx = -ny, ty = nx, vt = s.Vx * tx + s.Vy * ty;
+                        s.Vx += (k - 1) * vt * tx; s.Vy += (k - 1) * vt * ty;
+                    }
+                }
+                else
+                {
+                    // a lively wall: a mirror (the angle out the angle in), the stone slowed to WallKeep of its speed
+                    s.Vx = (s.Vx - 2 * vn * nx) * p.WallKeep; s.Vy = (s.Vy - 2 * vn * ny) * p.WallKeep;
                 }
                 ev?.Wall(s, -vn, g);
             }
