@@ -181,7 +181,7 @@ namespace FlickCurling.Game
             coin.SetPositionAndRotation(Origin + p, Quaternion.Slerp(frames[i].q, frames[j].q, a));
             shadow.position = Origin + new Vector3(p.x, 0.002f, p.z);
             shadow.localScale = Vector3.one * (1 + 0.18f * Mathf.Max(0, p.y));
-            while (nextHit < hits.Count && hits[nextHit].frame <= i) onHit?.Invoke(hits[nextHit++].strength);
+            for (; nextHit < hits.Count && hits[nextHit].frame <= i; nextHit++) onHit?.Invoke(hits[nextHit].strength);
             if (!landed && i >= frames.Count - 1) { landed = true; onLanded?.Invoke(); }
         }
 
