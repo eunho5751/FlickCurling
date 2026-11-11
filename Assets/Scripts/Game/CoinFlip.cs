@@ -28,6 +28,7 @@ namespace FlickCurling.Game
 
         Scene scene;
         RenderTexture rt;
+        Camera cam;
         Transform coin, shadow;
         readonly List<Material> materials = new List<Material>();
         readonly List<(Vector3 p, Quaternion q)> frames = new List<(Vector3, Quaternion)>();
@@ -123,7 +124,7 @@ namespace FlickCurling.Game
             rt = new RenderTexture(TexturePx, TexturePx, 16, RenderTextureFormat.ARGB32) { name = "CoinToss", antiAliasing = 4 };
             var camGo = new GameObject("CoinCamera");
             SceneManager.MoveGameObjectToScene(camGo, scene);
-            var cam = camGo.AddComponent<Camera>();
+            cam = camGo.AddComponent<Camera>();
             cam.clearFlags = CameraClearFlags.SolidColor;
             cam.backgroundColor = new Color(0, 0, 0, 0);
             cam.fieldOfView = 30;
@@ -186,6 +187,8 @@ namespace FlickCurling.Game
 
         void OnDestroy()
         {
+            // the camera off its texture first (its scene goes only later, unloaded in the background)
+            if (cam) { cam.targetTexture = null; cam.enabled = false; }
             if (rt) { rt.Release(); Destroy(rt); }
             foreach (var m in materials) Destroy(m);
             if (scene.IsValid() && scene.isLoaded) SceneManager.UnloadSceneAsync(scene);
