@@ -622,7 +622,8 @@ namespace FlickCurling.Game
         {
             if (LsdDuel && m.InLsd && (state == St.Aim || state == St.LsdDuel)) return Phase.LsdDuel;
             if ((state == St.Aim || state == St.Remote) && !commit.HasValue) return Phase.Turn;
-            if (state == St.Coin && hud.CardVisible) return m.InLsd && m.Lsd != null && m.Lsd.Dist[0] == null ? Phase.LsdStartCard : Phase.LsdResultCard;
+            if (state == St.Coin && hud.CardVisible)
+                return m.InLsd && m.Lsd != null && m.Lsd.Dist[0] == null && m.Lsd.Idx < m.Lsd.Order.Length ? Phase.LsdStartCard : Phase.LsdResultCard;   // (a coin tossed: Idx past the end)
             if (state == St.EndCard && hud.CardVisible && m.NextStep() != AfterEnd.GameOver) return Phase.EndCard;
             if (state == St.EndCard || state == St.Over) return Phase.Over;
             return null;

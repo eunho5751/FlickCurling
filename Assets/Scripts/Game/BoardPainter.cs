@@ -317,7 +317,7 @@ namespace FlickCurling.Game
             return t;
         }
 
-        static Color[] StonePixels(Team team, int size)
+        internal static Color[] StonePixels(Team team, int size)
         {
             var px = new Color[size * size];
             float r = size / 2f - 1, c = size / 2f;

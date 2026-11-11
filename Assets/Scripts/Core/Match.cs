@@ -216,6 +216,20 @@ namespace FlickCurling.Core
             return win;
         }
 
+        /// <summary>
+        /// The turn order by a coin instead of the draw: the side it shows takes the first-end hammer. From the match's
+        /// seed (a stream of its own), so it comes up the same on every device; the draw then counts as done.
+        /// </summary>
+        public Team TossCoin()
+        {
+            var r = new Rng((ulong)(uint)Seed * 0xC2B2AE3D27D4EB4FUL ^ 0xC0170UL);
+            var win = r.NextDouble() < 0.5 ? Team.B : Team.W;
+            Hammer = win; Cur = Sheet.Other(win);
+            Stones.Clear();
+            Lsd.Idx = Lsd.Order.Length;
+            return win;
+        }
+
         public void FinishLsd() { InLsd = false; Lsd = null; }
 
         // ---------------- ends and shots ----------------

@@ -23,10 +23,16 @@ namespace FlickCurling.Game
         // each page: its key in the string table ("rules.<id>.title", "rules.<id>.<n>.k" / ".t"), and its items, one letter
         // each: 'i' a heading and its text, 's' a section's heading alone, 't' a term under a section (its own colour,
         // set in), 'p' a paragraph with no heading
-        static readonly (string id, string items)[] Pages =
+        static readonly (string id, string items)[] ThrowPages =
         {
             ("basics", "isttttt"), ("order", "iii"), ("end", "iii"), ("controls", "iiiii"), ("items", "iii"), ("itemkinds", "iiiii")
         };
+        // the turn order by a coin (GameConfig.coinToss): its own page in the same place
+        static readonly (string id, string items)[] CoinPages =
+        {
+            ("basics", "isttttt"), ("coin", "ii"), ("end", "iii"), ("controls", "iiiii"), ("items", "iii"), ("itemkinds", "iiiii")
+        };
+        static (string id, string items)[] Pages => GameConfig.Load().coinToss ? CoinPages : ThrowPages;
         static readonly Color TermColor = new Color32(0x34, 0x40, 0x6a, 0xff);   // the house's navy
         const float TermIndent = 22;
 

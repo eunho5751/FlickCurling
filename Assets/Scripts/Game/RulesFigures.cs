@@ -65,6 +65,15 @@ namespace FlickCurling.Game
                     f.Note(56, 150, "hud.hammer");   // (closer: goes second)
                     break;
                 }
+                case "coin":
+                {
+                    // the turn order coin, both faces, over the house
+                    f.Crop(134, 210, 0);
+                    float cy = (float)Sheet.TeeY, size = 34;
+                    f.Sized(CoinArt.Face(Team.B), (float)Sheet.TeeX - 22, cy, size);
+                    f.Sized(CoinArt.Face(Team.W), (float)Sheet.TeeX + 22, cy, size);
+                    break;
+                }
                 case "end":
                 {
                     f.Crop(134, 210, 0);

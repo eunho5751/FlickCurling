@@ -1095,6 +1095,42 @@ MonoBehaviour:
     m_Key: app.name
     m_Metadata:
       m_Items: []
+  - m_Id: 10137851909820416
+    m_Key: lsd.titleCoin
+    m_Metadata:
+      m_Items: []
+  - m_Id: 10137852085981184
+    m_Key: lsd.headCoin
+    m_Metadata:
+      m_Items: []
+  - m_Id: 10137852085981185
+    m_Key: lsd.toss
+    m_Metadata:
+      m_Items: []
+  - m_Id: 10137852085981186
+    m_Key: lsd.resultEyebrowCoin
+    m_Metadata:
+      m_Items: []
+  - m_Id: 10137852085981187
+    m_Key: rules.coin.title
+    m_Metadata:
+      m_Items: []
+  - m_Id: 10137852085981188
+    m_Key: rules.coin.1.k
+    m_Metadata:
+      m_Items: []
+  - m_Id: 10137852085981189
+    m_Key: rules.coin.1.t
+    m_Metadata:
+      m_Items: []
+  - m_Id: 10137852085981190
+    m_Key: rules.coin.2.k
+    m_Metadata:
+      m_Items: []
+  - m_Id: 10137852085981191
+    m_Key: rules.coin.2.t
+    m_Metadata:
+      m_Items: []
   m_Metadata:
     m_Items: []
   m_KeyGenerator:

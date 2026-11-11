@@ -47,6 +47,7 @@ namespace FlickCurling.Game
         void NewTutorialMatch(Team hammer)
         {
             int seed = fx.Next();
+            coinMatch = GameConfig.Load().coinToss;
             m = new Match(Maps.Build(mapKey), PhysicsParams.Default, seed) { Listener = new LiveEvents(this) };
             brain = new Ai(seed ^ 0x5bd1e995);
             m.Hammer = hammer;
@@ -145,6 +146,7 @@ namespace FlickCurling.Game
             tutorialBeforeDuel = beforeDuel;
             tutorialBeforeEnd = beforeEnd;
             int seed = fx.Next();
+            coinMatch = GameConfig.Load().coinToss;
             m = new Match(Maps.Build(mapKey), PhysicsParams.Default, seed) { Listener = new LiveEvents(this) };
             brain = new Ai(seed ^ 0x5bd1e995);
             m.StartMatch();   // the turn order shot first, as in any match (its card, then the draw thrown together)

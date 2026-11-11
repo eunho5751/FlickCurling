@@ -365,6 +365,24 @@ namespace FlickCurling.Tests
         }
 
         [Test]
+        public void CoinTossGivesTheHammerTheSameOnEveryDevice()
+        {
+            int black = 0;
+            for (int seed = 0; seed < 200; seed++)
+            {
+                var a = new Match(Maps.Build("base"), null, seed); a.StartMatch();
+                var b = new Match(Maps.Build("item"), null, seed); b.StartMatch();
+                var win = a.TossCoin();
+                Assert.AreEqual(win, b.TossCoin(), "the seed decides it (online, both devices)");
+                Assert.AreEqual(win, a.Hammer, "the side it shows goes second");
+                Assert.AreEqual(Sheet.Other(win), a.Cur);
+                Assert.AreEqual(a.Lsd.Order.Length, a.Lsd.Idx, "the draw counts as done");
+                if (win == Team.B) black++;
+            }
+            Assert.That(black, Is.InRange(70, 130), "either side, about as often");
+        }
+
+        [Test]
         public void LastStoneDrawTarget()
         {
             for (int seed = 0; seed < 200; seed++)

@@ -59,6 +59,8 @@ namespace FlickCurling.Game
         [Range(1f, 12f)] public float hitRingWidth = 3;
 
         [Header("Turn order shot")]
+        [Tooltip("The first end's order by a coin toss (the side the coin shows goes second) instead of the turn order shot thrown at a target. Online, both players' builds must agree")]
+        public bool coinToss = true;
         [Tooltip("Where the target's centre may be put, across the sheet: from (x) .. to (y), 0 the left rail, 1 the right")]
         public Vector2 lsdTargetX = new Vector2(0.15f, 0.85f);
         [Tooltip("Where the target's centre may be put, up the sheet: from (x) .. to (y), 0 the min line, 1 the out line")]

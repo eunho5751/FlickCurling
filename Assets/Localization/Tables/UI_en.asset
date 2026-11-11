@@ -1195,6 +1195,44 @@ MonoBehaviour:
     m_Localized: Flick Curling
     m_Metadata:
       m_Items: []
+  - m_Id: 10137851909820416
+    m_Localized: Turn Order
+    m_Metadata:
+      m_Items: []
+  - m_Id: 10137852085981184
+    m_Localized: The side the coin shows throws last in end 1!
+    m_Metadata:
+      m_Items: []
+  - m_Id: 10137852085981185
+    m_Localized: Toss the coin
+    m_Metadata:
+      m_Items: []
+  - m_Id: 10137852085981186
+    m_Localized: Coin toss result
+    m_Metadata:
+      m_Items: []
+  - m_Id: 10137852085981187
+    m_Localized: Turn Order
+    m_Metadata:
+      m_Items: []
+  - m_Id: 10137852085981188
+    m_Localized: Coin toss
+    m_Metadata:
+      m_Items: []
+  - m_Id: 10137852085981189
+    m_Localized: Before the match, a coin is tossed for the first end's order. One
+      face shows a black stone, the other a white one.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 10137852085981190
+    m_Localized: Its side goes second
+    m_Metadata:
+      m_Items: []
+  - m_Id: 10137852085981191
+    m_Localized: 'The side whose stone comes up goes second: it throws the end''s
+      last stone, the better place to be.'
+    m_Metadata:
+      m_Items: []
   references:
     version: 2
     RefIds:

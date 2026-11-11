@@ -279,10 +279,10 @@ namespace FlickCurling.Game
         void OnEnable() => EnhancedTouchSupport.Enable();
         void OnDisable() => EnhancedTouchSupport.Disable();
 
-        // the sheet: for the turn order shot without its house, and its target on it instead
+        // the sheet: for the turn order shot without its house, and its target on it instead (a coin toss keeps the house)
         void ShowField(Field f)
         {
-            bool house = !(m != null && m.InLsd);
+            bool house = !(m != null && m.InLsd && !coinMatch);
             ShowTarget();
             if (shownField == f && shownHouse == house) return;
             shownField = f; shownHouse = house;
@@ -302,7 +302,7 @@ namespace FlickCurling.Game
         SpriteRenderer target;
         void ShowTarget()
         {
-            bool on = m != null && m.InLsd && m.Lsd != null;
+            bool on = m != null && m.InLsd && m.Lsd != null && !coinMatch;
             if (!target)
             {
                 if (!on) return;
@@ -336,6 +336,7 @@ namespace FlickCurling.Game
             int seed = md == Mode.Online ? Online.OnlineLobby.Seed : fx.Next();
             Ui.Flip = md == Mode.Online && Online.OnlineLobby.MyTeam == Team.W;
             OnlineReset();
+            coinMatch = GameConfig.Load().coinToss;
             m = new Match(Maps.Build(key), PhysicsParams.Default, seed) { Listener = new LiveEvents(this) };
             brain = new Ai(seed ^ 0x5bd1e995);
             m.StartMatch();
@@ -356,11 +357,25 @@ namespace FlickCurling.Game
         void LsdStartCard() => ShowCard(() => new CardSpec
         {
             Eyebrow = Loc.T("lsd.eyebrow", ("map", Loc.Map(mapKey)), ("mode", ModeName())),
-            Title = Loc.T("lsd.title"),
-            Head = Loc.T("lsd.head"),
+            Title = Loc.T(coinMatch ? "lsd.titleCoin" : "lsd.title"),
+            Head = Loc.T(coinMatch ? "lsd.headCoin" : "lsd.head"),
             Countdown = CardCountdown,
-            Buttons = { SyncButton(CardLsdStart, Loc.T("lsd.start"), LsdShot) }
+            Buttons = { coinMatch ? SyncButton(CardLsdStart, Loc.T("lsd.toss"), CoinToss) : SyncButton(CardLsdStart, Loc.T("lsd.start"), LsdShot) }
         });
+
+        // ---- the coin toss (GameConfig.coinToss): the side it shows goes second ----
+
+        bool coinMatch;   // this match's turn order is a coin toss (taken from GameConfig as it starts)
+
+        void CoinToss()
+        {
+            var win = m.TossCoin();   // (from the seed: online, the same on both devices)
+            state = St.Coin;
+            RenderHud();
+            sfx.Pop();
+            int tok = token;
+            hud.CoinToss(Ui.Shown(win), () => { if (tok == token) sfx.TurnStart(); }, () => { if (tok == token) LsdResultCard(win); });
+        }
 
         string ModeName()
         {
@@ -429,7 +444,7 @@ namespace FlickCurling.Game
             RenderHud();
             ShowCard(() => new CardSpec
             {
-                Eyebrow = Loc.T("lsd.resultEyebrow"),
+                Eyebrow = Loc.T(coinMatch ? "lsd.resultEyebrowCoin" : "lsd.resultEyebrow"),
                 Title = Loc.T("lsd.hasHammer", ("first", SideOf(Sheet.Other(win), 110)), ("name", SideOf(win, 110))),
                 Countdown = CardCountdown,
                 Buttons = { SyncButton(CardLsdResult, Loc.T("end.start", ("n", 1)), () => { m.FinishLsd(); StartEnd(); }) }

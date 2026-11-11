@@ -180,6 +180,10 @@ namespace FlickCurling.EditorTools
             new[] { "lsd.hasHammer", "{first}<voffset=0.12em> <color=#d9a54c>선공</color>│</voffset>{name}<voffset=0.12em> <color=#d9a54c>후공</color></voffset>", "{first}<voffset=0.12em> <color=#d9a54c>First</color>│</voffset>{name}<voffset=0.12em> <color=#d9a54c>Last</color></voffset>", "{first}<voffset=0.12em><color=#d9a54c>先攻</color>│</voffset>{name}<voffset=0.12em><color=#d9a54c>後攻</color></voffset>" },
             new[] { "lsd.shortOfHog", "최소 라인에 못 미쳤습니다.", "It stopped short of the min line.", "最小ラインに届きませんでした。" },
             new[] { "lsd.offSheet", "시트 밖으로 나갔습니다.", "It went off the sheet.", "シートの外に出ました。" },
+            new[] { "lsd.titleCoin", "선후공 정하기", "Turn Order", "先攻・後攻決め" },
+            new[] { "lsd.headCoin", "동전에 나온 쪽이 1엔드의 후공이 됩니다!", "The side the coin shows throws last in end 1!", "コインに出た方が1エンドの後攻になります！" },
+            new[] { "lsd.toss", "코인 토스", "Toss the coin", "コイントス" },
+            new[] { "lsd.resultEyebrowCoin", "코인 토스 결과", "Coin toss result", "コイントスの結果" },
 
             // ---- ends ----
             new[] { "end.start", "{n}엔드 시작", "Start end {n}", "第{n}エンド開始" },
@@ -244,6 +248,11 @@ namespace FlickCurling.EditorTools
             new[] { "rules.order.2.t", "표적 중심에 더 가까이 세운 쪽이 후공이 돼요. 후공은 엔드의 마지막 알을 던지는 유리한 쪽이에요.", "Whoever stops closer to the target's centre goes second, with the advantage of throwing the end's last stone.", "的の中心に近く止めたほうが後攻になります。後攻はエンドの最後の石を投げる有利な側です。" },
             new[] { "rules.order.3.k", "기록이 없거나 같을 때", "No record, or level", "記録なし・同じとき" },
             new[] { "rules.order.3.t", "최소 라인을 넘지 못하거나 아웃된 알은 기록이 없어요. 둘의 기록이 같으면 무작위로 정해요.", "A stone short of the min line or out has no record. If the two records are level, it's decided at random.", "最小ラインを越えない石やアウトの石は記録なしです。二人の記録が同じならランダムで決めます。" },
+            new[] { "rules.coin.title", "선후공 정하기", "Turn Order", "先攻・後攻決め" },
+            new[] { "rules.coin.1.k", "코인 토스", "Coin toss", "コイントス" },
+            new[] { "rules.coin.1.t", "경기를 시작하기 전에 동전을 던져 첫 엔드의 선후공을 정해요. 동전의 앞뒤에는 흑알과 백알이 그려져 있어요.", "Before the match, a coin is tossed for the first end's order. One face shows a black stone, the other a white one.", "試合の前にコインを投げて、最初のエンドの先攻・後攻を決めます。コインの表と裏には黒い石と白い石が描かれています。" },
+            new[] { "rules.coin.2.k", "나온 쪽이 후공", "Its side goes second", "出た方が後攻" },
+            new[] { "rules.coin.2.t", "동전에 나온 알의 쪽이 후공이 돼요. 후공은 엔드의 마지막 알을 던지는 유리한 쪽이에요.", "The side whose stone comes up goes second: it throws the end's last stone, the better place to be.", "コインに出た石の方が後攻になります。後攻はエンドの最後の石を投げる有利な側です。" },
             new[] { "rules.end.title", "엔드 진행", "Playing an End", "エンドの進め方" },
             new[] { "rules.end.1.k", "턴", "Turns", "順番" },
             new[] { "rules.end.1.t", "•<indent=1em>엔드가 시작되면 선공은 하우스 앞에 보너스 가드 알 하나를 두고 시작해요.</indent>\n•<indent=1em>선공부터 흑과 백이 한 알씩 번갈아 {shots}알씩 던지고, 마지막 알은 후공이 던져요.</indent>\n•<indent=1em>턴마다 {seconds}초 안에 던져야 해요. 최소 라인 위 심지가 다 타면 그 알을 잃어요.</indent>", "•<indent=1em>Each end starts with a bonus guard stone in front of the house for the side going first.</indent>\n•<indent=1em>Starting with that side, Black and White throw one stone at a time, {shots:plural:{} stone|{} stones} each; the side going second throws the last one.</indent>\n•<indent=1em>You have {seconds} seconds a turn. When the fuse over the min line burns out, you lose that stone.</indent>", "•<indent=1em>エンドが始まると、先攻はハウスの前にボーナスガードの石を1個置いてスタートします。</indent>\n•<indent=1em>先攻から黒と白が1個ずつ交互に{shots}個ずつ投げ、最後の石は後攻が投げます。</indent>\n•<indent=1em>毎回{seconds}秒以内に投げる必要があります。最小ラインの上の導火線が燃え尽きるとその石を失います。</indent>" },
