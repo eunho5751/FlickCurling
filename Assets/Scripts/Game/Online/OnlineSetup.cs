@@ -12,7 +12,7 @@ namespace FlickCurling.Game.Online
     /// The popup the main menu's "Online Match" button opens (built by MainMenuBuilder on the shared Popup, like the
     /// offline one): the opponent (random, or a friend) and the map (mode).
     /// Random: OK starts looking for an opponent; while it looks, the button shows the time spent ("00:00"), and pressing
-    /// it again or closing the popup stops. Once an opponent is found the match can no longer be cancelled: the Game
+    /// it again, choosing another map (mode) or closing the popup stops. Once an opponent is found the match can no longer be cancelled: the Game
     /// scene opens on it (and if the two cannot be connected there, the menu comes back with this popup looking again).
     /// A friend: "create room" opens a private room on the chosen map and shows its code (copy, share; cancel closes it;
     /// GameConfig.friendRoomMinutes without the friend and it closes itself), "enter code" joins a friend's room by its
@@ -68,6 +68,7 @@ namespace FlickCurling.Game.Online
             label = ok.GetComponentInChildren<TextMeshProUGUI>(true);
             labelLoc = ok.GetComponentInChildren<LocalizeStringEvent>(true);
             mode.Changed += _ => ShowChoice();
+            map.Changed += _ => Stop();   // another mode while looking: that search is off (OK starts one for the new mode)
             createRoom.onClick.AddListener(CreateRoom);
             enterCode.onClick.AddListener(EnterCode);
             copy.onClick.AddListener(Copy);
