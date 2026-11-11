@@ -86,8 +86,8 @@ namespace FlickCurling.Game
 
         // ---------------- what happens on the sheet ----------------
 
-        const int FxSparkle = 0, FxPoof = 1, FxCrack = 2, FxBoom = 3;
-        sealed class ItemFx { public int Kind; public float X, Y, T, Dur; }
+        const int FxSparkle = 0, FxPoof = 1, FxCrack = 2, FxBoom = 3, FxSpark = 4;
+        sealed class ItemFx { public int Kind; public float X, Y, T, Dur, Ang, K; }   // (Ang, K: a spark's direction and strength)
         readonly List<ItemFx> itemFx = new List<ItemFx>();
         readonly Dictionary<int, float> boxBorn = new Dictionary<int, float>();   // when a box (by id) appeared where it is
 
@@ -114,6 +114,21 @@ namespace FlickCurling.Game
                     break;
             }
         }
+
+        // two stones meeting (strength 0..1, as the hit's sound): a small spark at the point they touch; the softest
+        // touches none
+        void Spark(Stone a, Stone b, float k)
+        {
+            if (k < SparkMin) return;
+            float t = (float)(a.Rad / (a.Rad + b.Rad));
+            itemFx.Add(new ItemFx
+            {
+                Kind = FxSpark, Dur = 0.22f + 0.1f * Mathf.Clamp01(k),
+                X = (float)(a.X + (b.X - a.X) * t), Y = (float)(a.Y + (b.Y - a.Y) * t),
+                Ang = (float)fx.NextDouble() * Mathf.PI * 2, K = Mathf.Clamp01(k),
+            });
+        }
+        const float SparkMin = 0.08f;
 
         void OnItemBomb(Stone s)
         {
@@ -379,6 +394,19 @@ namespace FlickCurling.Game
                             over.Line(c + d * (1 + 6 * e), c + d * (2.5f + 6 * e), U(2.5f), Palette.Rgba(110, 70, 30, fade));
                         }
                         break;
+                    case FxSpark:
+                    {
+                        // two stones meeting: a quick white flash and a few short streaks flying off it, as hard as they hit
+                        over.Disc(c, (0.6f + 1.4f * f.K) * fade, Palette.Rgba(255, 252, 235, .85f * fade));
+                        for (int i = 0; i < 5; i++)
+                        {
+                            float ang = f.Ang + i * Mathf.PI * 2 / 5 + (i % 2) * 0.35f;
+                            var d = new Vector2(Mathf.Cos(ang), Mathf.Sin(ang));
+                            float reach = (2.5f + 4.5f * f.K) * (i % 2 == 0 ? 1 : 0.7f), r0 = 0.8f + reach * e, r1 = r0 + 1.6f * fade * (0.5f + f.K);
+                            over.Line(c + d * r0, c + d * r1, U(1.6f), Palette.Rgba(255, 228, 150, fade));
+                        }
+                        break;
+                    }
                     case FxBoom:
                         over.Disc(c, (float)Sheet.BombR * (0.3f + 0.7f * e), Palette.Rgba(255, 160, 60, .35f * fade));
                         over.Ring(c, (float)Sheet.BombR * e, U(4 * fade + 1), Palette.Rgba(255, 220, 140, .9f * fade));
